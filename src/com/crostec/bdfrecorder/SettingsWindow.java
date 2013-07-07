@@ -163,7 +163,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                     adsDataFrameSize = AdsUtils.getDecodedFrameSize(bdfHeaderData.getAdsConfiguration());
                     adsDataFrameCounter = 0;
                     adsDataFrameFrequency = bdfHeaderData.getAdsConfiguration().getSps().getValue() / AdsChannelConfiguration.MAX_DIV.getValue();
-                    setProcessReport("Connectiong...");
+                    setProcessReport("Connecting...");
                     controller.startRecording(bdfHeaderData);
                 }
             }
@@ -237,7 +237,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
 
         for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getAdsChannels().size(); i++) {
-            channelsPanel.add(new JLabel(" " + i + " "));
+            channelsPanel.add(new JLabel(" " + (i+1) + " "));
             channelsPanel.add(channelEnable[i]);
             channelsPanel.add(channelName[i]);
             channelsPanel.add(channelFrequency[i]);
@@ -252,7 +252,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
 
         // Add line of accelerometer
-        channelsPanel.add(new JLabel(" " + bdfHeaderData.getAdsConfiguration().getAdsChannels().size() + " "));
+        channelsPanel.add(new JLabel(" " + (1 + bdfHeaderData.getAdsConfiguration().getAdsChannels().size()) + " "));
         channelsPanel.add(accelerometerEnable);
         channelsPanel.add(accelerometerName);
         channelsPanel.add(accelerometerFrequency);
