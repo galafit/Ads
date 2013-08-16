@@ -8,6 +8,7 @@ import java.awt.event.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -20,7 +21,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private int adsDataFrameSize;
     private int adsDataFrameCounter;
     private int adsDataFrameFrequency;
-//    public static final String FILENAME_PATTERN = "dd-mm-yyyy_hh-mm.bdf";
+    //    public static final String FILENAME_PATTERN = "dd-mm-yyyy_hh-mm.bdf";
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
     private String spsLabel = "Sampling Frequency (Hz)";
@@ -32,7 +33,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JTextField[] channelName;
     private JCheckBox[] channelDrlEnabled;
     private JCheckBox[] channelLoffEnable;
-    private JTextField[] channelElectrodeType;
 
     private JComboBox accelerometerFrequency;
     private JTextField accelerometerName;
@@ -96,7 +96,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         channelFrequency = new JComboBox[adsChannelsNumber];
         channelEnable = new JCheckBox[adsChannelsNumber];
         channelName = new JTextField[adsChannelsNumber];
-        channelElectrodeType = new JTextField[adsChannelsNumber];
         channelLoffStatPositive = new MarkerLabel[adsChannelsNumber];
         channelLoffStatNegative = new MarkerLabel[adsChannelsNumber];
         channelDrlEnabled = new JCheckBox[adsChannelsNumber];
@@ -237,7 +236,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
 
         for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getAdsChannels().size(); i++) {
-            channelsPanel.add(new JLabel(" " + (i+1) + " "));
+            channelsPanel.add(new JLabel(" " + (i + 1) + " "));
             channelsPanel.add(channelEnable[i]);
             channelsPanel.add(channelName[i]);
             channelsPanel.add(channelFrequency[i]);
@@ -417,25 +416,24 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     public void updateLoffStatus(int loffStatusRegisterValue) {
-        if ((loffStatusRegisterValue & 8) == 0) {
-            channelLoffStatPositive[0].setIcon(iconConnected);
-        } else {
-            channelLoffStatPositive[0].setIcon(iconDisconnected);
-        }
-        if ((loffStatusRegisterValue & 16) == 0) {
-            channelLoffStatNegative[0].setIcon(iconConnected);
-        } else {
-            channelLoffStatNegative[0].setIcon(iconDisconnected);
-        }
-        if ((loffStatusRegisterValue & 32) == 0) {
-            channelLoffStatPositive[1].setIcon(iconConnected);
-        } else {
-            channelLoffStatPositive[1].setIcon(iconDisconnected);
-        }
-        if ((loffStatusRegisterValue & 64) == 0) {
-            channelLoffStatNegative[1].setIcon(iconConnected);
-        } else {
-            channelLoffStatNegative[1].setIcon(iconDisconnected);
+        List<AdsChannelConfiguration> channelsList = bdfHeaderData.getAdsConfiguration().getAdsChannels();
+        for (int i = 0; i < 8; i++) {
+            AdsChannelConfiguration channelConfiguration = channelsList.get(i);
+            if (channelConfiguration.isEnabled() && channelConfiguration.getCommutatorState() == CommutatorState.INPUT) {
+                if ((loffStatusRegisterValue & (int) Math.pow(2, i + 8)) == 0) {
+                    channelLoffStatPositive[i].setIcon(iconConnected);
+                } else {
+                    channelLoffStatPositive[i].setIcon(iconDisconnected);
+                }
+                if ((loffStatusRegisterValue & (int) Math.pow(2, i)) == 0) {
+                    channelLoffStatNegative[i].setIcon(iconConnected);
+                } else {
+                    channelLoffStatNegative[i].setIcon(iconDisconnected);
+                }
+            }else {
+                channelLoffStatPositive[i].setIcon(iconDisabled);
+                channelLoffStatNegative[i].setIcon(iconDisabled);
+            }
         }
     }
 
@@ -622,7 +620,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     public void onAdsDataReceived(final int[] dataFrame) {
         //update GUI every second
         adsDataFrameCounter++;
-        if (adsDataFrameCounter % adsDataFrameFrequency  == 0) {
+        if (adsDataFrameCounter % adsDataFrameFrequency == 0) {
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {

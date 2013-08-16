@@ -12,8 +12,7 @@ public enum Sps {
 
     private int registerBits;
     private int value;
-    private Divider[] accelerometerDivider = {Divider.D25, Divider.D50};
-//    private Divider[] accelerometerDivider = {Divider.D10, Divider.D25, Divider.D50};
+    private Divider[] accelerometerDivider = {Divider.D1, Divider.D2, Divider.D5, Divider.D10};
 
 
     private Sps(int registerBits, int value) {

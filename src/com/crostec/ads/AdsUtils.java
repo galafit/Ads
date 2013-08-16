@@ -29,7 +29,7 @@ public class AdsUtils {
         for (Integer divider : getDividersForActiveChannels(adsConfiguration)) {
             frameSize += AdsChannelConfiguration.MAX_DIV.getValue() / divider;
         }
-        return frameSize + 2; //1 value for counter and 1 for loff status
+        return frameSize + 1; //1 value for loff status
     }
 
     /**

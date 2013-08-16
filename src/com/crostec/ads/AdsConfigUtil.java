@@ -5,7 +5,7 @@ package com.crostec.ads;
  */
 public class AdsConfigUtil {
 
-    public static final int NUMBER_OF_CHANNELS = 2;
+    public static final int NUMBER_OF_CHANNELS = 8;
     AdsConfigProperties adsConfigProperties = new AdsConfigProperties();
 
     public  AdsConfiguration readConfiguration() {

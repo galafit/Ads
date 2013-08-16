@@ -32,7 +32,7 @@ public class Ads {
             comPort = new ComPort();
             comPort.connect(adsConfiguration.getComPortName());
             comPort.setFrameDecoder(frameDecoder);
-            comPort.writeToPort(new AdsConfigurator().writeAdsConfiguration(adsConfiguration));
+            comPort.writeToPort(new AdsConfigurator8Ch().writeAdsConfiguration(adsConfiguration));
             isRecording = true;
         } catch (NoSuchPortException e) {
             String msg = "No port with the name " + adsConfiguration.getComPortName() + "\n" + failConnectMessage;
@@ -50,6 +50,11 @@ public class Ads {
     public void stopRecording() {
         if (!isRecording) return;
         comPort.writeToPort(new AdsConfigurator().startPinLo());
+       /* try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            log.warn(e);
+        }*/
         comPort.disconnect();
     }
 

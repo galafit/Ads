@@ -15,6 +15,15 @@ public class AdsConfiguration {
     private boolean isAccelerometerEnabled = true;
     private Divider accelerometerDivider = Divider.D10;
     private String comPortName = "COM1";
+    private boolean isHighResolutionMode = true;
+
+    public boolean isHighResolutionMode() {
+        return isHighResolutionMode;
+    }
+
+    public void setHighResolutionMode(boolean highResolutionMode) {
+        isHighResolutionMode = highResolutionMode;
+    }
 
     public String getComPortName() {
         return comPortName;
@@ -33,9 +42,9 @@ public class AdsConfiguration {
     }
 
     public void setAccelerometerDivider(Divider accelerometerDivider) {
-        if(accelerometerDivider.getValue() < Divider.D10.getValue()){
+      /*  if(accelerometerDivider.getValue() < Divider.D10.getValue()){
             throw new IllegalArgumentException("Accelerometer divider " + accelerometerDivider.getValue()+" not supported. Possible values: 50, 25 or 10.");
-        }
+        }*/
         this.accelerometerDivider = accelerometerDivider;
     }
 

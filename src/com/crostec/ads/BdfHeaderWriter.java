@@ -27,8 +27,8 @@ class BdfHeaderWriter {
 
         String channelsDigitalMaximum = "8388607";
         String channelsDigitalMinimum = "-8388608";
-        String channelsPhysicalMaximum = "1209600";  // todo function(channel.gain)
-        String channelsPhysicalMinimum = "-1209600"; // todo function(channel.gain)
+        String channelsPhysicalMaximum = "403200";  // todo function(channel.gain)
+        String channelsPhysicalMinimum = "-403200"; // todo function(channel.gain)
 
         String accelerometerDigitalMaximum = "1024";
         String accelerometerDigitalMinimum = "-1024";

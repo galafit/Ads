@@ -16,8 +16,9 @@ abstract class FrameDecoder {
 
     public FrameDecoder(AdsConfiguration configuration) {
         decodedFrameSize = AdsUtils.getDecodedFrameSize(configuration);
-        rawFrameSize = ((decodedFrameSize - 2) * 3) + 3; //3 bytes for each ads channel value or accelerometer value + 1 byte marker + 1 byte counter + 1 byte loff status
+        rawFrameSize = ((decodedFrameSize - 1) * 3) + 3; //3 bytes for each ads channel value or accelerometer value + 1 byte marker + 2 bytes loff status
         rawFrame = new int[rawFrameSize];
+        log.info("frame size " + rawFrameSize + "bytes");
     }
 
     public void onByteReceived(int inByte) {
@@ -39,11 +40,10 @@ abstract class FrameDecoder {
 
     private void onFrameReceived() {
         int[] decodedFrame = new int[decodedFrameSize];
-        for (int i = 0; i < decodedFrameSize - 2; i++) {
+        for (int i = 0; i < decodedFrameSize - 1; i++) {
             decodedFrame[i] = (((rawFrame[i * 3 + 3] << 24) + ((rawFrame[i * 3 + 2]) << 16) + (rawFrame[i * 3 + 1] << 8)) / 256);
         }
-        decodedFrame[decodedFrame.length - 2] = rawFrame[rawFrame.length - 2];  //counter value
-        decodedFrame[decodedFrame.length - 1] = rawFrame[rawFrame.length - 1];  //loff status
+        decodedFrame[decodedFrame.length - 1] = (rawFrame[rawFrame.length - 2] << 8) + rawFrame[rawFrame.length - 1];  //loff status
         notifyListeners(decodedFrame);
     }
 
