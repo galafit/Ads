@@ -44,7 +44,7 @@ public enum Sps {
         Integer[] frequencies = new Integer[accelerometerDivider.length];
         int i = 0;
         for (Divider divider : accelerometerDivider) {
-            frequencies[i] = (Integer) value / divider.getValue();
+            frequencies[i] = value / divider.getValue();
             i++;
         }
         return frequencies;

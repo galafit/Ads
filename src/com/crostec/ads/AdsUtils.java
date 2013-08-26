@@ -34,7 +34,7 @@ public class AdsUtils {
 
     /**
      * convert int data format to 24 bit (3 bytes) data format valid for Bdf and
-     * change Big_endian dateFormat of numbers (java)  to Little_endian dateFormat (for bdf and microcontroller)
+     * change Big_endian (java)  to Little_endian (for bdf)
      */
     public static byte[] to24BitLittleEndian(int value) {
         int sizeOfInt = 4;

@@ -27,27 +27,17 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
 
         result.addAll(writeRegister(0x41, getRegister_1Value(adsConfiguration)));  //set SPS
         result.addAll(writeRegister(0x42, testSignalEnabledBits(adsConfiguration)));  //test signal
-       result.addAll(writeRegister(0x43, 0xDC));  //internal reference, RLD ref signal, RLD on todo remove
-        /*result.addAll(writeRegister(0x44, 0x13));  //DC lead off detection
-        result.addAll(writeRegister(0x57, 0x02));  //turn on loff comparators
-        result.addAll(writeRegister(0x4F, 0xFF));  //loff sens positive
-        result.addAll(writeRegister(0x50, 0xFF));  //loff sens negative*/
         for (int i = 0; i < 8; i++) {
             result.addAll(writeRegister(0x45 + i, getChanelRegisterValue(adsConfiguration.getAdsChannels().get(i))));
         }
-//        result.addAll(writeRegister(0x45,0x20));
-       result.addAll(writeRegister(0x46, 0x22));//2nd channel rld measure todo remove
         int rlsSensBits = getRLDSensBits(adsConfiguration.getAdsChannels());
         result.addAll(writeRegister(0x4D, rlsSensBits));  //RLD sens positive
         result.addAll(writeRegister(0x4E, rlsSensBits));  //RLD sens negative
-//        result.addAll(writeRegister(0x4D, 0x00));  //RLD sens positive
-//        result.addAll(writeRegister(0x4E, 0x00));  //RLD sens negative
         result.addAll(writeConfigDataReceivedCode());
         return result;
     }
 
     private int getRegister_1Value(AdsConfiguration adsConfiguration) {
-//        int registerValue = adsConfiguration.isHighResolutionMode() ? 0x80 : 0x00;
         int registerValue = 0;
         if (adsConfiguration.isHighResolutionMode()) {
             switch (adsConfiguration.getSps()) {

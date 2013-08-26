@@ -42,9 +42,6 @@ public class AdsConfiguration {
     }
 
     public void setAccelerometerDivider(Divider accelerometerDivider) {
-      /*  if(accelerometerDivider.getValue() < Divider.D10.getValue()){
-            throw new IllegalArgumentException("Accelerometer divider " + accelerometerDivider.getValue()+" not supported. Possible values: 50, 25 or 10.");
-        }*/
         this.accelerometerDivider = accelerometerDivider;
     }
 
