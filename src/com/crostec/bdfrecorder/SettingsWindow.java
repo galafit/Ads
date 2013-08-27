@@ -421,6 +421,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             bdfHeaderData.getAdsChannelNames().add(getChannelName(i));
             channel.setDivider(getChannelDivider(i));
             channel.setEnabled(isChannelEnable(i));
+            channel.setGain(getChannelGain(i));
+            channel.setCommutatorState(getChannelCommutatorState(i));
         }
         bdfHeaderData.getAdsConfiguration().setAccelerometerEnabled(isAccelerometerEnable());
         bdfHeaderData.getAdsConfiguration().setAccelerometerDivider(getAccelerometerDivider());
@@ -508,6 +510,13 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         return (Integer) channelFrequency[channelNumber].getSelectedItem();
     }
 
+    private Gain getChannelGain(int channelNumber) {
+        return Gain.valueOf(((Integer)channelGain[channelNumber].getSelectedItem()));
+    }
+
+    private CommutatorState getChannelCommutatorState(int channelNumber) {
+        return CommutatorState.valueOf(((String)channelCommutatorState[channelNumber].getSelectedItem()));
+    }
 
     private boolean isChannelEnable(int channelNumber) {
         return channelEnable[channelNumber].isSelected();

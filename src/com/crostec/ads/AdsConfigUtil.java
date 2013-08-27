@@ -35,6 +35,8 @@ public class AdsConfigUtil {
         for (int i = 0; i < NUMBER_OF_CHANNELS; i++) {
             AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
             adsConfigProperties.setChannelDivider(i, channel.getDivider());
+            adsConfigProperties.setChannelGain(i, channel.getGain());
+            adsConfigProperties.setChannelCommutatorState(i, channel.getCommutatorState());
             adsConfigProperties.setChannelEnabled(i, channel.isEnabled());
             adsConfigProperties.setChannelLoffEnabled(i, channel.isLoffEnable());
             adsConfigProperties.setChannelRldSenseEnabled(i, channel.isRldSenseEnabled());

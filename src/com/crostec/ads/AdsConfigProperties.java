@@ -111,6 +111,14 @@ class AdsConfigProperties {
         config.setProperty(CHANNEL_DIVIDER + channelNumber, divider);
     }
 
+    public void setChannelGain(int channelNumber, Gain gain) {
+        config.setProperty(CHANNEL_GAIN + channelNumber, gain);
+    }
+
+    public void setChannelCommutatorState(int channelNumber, CommutatorState commutatorState) {
+        config.setProperty(CHANNEL_COMMUTATOR_STATE + channelNumber, commutatorState);
+    }
+
     public void setAccelerometerDivider(Divider divider) {
         config.setProperty(ACCELEROMETER_DIVIDER, divider);
     }
