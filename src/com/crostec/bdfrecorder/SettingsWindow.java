@@ -21,7 +21,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private int adsDataFrameSize;
     private int adsDataFrameCounter;
     private int adsDataFrameFrequency;
-    //    public static final String FILENAME_PATTERN = "dd-mm-yyyy_hh-mm.bdf";
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
     private String spsLabel = "Sampling Frequency (Hz)";
@@ -29,10 +28,10 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JComboBox spsField;
     private JTextField comPortName;
     private JComboBox[] channelFrequency;
+    private JComboBox[] channelGain;
+    private JComboBox[] channelCommutatorState;
     private JCheckBox[] channelEnable;
     private JTextField[] channelName;
-    private JCheckBox[] channelDrlEnabled;
-    private JCheckBox[] channelLoffEnable;
 
     private JComboBox accelerometerFrequency;
     private JTextField accelerometerName;
@@ -42,13 +41,9 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private JTextField fileToSave;
 
-    private boolean isAdvanced = false;
     private String start = "Start";
     private String stop = "Stop";
     private JButton startButton = new JButton(start);
-
-    private String advancedLabel = "Advanced";
-    private JButton advancedButton = new JButton();
 
     private Color colorProcess = Color.GREEN;
     private Color colorProblem = Color.RED;
@@ -64,7 +59,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private MarkerLabel[] channelLoffStatPositive;
     private MarkerLabel[] channelLoffStatNegative;
     private String title = "EDF Recorder";
-    private JComponent[] channelsHeaders = {new JLabel("Number"), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"), new JLabel("Lead Off Detection"), new JLabel("DRL"), new JLabel("Lead Off"), advancedButton};
+    private JComponent[] channelsHeaders = {new JLabel("Number"), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"),
+            new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Lead Off Detection"), new JLabel(" ")};
 
 
     public SettingsWindow(Controller controller, BdfHeaderData bdfHeaderData) {
@@ -79,7 +75,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void init() {
         int adsChannelsNumber = bdfHeaderData.getAdsConfiguration().getAdsChannels().size();
-        advancedButton.setIcon(iconShow);
 
         spsField = new JComboBox(Sps.values());
         spsField.setSelectedItem(bdfHeaderData.getAdsConfiguration().getSps());
@@ -94,27 +89,25 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         fileToSave = new JTextField(textFieldLength);
 
         channelFrequency = new JComboBox[adsChannelsNumber];
+        channelGain = new JComboBox[adsChannelsNumber];
+        channelCommutatorState = new JComboBox[adsChannelsNumber];
         channelEnable = new JCheckBox[adsChannelsNumber];
         channelName = new JTextField[adsChannelsNumber];
         channelLoffStatPositive = new MarkerLabel[adsChannelsNumber];
         channelLoffStatNegative = new MarkerLabel[adsChannelsNumber];
-        channelDrlEnabled = new JCheckBox[adsChannelsNumber];
-        channelLoffEnable = new JCheckBox[adsChannelsNumber];
         textFieldLength = 16;
         for (int i = 0; i < adsChannelsNumber; i++) {
             channelFrequency[i] = new JComboBox();
+            channelGain[i] = new JComboBox();
+            channelCommutatorState[i] = new JComboBox();
             channelEnable[i] = new JCheckBox();
             channelName[i] = new JTextField(textFieldLength);
-            // channelElectrodeType[i] = new JTextField(textFieldLength);
-            channelDrlEnabled[i] = new JCheckBox();
-            channelLoffEnable[i] = new JCheckBox();
             channelLoffStatPositive[i] = new MarkerLabel(iconDisabled);
             channelLoffStatNegative[i] = new MarkerLabel(iconDisabled);
         }
         accelerometerEnable = new JCheckBox();
         accelerometerName = new JTextField(textFieldLength);
         accelerometerFrequency = new JComboBox();
-        setAdvanced();
     }
 
     private void setActions() {
@@ -167,15 +160,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                 }
             }
         });
-
-        advancedButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                setAdvanced();
-            }
-        });
-
-        advancedButton.setToolTipText(advancedLabel);
 
         patientIdentification.addFocusListener(new FocusAdapter() {
             @Override
@@ -240,13 +224,12 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             channelsPanel.add(channelEnable[i]);
             channelsPanel.add(channelName[i]);
             channelsPanel.add(channelFrequency[i]);
+            channelsPanel.add(channelGain[i]);
+            channelsPanel.add(channelCommutatorState[i]);
             JPanel loffPanel = new JPanel();
             loffPanel.add(channelLoffStatPositive[i]);
             loffPanel.add(channelLoffStatNegative[i]);
             channelsPanel.add(loffPanel);
-            // channelsPanel.add(channelElectrodeType[i]);
-            channelsPanel.add(channelDrlEnabled[i]);
-            channelsPanel.add(channelLoffEnable[i]);
             channelsPanel.add(new JLabel(" "));
         }
 
@@ -276,7 +259,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         vgap = 0;
         JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
         identificationPanel.add(patientPanel);
-        identificationPanel.add(new Label("    "));
+//        identificationPanel.add(new Label("    "));
         identificationPanel.add(recordingPanel);
 
         hgap = 15;
@@ -341,9 +324,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             channelEnable[i].setEnabled(isEnable);
             channelName[i].setEnabled(isEnable);
             channelFrequency[i].setEnabled(isEnable);
-            channelDrlEnabled[i].setEnabled(isEnable);
-            channelLoffEnable[i].setEnabled(isEnable);
-            // channelElectrodeType[i].setEnabled(isEnable);
+            channelGain[i].setEnabled(isEnable);
+            channelCommutatorState[i].setEnabled(isEnable);
         }
     }
 
@@ -380,14 +362,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         setReport(report, colorProcess);
     }
 
-    public void setProblemReport(String report) {
-        setReport(report, colorProblem);
-    }
-
-    public void setReport(String report) {
-        setReport(report, colorInfo);
-    }
-
     private void loadDataFromModel() {
         spsField.setSelectedItem(bdfHeaderData.getAdsConfiguration().getSps());
         comPortName.setText(bdfHeaderData.getAdsConfiguration().getComPortName());
@@ -399,9 +373,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             AdsChannelConfiguration channel = bdfHeaderData.getAdsConfiguration().getAdsChannels().get(i);
             channelName[i].setText(bdfHeaderData.getAdsChannelNames().get(i));
             channelEnable[i].setSelected(channel.isEnabled());
-            channelDrlEnabled[i].setSelected(channel.isRldSenseEnabled());
-            channelLoffEnable[i].setSelected(channel.isLoffEnable());
-            //channelElectrodeType[i].setText(channel.getElectrodeType());
             if (!channel.isEnabled()) {
                 enableAdsChannel(i, false);
             }
@@ -413,6 +384,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             enableAccelerometer(false);
         }
         setChannelsFrequencies(bdfHeaderData.getAdsConfiguration().getSps());
+        setChannelsGain();
+        setChannelsCommutatorState();
     }
 
     public void updateLoffStatus(int loffStatusRegisterValue) {
@@ -448,8 +421,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             bdfHeaderData.getAdsChannelNames().add(getChannelName(i));
             channel.setDivider(getChannelDivider(i));
             channel.setEnabled(isChannelEnable(i));
-            channel.setLoffEnable(isChannelLoffEnable(i));
-            channel.setRldSenseEnabled(isChannelDrlEnabled(i));
         }
         bdfHeaderData.getAdsConfiguration().setAccelerometerEnabled(isAccelerometerEnable());
         bdfHeaderData.getAdsConfiguration().setAccelerometerDivider(getAccelerometerDivider());
@@ -481,16 +452,38 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         if (numberOfAdsChannels > 0) {
             // put the size if field   accelerometerFrequency equal to the size of fields  channelFrequency
             accelerometerFrequency.setPreferredSize(channelFrequency[0].getPreferredSize());
+        }
+    }
 
+    private void setChannelsGain(){
+        int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getAdsChannels().size();
+        for (int i = 0; i < numberOfAdsChannels; i++) {
+            channelGain[i].removeAllItems();
+            for (Gain gain : Gain.values()) {
+                channelGain[i].addItem(gain.getValue());
+            }
+            AdsChannelConfiguration channel = bdfHeaderData.getAdsConfiguration().getAdsChannels().get(i);
+            channelGain[i].setSelectedItem(channel.getGain().getValue());
+        }
+    }
+
+    private void setChannelsCommutatorState(){
+        int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getAdsChannels().size();
+        for (int i = 0; i < numberOfAdsChannels; i++) {
+            channelCommutatorState[i].removeAllItems();
+            for (CommutatorState commutatorState : CommutatorState.values()) {
+                channelCommutatorState[i].addItem(commutatorState.toString());
+            }
+            AdsChannelConfiguration channel = bdfHeaderData.getAdsConfiguration().getAdsChannels().get(i);
+            channelCommutatorState[i].setSelectedItem(channel.getCommutatorState().toString());
         }
     }
 
     private void enableAdsChannel(int channelNumber, boolean isEnable) {
         channelFrequency[channelNumber].setEnabled(isEnable);
+        channelGain[channelNumber].setEnabled(isEnable);
+        channelCommutatorState[channelNumber].setEnabled(isEnable);
         channelName[channelNumber].setEnabled(isEnable);
-        channelDrlEnabled[channelNumber].setEnabled(isEnable);
-        channelLoffEnable[channelNumber].setEnabled(isEnable);
-        // channelElectrodeType[channelNumber].setEnabled(isEnable);
     }
 
 
@@ -499,31 +492,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         accelerometerFrequency.setEnabled(isEnable);
 
     }
-
-
-    private void showAdvanced(boolean isVisible) {
-        channelsHeaders[channelsHeaders.length - 2].setVisible(isVisible);
-        channelsHeaders[channelsHeaders.length - 3].setVisible(isVisible);
-        for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getAdsChannels().size(); i++) {
-            // channelElectrodeType[i].setVisible(isVisible);
-            channelDrlEnabled[i].setVisible(isVisible);
-            channelLoffEnable[i].setVisible(isVisible);
-        }
-        pack();
-    }
-
-    private void setAdvanced() {
-        if (isAdvanced) {
-            advancedButton.setIcon(iconHide);
-            showAdvanced(true);
-            isAdvanced = false;
-        } else {
-            advancedButton.setIcon(iconShow);
-            showAdvanced(false);
-            isAdvanced = true;
-        }
-    }
-
 
     private Divider getChannelDivider(int channelNumber) {
         int divider = bdfHeaderData.getAdsConfiguration().getSps().getValue() / getChannelFrequency(channelNumber);
@@ -543,14 +511,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private boolean isChannelEnable(int channelNumber) {
         return channelEnable[channelNumber].isSelected();
-    }
-
-    private boolean isChannelLoffEnable(int channelNumber) {
-        return channelLoffEnable[channelNumber].isSelected();
-    }
-
-    private boolean isChannelDrlEnabled(int channelNumber) {
-        return channelDrlEnabled[channelNumber].isSelected();
     }
 
     private String getChannelName(int channelNumber) {
