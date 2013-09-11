@@ -50,6 +50,11 @@ public class Ads {
     public void stopRecording() {
         if (!isRecording) return;
         comPort.writeToPort(new AdsConfigurator().startPinLo());
+       try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            log.warn(e);
+        }
         comPort.disconnect();
     }
 

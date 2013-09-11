@@ -172,9 +172,9 @@ class ComPort {
         public void disconnect() {
             isConnected = false;
             isDataReady = true;
-            synchronized (data) {
-                data.notifyAll();
-            }
+           /* synchronized (data) {
+                data.notifyAll();    //todo lock
+            }*/
         }
     }
 }

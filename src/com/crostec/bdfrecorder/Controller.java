@@ -38,8 +38,8 @@ public class Controller {
 
     public void stopRecording() {
         if (!isRecording) return;
-        ads.stopRecording();
         bdfWriter.stopRecording();
+        ads.stopRecording();
         isRecording = false;
     }
 
