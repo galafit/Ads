@@ -42,7 +42,7 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
         if (adsConfiguration.isHighResolutionMode()) {
             switch (adsConfiguration.getSps()) {
                 case S250:
-                    throw new IllegalArgumentException("250 Hz is not possible in high resolution mode");
+                    registerValue = 0x06;//switch to low power mode
                 case S500:
                     registerValue = 0x86;
                     break;
