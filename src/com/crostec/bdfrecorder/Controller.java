@@ -21,6 +21,7 @@ public class Controller {
     }
 
     public void startRecording(BdfHeaderData bdfHeaderData) {
+        new AdsConfigUtil().saveAdsConfiguration(bdfHeaderData.getAdsConfiguration());
         isRecording = true;
         if (bdfWriter != null) {
             ads.removeAdsDataListener(bdfWriter);
@@ -45,7 +46,6 @@ public class Controller {
 
     public void closeApplication(BdfHeaderData bdfHeaderData) {
         stopRecording();
-        new AdsConfigUtil().saveAdsConfiguration(bdfHeaderData.getAdsConfiguration());
         System.exit(0);
     }
 
