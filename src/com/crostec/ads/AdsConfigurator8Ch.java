@@ -27,12 +27,24 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
 
         result.addAll(writeRegister(0x41, getRegister_1Value(adsConfiguration)));  //set SPS
         result.addAll(writeRegister(0x42, testSignalEnabledBits(adsConfiguration)));  //test signal
+        if(isLoffEnabled(adsConfiguration)){
+            result.addAll(writeRegister(0x44, 0x13)); //turn on DC lead off detection
+            result.addAll(writeRegister(0x57, 0x02)); //turn on loff comparators
+        } else {
+            result.addAll(writeRegister(0x44, 0x00)); //default LOFF register value
+            result.addAll(writeRegister(0x57, 0x00)); //default CONF4 register value. turn off loff comparators
+        }
         for (int i = 0; i < 8; i++) {
             result.addAll(writeRegister(0x45 + i, getChanelRegisterValue(adsConfiguration.getAdsChannels().get(i))));
         }
         int rlsSensBits = getRLDSensBits(adsConfiguration.getAdsChannels());
         result.addAll(writeRegister(0x4D, rlsSensBits));  //RLD sens positive
         result.addAll(writeRegister(0x4E, rlsSensBits));  //RLD sens negative
+
+        int loffSensBits = getLoffSensRegisterValue(adsConfiguration.getAdsChannels());
+        result.addAll(writeRegister(0x4F, loffSensBits));  //loff sens positive
+        result.addAll(writeRegister(0x50, loffSensBits));  //loff sens negative
+
         result.addAll(writeConfigDataReceivedCode());
         return result;
     }
@@ -87,6 +99,24 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
             if (adsChannelConfiguration.getCommutatorState().equals(CommutatorState.TEST_SIGNAL)) {
                 result = 0x10;
             }
+        }
+        return result;
+    }
+
+    private boolean isLoffEnabled(AdsConfiguration configuration) {
+        for (AdsChannelConfiguration adsChannelConfiguration : configuration.getAdsChannels()) {
+            if (adsChannelConfiguration.isLoffEnable) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private int getLoffSensRegisterValue(List<AdsChannelConfiguration> channelConfigurationList){
+        int result = 0;
+        for (int i = 0; i < channelConfigurationList.size(); i++) {
+            AdsChannelConfiguration adsChannelConfiguration = channelConfigurationList.get(i);
+            result += adsChannelConfiguration.isLoffEnable() ? Math.pow(2, i) : 0;
         }
         return result;
     }

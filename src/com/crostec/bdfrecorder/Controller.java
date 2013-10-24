@@ -45,6 +45,7 @@ public class Controller {
     }
 
     public void closeApplication(BdfHeaderData bdfHeaderData) {
+        new AdsConfigUtil().saveAdsConfiguration(bdfHeaderData.getAdsConfiguration());
         stopRecording();
         System.exit(0);
     }
