@@ -105,7 +105,7 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
 
     private boolean isLoffEnabled(AdsConfiguration configuration) {
         for (AdsChannelConfiguration adsChannelConfiguration : configuration.getAdsChannels()) {
-            if (adsChannelConfiguration.isLoffEnable) {
+            if (adsChannelConfiguration.isEnabled && adsChannelConfiguration.isLoffEnable) {
                 return true;
             }
         }
@@ -116,7 +116,7 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
         int result = 0;
         for (int i = 0; i < channelConfigurationList.size(); i++) {
             AdsChannelConfiguration adsChannelConfiguration = channelConfigurationList.get(i);
-            result += adsChannelConfiguration.isLoffEnable() ? Math.pow(2, i) : 0;
+            result += (adsChannelConfiguration.isEnabled && adsChannelConfiguration.isLoffEnable()) ? Math.pow(2, i) : 0;
         }
         return result;
     }

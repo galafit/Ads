@@ -1,12 +1,16 @@
 package com.crostec.ads;
 
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 abstract class JoinFramesUtility implements AdsDataListener {
 
     private AdsConfiguration adsConfiguration;
     private int numberOfFramesToJoin;
     private int[] joinedFrame;
     private int inputFramesCounter;
+    private static final Log log = LogFactory.getLog(JoinFramesUtility.class);
 
     protected JoinFramesUtility(AdsConfiguration adsConfiguration) {
         this.numberOfFramesToJoin = adsConfiguration.getSps().getValue() / AdsChannelConfiguration.MAX_DIV.getValue(); // 1 second duration of a data record in bdf file
@@ -28,6 +32,7 @@ abstract class JoinFramesUtility implements AdsDataListener {
         if (inputFramesCounter == numberOfFramesToJoin) {  // when edfFrame is ready
             inputFramesCounter = 0;
             notifyListeners(joinedFrame);
+            log.debug("New bdf data record.");
         }
     }
 

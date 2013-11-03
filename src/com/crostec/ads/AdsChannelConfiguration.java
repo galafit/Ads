@@ -60,4 +60,16 @@ public class AdsChannelConfiguration {
     public void setEnabled(boolean enabled) {
         isEnabled = enabled;
     }
+
+    @Override
+    public String toString() {
+        return "AdsChannelConfiguration{" +
+                "divider=" + divider +
+                ", isEnabled=" + isEnabled +
+                ", gain=" + gain +
+                ", commutatorState=" + commutatorState +
+                ", isLoffEnable=" + isLoffEnable +
+                ", isRldSenseEnabled=" + isRldSenseEnabled +
+                '}' + "\n";
+    }
 }

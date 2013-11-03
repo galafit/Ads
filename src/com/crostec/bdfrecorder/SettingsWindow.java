@@ -410,10 +410,10 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                 } else {
                     channelLoffStatNegative[i].setIcon(iconDisconnected);
                 }
-            }/*else {
+            }else {
                 channelLoffStatPositive[i].setIcon(iconDisabled);
                 channelLoffStatNegative[i].setIcon(iconDisabled);
-            }*/
+            }
         }
     }
 

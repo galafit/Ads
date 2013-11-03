@@ -57,7 +57,22 @@ public class AdsConfiguration {
         return sps;
     }
 
+    @Override
+    public String toString() {
+        StringBuffer sb = new StringBuffer();
+        for (AdsChannelConfiguration adsChannel : adsChannels) {
+            sb.append(adsChannel.toString());
+            sb.append("\r");
+        }
+        return "AdsConfiguration{" +
+                "sps=" + sps +
+                ", accelerometerDivider=" + accelerometerDivider +
+                ", comPortName='" + comPortName + '\'' +
+                "}" + sb.toString();
+    }
+
     public void setSps(Sps sps) {
         this.sps = sps;
     }
+
 }

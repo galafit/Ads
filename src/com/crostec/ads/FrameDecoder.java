@@ -18,7 +18,8 @@ abstract class FrameDecoder {
         decodedFrameSize = AdsUtils.getDecodedFrameSize(configuration);
         rawFrameSize = ((decodedFrameSize - 1) * 3) + 3; //3 bytes for each ads channel value or accelerometer value + 1 byte marker + 2 bytes loff status
         rawFrame = new int[rawFrameSize];
-        log.info("frame size " + rawFrameSize + "bytes");
+        log.info("Com port frame size: " + rawFrameSize + " bytes");
+        log.info("Decoded frame size: " + decodedFrameSize + " bytes");
     }
 
     public void onByteReceived(int inByte) {
@@ -33,7 +34,7 @@ abstract class FrameDecoder {
             frameIndex = 0;
             onFrameReceived();
         } else {
-            log.warn("Lost rawFrame. Frame index = " + frameIndex + " inByte = " + inByte);
+            log.warn("Lost Frame. Frame index = " + frameIndex + " inByte = " + inByte);
             frameIndex = 0;
         }
     }
