@@ -11,6 +11,7 @@ abstract class JoinFramesUtility implements AdsDataListener {
     private int[] joinedFrame;
     private int inputFramesCounter;
     private static final Log log = LogFactory.getLog(JoinFramesUtility.class);
+    private long lastDataRecordTime = System.currentTimeMillis();
 
     protected JoinFramesUtility(AdsConfiguration adsConfiguration) {
         this.numberOfFramesToJoin = adsConfiguration.getSps().getValue() / AdsChannelConfiguration.MAX_DIV.getValue(); // 1 second duration of a data record in bdf file
@@ -32,7 +33,13 @@ abstract class JoinFramesUtility implements AdsDataListener {
         if (inputFramesCounter == numberOfFramesToJoin) {  // when edfFrame is ready
             inputFramesCounter = 0;
             notifyListeners(joinedFrame);
-            log.debug("New bdf data record.");
+            long dataRecordTime = System.currentTimeMillis();
+            long delay = lastDataRecordTime - dataRecordTime;
+            log.debug("frame delay = " + delay);
+            if(delay > 1500){
+                log.warn("Frame delay = " + delay + "msec. Should be 1000 msec");
+            }
+            lastDataRecordTime = dataRecordTime;
         }
     }
 
