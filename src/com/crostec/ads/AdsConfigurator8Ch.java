@@ -56,6 +56,7 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
             switch (adsConfiguration.getSps()) {
                 case S250:
                     registerValue = 0x06;//switch to low power mode
+                    break;
                 case S500:
                     registerValue = 0x86;
                     break;

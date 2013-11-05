@@ -118,8 +118,10 @@ class ComPort {
                     }
                     Thread.sleep(100);
                 }
-            } catch (Exception e) {
-                log.error("tralivali" + e);
+            } catch (IOException e) {
+                log.error(e);
+            } catch (InterruptedException e){
+                log.error(e);
             }
         }
     }
