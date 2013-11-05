@@ -24,18 +24,19 @@ class ComPort {
     SerialWriter serialWriter;
     Thread serialWriterThread;
 
-    public void connect(String comPortName) throws Exception {
+    public void connect(AdsConfiguration adsConfiguration) throws Exception {
         if (isConnected) {
             return;
         }
-        CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(comPortName);
+        CommPortIdentifier portIdentifier = CommPortIdentifier.getPortIdentifier(adsConfiguration.getComPortName());
         if (portIdentifier.isCurrentlyOwned()) {
             log.error("Error: Port is currently in use");
         } else {
             commPort = portIdentifier.open(this.getClass().getName(), 2000);
             if (commPort instanceof SerialPort) {
                 SerialPort serialPort = (SerialPort) commPort;
-                serialPort.setSerialPortParams(460800, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+                ComPortParams comPortParams = adsConfiguration.getDeviceType().getComPortParams();
+                serialPort.setSerialPortParams(comPortParams.getSpeed(), SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
                 inputStream = serialPort.getInputStream();
                 outputStream = serialPort.getOutputStream();
                 isConnected = true;
@@ -118,7 +119,7 @@ class ComPort {
                     Thread.sleep(100);
                 }
             } catch (Exception e) {
-                log.error(e);
+                log.error("tralivali" + e);
             }
         }
     }

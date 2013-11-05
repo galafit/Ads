@@ -27,9 +27,9 @@ public class AdsUtils {
      public static int getDecodedFrameSize(AdsConfiguration adsConfiguration) {
         int frameSize = 0;
         for (Integer divider : getDividersForActiveChannels(adsConfiguration)) {
-            frameSize += AdsChannelConfiguration.MAX_DIV.getValue() / divider;
+            frameSize += adsConfiguration.getDeviceType().getMaxDiv().getValue() / divider;
         }
-        return frameSize + 1; //1 value for loff status
+        return frameSize + 2; // 2 values for device specific information (counter of loff status);
     }
 
     /**

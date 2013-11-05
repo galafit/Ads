@@ -70,6 +70,8 @@ class AdsConfigurator {
         return write(CONFIG_DATA_RECEIVED_CODE);
     }
 
-
+    public List<Byte> writeAdsConfiguration(AdsConfiguration adsConfiguration){
+        throw new UnsupportedOperationException("Should be overrided");
+    };
 
 }

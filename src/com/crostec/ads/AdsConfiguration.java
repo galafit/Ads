@@ -16,13 +16,18 @@ public class AdsConfiguration {
     private Divider accelerometerDivider = Divider.D10;
     private String comPortName = "COM1";
     private boolean isHighResolutionMode = true;
+    private DeviceType deviceType;
 
     public boolean isHighResolutionMode() {
         return isHighResolutionMode;
     }
 
-    public void setHighResolutionMode(boolean highResolutionMode) {
-        isHighResolutionMode = highResolutionMode;
+    public DeviceType getDeviceType() {
+        return deviceType;
+    }
+
+    public void setDeviceType(DeviceType deviceType) {
+        this.deviceType = deviceType;
     }
 
     public String getComPortName() {
@@ -66,9 +71,12 @@ public class AdsConfiguration {
         }
         return "AdsConfiguration{" +
                 "sps=" + sps +
+                ", isAccelerometerEnabled=" + isAccelerometerEnabled +
                 ", accelerometerDivider=" + accelerometerDivider +
                 ", comPortName='" + comPortName + '\'' +
-                "}" + sb.toString();
+                ", isHighResolutionMode=" + isHighResolutionMode +
+                ", deviceType=" + deviceType +
+                '}' + sb.toString();
     }
 
     public void setSps(Sps sps) {

@@ -14,7 +14,7 @@ abstract class JoinFramesUtility implements AdsDataListener {
     private long lastDataRecordTime = System.currentTimeMillis();
 
     protected JoinFramesUtility(AdsConfiguration adsConfiguration) {
-        this.numberOfFramesToJoin = adsConfiguration.getSps().getValue() / AdsChannelConfiguration.MAX_DIV.getValue(); // 1 second duration of a data record in bdf file
+        this.numberOfFramesToJoin = adsConfiguration.getSps().getValue() / adsConfiguration.getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
         this.adsConfiguration = adsConfiguration;
         joinedFrame = new int[getJoinedFrameSize(numberOfFramesToJoin, adsConfiguration)];
     }
@@ -23,7 +23,7 @@ abstract class JoinFramesUtility implements AdsDataListener {
     public void onAdsDataReceived(int[] dataFrame) {
         int channelPosition = 0;
         for (int divider : AdsUtils.getDividersForActiveChannels(adsConfiguration)) {
-            int channelSampleNumber = AdsChannelConfiguration.MAX_DIV.getValue() / divider;
+            int channelSampleNumber = adsConfiguration.getDeviceType().getMaxDiv().getValue() / divider;
             for (int j = 0; j < channelSampleNumber; j++) {
                 joinedFrame[channelPosition * numberOfFramesToJoin + inputFramesCounter * channelSampleNumber + j] = dataFrame[channelPosition + j];
             }
@@ -46,7 +46,7 @@ abstract class JoinFramesUtility implements AdsDataListener {
     private int getJoinedFrameSize(int numberOfFramesToJoin, AdsConfiguration adsConfiguration) {
         int result = 0;
         for (int divider : AdsUtils.getDividersForActiveChannels(adsConfiguration)) {
-            result += AdsChannelConfiguration.MAX_DIV.getValue() / divider;
+            result += adsConfiguration.getDeviceType().getMaxDiv().getValue() / divider;
         }
         return result * numberOfFramesToJoin;
     }

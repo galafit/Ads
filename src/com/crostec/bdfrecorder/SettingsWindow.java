@@ -157,7 +157,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                     saveDataToModel();
                     adsDataFrameSize = AdsUtils.getDecodedFrameSize(bdfHeaderData.getAdsConfiguration());
                     adsDataFrameCounter = 0;
-                    adsDataFrameFrequency = bdfHeaderData.getAdsConfiguration().getSps().getValue() / AdsChannelConfiguration.MAX_DIV.getValue();
+                    adsDataFrameFrequency = bdfHeaderData.getAdsConfiguration().getSps().getValue() / bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue();
                     setProcessReport("Connecting...");
                     controller.startRecording(bdfHeaderData);
                 }
@@ -394,18 +394,18 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         setChannelsCommutatorState();
     }
 
-    public void updateLoffStatus(int loffStatusRegisterValue) {
+    public void updateLoffStatus(int[] dataFrame) {
         List<AdsChannelConfiguration> channelsList = bdfHeaderData.getAdsConfiguration().getAdsChannels();
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getDeviceType().getNumberOfAdsChannels(); i++) {
             AdsChannelConfiguration channelConfiguration = channelsList.get(i);
             if (channelConfiguration.isEnabled() && channelConfiguration.getCommutatorState() == CommutatorState.INPUT &&
                     channelConfiguration.isLoffEnable()) {
-                if ((loffStatusRegisterValue & (int) Math.pow(2, i + 8)) == 0) {
+                if ((dataFrame[dataFrame.length - 2] & (int) Math.pow(2, i)) == 0) {
                     channelLoffStatPositive[i].setIcon(iconConnected);
                 } else {
                     channelLoffStatPositive[i].setIcon(iconDisconnected);
                 }
-                if ((loffStatusRegisterValue & (int) Math.pow(2, i)) == 0) {
+                if ((dataFrame[dataFrame.length - 1] & (int) Math.pow(2, i)) == 0) {
                     channelLoffStatNegative[i].setIcon(iconConnected);
                 } else {
                     channelLoffStatNegative[i].setIcon(iconDisconnected);
@@ -439,22 +439,22 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void setChannelsFrequencies(Sps sps) {
         int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getAdsChannels().size();
-        Integer[] channelsAvailableFrequencies = sps.getChannelsAvailableFrequencies();
+        Divider[] adsChannelsDividers = bdfHeaderData.getAdsConfiguration().getDeviceType().getChannelsAvailableDividers();
         // set available frequencies
         for (int i = 0; i < numberOfAdsChannels; i++) {
             channelFrequency[i].removeAllItems();
-            for (Integer frequency : channelsAvailableFrequencies) {
-                channelFrequency[i].addItem(frequency);
+            for (Divider divider : adsChannelsDividers) {
+                channelFrequency[i].addItem(sps.getValue()/divider.getValue());
             }
             // select channel frequency
             AdsChannelConfiguration channel = bdfHeaderData.getAdsConfiguration().getAdsChannels().get(i);
             Integer frequency = sps.getValue() / channel.getDivider().getValue();
             channelFrequency[i].setSelectedItem(frequency);
         }
-        Integer[] accelerometerAvailableFrequencies = sps.getAccelerometerAvailableFrequencies();
+        Divider[] accelerometerAvailableDividers = bdfHeaderData.getAdsConfiguration().getDeviceType().getGetAccelerometerAvailableDividers();
         accelerometerFrequency.removeAllItems();
-        for (Integer frequency : accelerometerAvailableFrequencies) {
-            accelerometerFrequency.addItem(frequency);
+        for (Divider divider : accelerometerAvailableDividers) {
+            accelerometerFrequency.addItem(sps.getValue()/divider.getValue());
         }
         // select channel frequency
         Integer frequency = sps.getValue() / bdfHeaderData.getAdsConfiguration().getAccelerometerDivider().getValue();
@@ -604,7 +604,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             SwingUtilities.invokeLater(new Runnable() {
                 @Override
                 public void run() {
-                    updateLoffStatus(dataFrame[adsDataFrameSize - 1]);
+                    updateLoffStatus(dataFrame);
                     setProcessReport("Recording... " + adsDataFrameCounter / adsDataFrameFrequency + " data records");
                 }
             });

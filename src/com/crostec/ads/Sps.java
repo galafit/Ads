@@ -12,7 +12,6 @@ public enum Sps {
 
     private int registerBits;
     private int value;
-    private Divider[] accelerometerDivider = {Divider.D1, Divider.D2, Divider.D5, Divider.D10};
 
 
     private Sps(int registerBits, int value) {
@@ -29,27 +28,6 @@ public enum Sps {
         String msg = "Invalid Sps value";
         throw new IllegalArgumentException(msg);
     }
-
-    public Integer[] getChannelsAvailableFrequencies(){
-        Integer[] frequencies = new Integer[Divider.values().length];
-        int i = 0;
-        for (Divider divider : Divider.values()) {
-            frequencies[i] = (Integer) value / divider.getValue();
-            i++;
-        }
-        return frequencies;
-    }
-
-    public Integer[] getAccelerometerAvailableFrequencies(){
-        Integer[] frequencies = new Integer[accelerometerDivider.length];
-        int i = 0;
-        for (Divider divider : accelerometerDivider) {
-            frequencies[i] = value / divider.getValue();
-            i++;
-        }
-        return frequencies;
-    }
-
 
     public int getRegisterBits(){
         return registerBits;

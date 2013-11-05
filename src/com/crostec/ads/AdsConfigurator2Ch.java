@@ -11,6 +11,7 @@ public class AdsConfigurator2Ch extends AdsConfigurator{
     public static final int NUMBER_OF_ADS_CHANNELS = 2;
     public static final int NUMBER_OF_ACCELEROMETER_CHANNELS = 3;
 
+    @Override
     public List<Byte> writeAdsConfiguration(AdsConfiguration adsConfiguration) {
         List<Byte> result = new ArrayList<Byte>();
         result.addAll(startPinLo());

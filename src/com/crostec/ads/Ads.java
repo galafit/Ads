@@ -30,9 +30,9 @@ public class Ads {
                 }
             };
             comPort = new ComPort();
-            comPort.connect(adsConfiguration.getComPortName());
+            comPort.connect(adsConfiguration);
             comPort.setFrameDecoder(frameDecoder);
-            comPort.writeToPort(new AdsConfigurator8Ch().writeAdsConfiguration(adsConfiguration));
+            comPort.writeToPort(adsConfiguration.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfiguration));
             isRecording = true;
         } catch (NoSuchPortException e) {
             String msg = "No port with the name " + adsConfiguration.getComPortName() + "\n" + failConnectMessage;

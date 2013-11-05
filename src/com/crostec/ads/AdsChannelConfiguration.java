@@ -5,7 +5,6 @@ package com.crostec.ads;
  */
 public class AdsChannelConfiguration {
 
-    public static final Divider MAX_DIV = Divider.D10;
     protected Divider divider = Divider.D1;
     protected boolean isEnabled = true;
     private Gain gain = Gain.G2;
