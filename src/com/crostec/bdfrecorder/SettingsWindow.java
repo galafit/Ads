@@ -395,6 +395,39 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     public void updateLoffStatus(int[] dataFrame) {
+        if(bdfHeaderData.getAdsConfiguration().getDeviceType() == DeviceType.ADS1298){
+            updateLoffStatus8ch(dataFrame);
+        }
+        if(bdfHeaderData.getAdsConfiguration().getDeviceType() == DeviceType.ADS1292){
+            updateLoffStatus2ch(dataFrame);
+        }
+    }
+
+    private void updateLoffStatus2ch(int[] dataFrame) {
+        int loffStatusRegisterValue = dataFrame[dataFrame.length - 1];
+        if ((loffStatusRegisterValue & 8) == 0) {
+            channelLoffStatPositive[0].setIcon(iconConnected);
+        } else {
+            channelLoffStatPositive[0].setIcon(iconDisconnected);
+        }
+        if ((loffStatusRegisterValue & 16) == 0) {
+            channelLoffStatNegative[0].setIcon(iconConnected);
+        } else {
+            channelLoffStatNegative[0].setIcon(iconDisconnected);
+        }
+        if ((loffStatusRegisterValue & 32) == 0) {
+            channelLoffStatPositive[1].setIcon(iconConnected);
+        } else {
+            channelLoffStatPositive[1].setIcon(iconDisconnected);
+        }
+        if ((loffStatusRegisterValue & 64) == 0) {
+            channelLoffStatNegative[1].setIcon(iconConnected);
+        } else {
+            channelLoffStatNegative[1].setIcon(iconDisconnected);
+        }
+    }
+
+    private void updateLoffStatus8ch(int[] dataFrame) {
         List<AdsChannelConfiguration> channelsList = bdfHeaderData.getAdsConfiguration().getAdsChannels();
         for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getDeviceType().getNumberOfAdsChannels(); i++) {
             AdsChannelConfiguration channelConfiguration = channelsList.get(i);
