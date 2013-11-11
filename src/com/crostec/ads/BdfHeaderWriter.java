@@ -30,10 +30,10 @@ class BdfHeaderWriter {
         String channelsDigitalMaximum = "8388607";
         String channelsDigitalMinimum = "-8388608";
 
-        String accelerometerDigitalMaximum = "1024";
-        String accelerometerDigitalMinimum = "-1024";
-        String accelerometerPhysicalMaximum = "1";
-        String accelerometerPhysicalMinimum = "0";
+        String accelerometerDigitalMaximum = "30800";
+        String accelerometerDigitalMinimum = "-30800";
+        String accelerometerPhysicalMaximum = "2";
+        String accelerometerPhysicalMinimum = "-2";
 
         bdfHeader.append(adjustLength(identificationCode, 7));  //7 not 8 because first non ascii byte we will add later
         bdfHeader.append(adjustLength(localPatientIdentification, 80));
