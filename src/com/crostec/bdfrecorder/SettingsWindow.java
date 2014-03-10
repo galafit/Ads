@@ -644,6 +644,11 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
     }
 
+    @Override
+    public void onStopRecording() {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
 
     private class AdsChannelEnableListener implements ActionListener {
         private int channelNumber;

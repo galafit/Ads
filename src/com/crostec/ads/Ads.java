@@ -48,6 +48,9 @@ public class Ads {
     }
 
     public void stopRecording() {
+        for (AdsDataListener adsDataListener : adsDataListeners) {
+            adsDataListener.onStopRecording();
+        }
         if (!isRecording) return;
         comPort.writeToPort(new AdsConfigurator().startPinLo());
        try {

@@ -13,6 +13,8 @@ public class Controller {
     private SettingsWindow settingsWindow;
     private Ads ads;
     private BdfWriter bdfWriter;
+    MathlabDataListener mathlabDataListener;
+
     private static  final Log log = LogFactory.getLog(Controller.class);
 
     public Controller(Ads ads) {
@@ -30,7 +32,17 @@ public class Controller {
         if (bdfWriter != null) {
             ads.removeAdsDataListener(bdfWriter);
         }
+        if (mathlabDataListener != null) {
+            ads.removeAdsDataListener(mathlabDataListener);
+        }
         bdfWriter = new BdfWriter(bdfHeaderData);
+        mathlabDataListener = new MathlabDataListener(bdfHeaderData.getAdsConfiguration());
+        if(mathlabDataListener.isFrequencyTheSame()){
+           ads.addAdsDataListener(mathlabDataListener);
+           log.info("Mathlab interface started successfully. ");
+        } else {
+            log.warn("Mathlab interface disabled. Frequencies for all channels should be the same");
+        }
         ads.addAdsDataListener(bdfWriter);
         try {
             ads.startRecording(bdfHeaderData.getAdsConfiguration());
@@ -43,7 +55,6 @@ public class Controller {
 
     public void stopRecording() {
         if (!isRecording) return;
-        bdfWriter.stopRecording();
         ads.stopRecording();
         isRecording = false;
     }

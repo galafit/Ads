@@ -35,6 +35,11 @@ public class BdfWriter implements AdsDataListener {
             public void notifyListeners(int[] joinedFrame) {
                 onBdfDataRecordReady(joinedFrame);
             }
+
+            @Override
+            public void onStopRecording() {
+                //To change body of implemented methods use File | Settings | File Templates.
+            }
         };
     }
 
@@ -43,6 +48,11 @@ public class BdfWriter implements AdsDataListener {
         if (!stopRecordingRequest) {
             joinFramesUtility.onAdsDataReceived(dataFrame);
         }
+    }
+
+    @Override
+    public void onStopRecording() {
+        //To change body of implemented methods use File | Settings | File Templates.
     }
 
     private void onBdfDataRecordReady(int[] dataFrame) {
