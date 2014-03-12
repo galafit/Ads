@@ -5,6 +5,7 @@ import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,6 +19,7 @@ public class MathlabDataListener implements AdsDataListener {
     LSL.StreamOutlet outlet;
     int numberOfEnabledChannels;
     int nrOfSamplesInOneChannel;
+     List<Integer> microvoltValueDividers;
 
     public MathlabDataListener(AdsConfiguration adsConfiguration) {
         this.adsConfiguration = adsConfiguration;
@@ -27,23 +29,22 @@ public class MathlabDataListener implements AdsDataListener {
         int maxDiv = adsConfiguration.getDeviceType().getMaxDiv().getValue();
         nrOfSamplesInOneChannel = maxDiv / divider;
         int frequency = adsConfiguration.getSps().getValue()/divider;
-        info = new LSL.StreamInfo("BioSemi", "EEG", numberOfEnabledChannels, frequency, LSL.ChannelFormat.float32, "myuid324457");
+        info = new LSL.StreamInfo("BioSemi", "EEG", numberOfEnabledChannels, frequency, LSL.ChannelFormat.int32, "myuid324457");
         log.debug("MatlabDataListener initialization. Number of enabled channels = " + numberOfEnabledChannels +
         ". Frequency = " +  frequency + ". Number of samples in BDF data record = " +  nrOfSamplesInOneChannel);
         outlet = new LSL.StreamOutlet(info);
+        microvoltValueDividers = getValueDividersForActiveChannels();
     }
 
 
     @Override
     public synchronized void onAdsDataReceived(int[] dataFrame) {
-//        System.out.println(dataFrame[0]+ "    " + dataFrame[1]+ "    " + dataFrame[2]+ "    " + dataFrame[3]+ "    ");
         for (int j = 0; j < nrOfSamplesInOneChannel; j++) {
-            float [] mathlabDataFrame = new float[numberOfEnabledChannels];
+            int [] mathlabDataFrame = new int[numberOfEnabledChannels];
             for (int i = 0; i < numberOfEnabledChannels; i++) {
-                mathlabDataFrame[i] = dataFrame[i * nrOfSamplesInOneChannel + j];
+                mathlabDataFrame[i] = dataFrame[i * nrOfSamplesInOneChannel + j] / microvoltValueDividers.get(i);
             }
             outlet.push_sample(mathlabDataFrame);
-//            System.out.println(mathlabDataFrame[0] + "          " + mathlabDataFrame[1]);
         }
     }
 
@@ -74,6 +75,24 @@ public class MathlabDataListener implements AdsDataListener {
                 return false;
             }
         }
+        //check accelerometer frequency the same
+        if(adsConfiguration.isAccelerometerEnabled() && adsConfiguration.getAccelerometerDivider().getValue() != divider) {
+            return false;
+        }
         return true;
+    }
+
+    public List<Integer> getValueDividersForActiveChannels(){
+        List<Integer> gainsForActiveChannels = new ArrayList<Integer>();
+        for (AdsChannelConfiguration channelConfiguration : adsConfiguration.getAdsChannels()) {
+            if (channelConfiguration.isEnabled()) {
+                gainsForActiveChannels.add(8388607 * channelConfiguration.getGain().getValue()/2400000);
+            }
+        }
+        for (int i = 0; i < 3; i++) {
+             gainsForActiveChannels.add(15);
+
+        }
+        return gainsForActiveChannels;
     }
 }
