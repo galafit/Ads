@@ -51,8 +51,25 @@ public class BdfWriter implements AdsDataListener {
     }
 
     @Override
-    public void onStopRecording() {
-        //To change body of implemented methods use File | Settings | File Templates.
+    public synchronized void onStopRecording() {
+        if(stopRecordingRequest) return;
+        stopRecordingRequest = true;
+        double durationOfDataRecord = (stopRecordingTime - startRecordingTime) * 0.001 / numberOfDataRecords;
+        bdfHeaderData.setDurationOfDataRecord(durationOfDataRecord);
+        bdfHeaderData.setNumberOfDataRecords(numberOfDataRecords);
+        try {
+            fileToSave.seek(0);
+            fileToSave.write(BdfHeaderWriter.createBdfHeader(bdfHeaderData));
+            fileToSave.close();
+        } catch (IOException e) {
+            LOG.error(e);
+            throw new RuntimeException(e);
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss:SS");
+        LOG.info("Start recording time = " + startRecordingTime + " (" + dateFormat.format(new Date(startRecordingTime)));
+        LOG.info("Stop recording time = " + stopRecordingTime + " (" + dateFormat.format(new Date(stopRecordingTime)));
+        LOG.info("Number of data records = " + numberOfDataRecords);
+        LOG.info("Duration of a data record = " + durationOfDataRecord);
     }
 
     private void onBdfDataRecordReady(int[] dataFrame) {
@@ -76,27 +93,6 @@ public class BdfWriter implements AdsDataListener {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public synchronized void stopRecording() {
-        if(stopRecordingRequest) return;
-        stopRecordingRequest = true;
-        double durationOfDataRecord = (stopRecordingTime - startRecordingTime) * 0.001 / numberOfDataRecords;
-        bdfHeaderData.setDurationOfDataRecord(durationOfDataRecord);
-        bdfHeaderData.setNumberOfDataRecords(numberOfDataRecords);
-        try {
-            fileToSave.seek(0);
-            fileToSave.write(BdfHeaderWriter.createBdfHeader(bdfHeaderData));
-            fileToSave.close();
-        } catch (IOException e) {
-            LOG.error(e);
-            throw new RuntimeException(e);
-        }
-        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss:SS");
-        LOG.info("Start recording time = " + startRecordingTime + " (" + dateFormat.format(new Date(startRecordingTime)));
-        LOG.info("Stop recording time = " + stopRecordingTime + " (" + dateFormat.format(new Date(stopRecordingTime)));
-        LOG.info("Number of data records = " + numberOfDataRecords);
-        LOG.info("Duration of a data record = " + durationOfDataRecord);
     }
 
 

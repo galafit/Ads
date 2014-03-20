@@ -20,6 +20,7 @@ public class MathlabDataListener implements AdsDataListener {
     int numberOfEnabledChannels;
     int nrOfSamplesInOneChannel;
      List<Integer> microvoltValueDividers;
+    private boolean stopRecordingRequest;
 
     public MathlabDataListener(AdsConfiguration adsConfiguration) {
         this.adsConfiguration = adsConfiguration;
@@ -39,6 +40,9 @@ public class MathlabDataListener implements AdsDataListener {
 
     @Override
     public synchronized void onAdsDataReceived(int[] dataFrame) {
+        if (stopRecordingRequest) {
+            return;
+        }
         for (int j = 0; j < nrOfSamplesInOneChannel; j++) {
             int [] mathlabDataFrame = new int[numberOfEnabledChannels];
             for (int i = 0; i < numberOfEnabledChannels; i++) {
@@ -50,6 +54,8 @@ public class MathlabDataListener implements AdsDataListener {
 
     @Override
     public synchronized void onStopRecording() {
+        if(stopRecordingRequest) return;
+        stopRecordingRequest = true;
         outlet.close();
         info.destroy();
     }
