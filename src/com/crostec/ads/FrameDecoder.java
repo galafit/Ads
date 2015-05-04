@@ -72,11 +72,13 @@ abstract class FrameDecoder implements ComPortListener {
             }
         }
 
+        if (adsConfiguration.isLoffEnabled()) {
+                decodedFrame[decodedFrameOffset++] = rawFrame[rawFrameOffset];
+                rawFrameOffset += 1;
+        }
+
         int numberOfLostFrames = getNumberOfLostFrames(counter);
          for (int i = 0; i < numberOfLostFrames; i++) {
-            // byte[] lostFrame = new byte[decodedFrameSize];
-            // System.arraycopy( decodedFrame, 0, lostFrame, 0, decodedFrameSize);
-            // decodedFrame[decodedFrameSize - 1] = 1;
             notifyListeners(decodedFrame);
         }
         notifyListeners(decodedFrame);
