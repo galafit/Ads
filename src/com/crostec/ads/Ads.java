@@ -22,9 +22,8 @@ public class Ads {
     private ComPort comPort;
     private boolean isRecording;
 
-    public TimerTask timerTask;
     private List<Byte> pingCommand = new ArrayList<Byte>();
-    private Timer pingTimer = new Timer();
+    private Timer pingTimer;
 
     public Ads() {
         super();
@@ -50,12 +49,13 @@ public class Ads {
             throw new AdsException(failConnectMessage, e);
         }
         //---------------------------
-        timerTask = new TimerTask() {
+        TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
                 comPort.writeToPort(pingCommand);
             }
         };
+        pingTimer = new Timer();
         pingTimer.schedule(timerTask, 1000, 1000);
     }
 
