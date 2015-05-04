@@ -1,12 +1,15 @@
 package com.crostec.ads;
 
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
+
+import comport.ComPort;
+import jssc.SerialPortException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  *
@@ -19,6 +22,14 @@ public class Ads {
     private ComPort comPort;
     private boolean isRecording;
 
+    public TimerTask timerTask;
+    private List<Byte> pingCommand = new ArrayList<Byte>();
+    private Timer pingTimer = new Timer();
+
+    public Ads() {
+        super();
+        pingCommand.add((byte)0xFB);
+    }
 
     public void startRecording(AdsConfiguration adsConfiguration) {
         String failConnectMessage = "Connection failed. Check com port settings.\nReset power on the target amplifier. Restart the application.";
@@ -29,22 +40,23 @@ public class Ads {
                     notifyAdsDataListeners(decodedFrame);
                 }
             };
-            comPort = new ComPort();
-            comPort.connect(adsConfiguration);
-            comPort.setFrameDecoder(frameDecoder);
+            comPort = new ComPort(adsConfiguration.getComPortName(), 460800);
+            comPort.setComPortListener(frameDecoder);
+
             comPort.writeToPort(adsConfiguration.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfiguration));
             isRecording = true;
-        } catch (NoSuchPortException e) {
-            String msg = "No port with the name " + adsConfiguration.getComPortName() + "\n" + failConnectMessage;
-            log.error(msg, e);
-            throw new AdsException(msg, e);
-        } catch (PortInUseException e) {
-            log.error(failConnectMessage, e);
-            throw new AdsException(failConnectMessage, e);
-        } catch (Throwable e) {
+        } catch (SerialPortException e) {
             log.error(failConnectMessage, e);
             throw new AdsException(failConnectMessage, e);
         }
+        //---------------------------
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                comPort.writeToPort(pingCommand);
+            }
+        };
+        pingTimer.schedule(timerTask, 1000, 1000);
     }
 
     public void stopRecording() {
@@ -52,13 +64,16 @@ public class Ads {
             adsDataListener.onStopRecording();
         }
         if (!isRecording) return;
-        comPort.writeToPort(new AdsConfigurator().startPinLo());
+        List<Byte> stopCmd = new ArrayList<Byte>();
+        stopCmd.add((byte)0xFF);
+        comPort.writeToPort(stopCmd);
        try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             log.warn(e);
         }
         comPort.disconnect();
+        pingTimer.cancel();
     }
 
     public void addAdsDataListener(AdsDataListener adsDataListener) {

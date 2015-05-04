@@ -58,6 +58,15 @@ public class AdsConfiguration {
         return isAccelerometerEnabled;
     }
 
+    public boolean isLoffEnabled() {
+        for (AdsChannelConfiguration adsChannel : adsChannels) {
+           if(adsChannel.isLoffEnable()){
+               return true;
+           }
+        }
+        return false;
+    }
+
     public Sps getSps() {
         return sps;
     }
