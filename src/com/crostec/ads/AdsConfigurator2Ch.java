@@ -15,7 +15,7 @@ public class AdsConfigurator2Ch extends AdsConfigurator{
     @Override
     public List<Byte> writeAdsConfiguration(AdsConfiguration adsConfiguration) {
         List<Byte> result = new ArrayList<Byte>();
-        result.add((byte)31);       //длина пакета
+        result.add((byte)33);       //длина пакета
         result.add((byte)0xFF);     //stop recording
 
         result.add((byte)0xF0);     //ads1292 command
@@ -65,11 +65,15 @@ public class AdsConfigurator2Ch extends AdsConfigurator{
         int accelerometerMode = adsConfiguration.isAccelerometerEnabled() ? 1 : 0;
         result.add((byte)accelerometerMode);
 
-        result.add((byte)0xF4);     //передача данных loff статуса: 0 - disabled, 1 - enabled
+        result.add((byte)0xF4);     //send battery voltage data: 0 - disabled, 1 - enabled
+        int batteryMeasure = adsConfiguration.isBatteryVoltageMeasureEnabled() ? 1 : 0;
+        result.add((byte)batteryMeasure);
+
+        result.add((byte)0xF5);     //передача данных loff статуса: 0 - disabled, 1 - enabled
         int loffEnabled = adsConfiguration.isLoffEnabled() ? 1 : 0;
         result.add((byte)loffEnabled);
 
-        result.add((byte)0xF5);     //reset timeout. In seconds
+        result.add((byte)0xF6);     //reset timeout. In seconds
         result.add((byte)20);
 
         result.add((byte)0xF0);     //ads1292 command

@@ -13,6 +13,7 @@ public class AdsConfigUtil {
         adsConfiguration.setSps(adsConfigProperties.getSps());
         adsConfiguration.setComPortName(adsConfigProperties.getComPortName());
         adsConfiguration.setAccelerometerEnabled(adsConfigProperties.isAccelerometerEnabled());
+        adsConfiguration.setBatteryVoltageMeasureEnabled(adsConfigProperties.isBatteryMeasureEnabled());
         adsConfiguration.setAccelerometerDivider(adsConfigProperties.getAccelerometerDivider());
         for (int chNum = 0; chNum < adsConfigProperties.getDeviceType().getNumberOfAdsChannels(); chNum++) {
             AdsChannelConfiguration adsChannelConfiguration = new AdsChannelConfiguration();
@@ -32,6 +33,7 @@ public class AdsConfigUtil {
         adsConfigProperties.setComPortName(adsConfiguration.getComPortName());
         adsConfigProperties.setAccelerometerDivider(adsConfiguration.getAccelerometerDivider());
         adsConfigProperties.setAccelerometerEnabled(adsConfiguration.isAccelerometerEnabled());
+        adsConfigProperties.setBatteryMeasureEnabled(adsConfiguration.isBatteryVoltageMeasureEnabled());
         for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
             AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
             adsConfigProperties.setChannelDivider(i, channel.getDivider());

@@ -25,6 +25,7 @@ class AdsConfigProperties {
     public static final String CHANNEL_RLD_SENSE_ENABLED = "rldSenseEnabledChannel";
     public static final String ACCELEROMETER_DIVIDER = "dividerAccelerometer";
     public static final String ACCELEROMETER_IS_ENABLED = "isEnabledAccelerometer";
+    public static final String BATTERY_MEASURE_IS_ENABLED = "isBatteryMeasureEnabled";
     private PropertiesConfiguration config;
 
     public AdsConfigProperties() {
@@ -81,6 +82,14 @@ class AdsConfigProperties {
 
     public void setAccelerometerEnabled(boolean isEnabled) {
         config.setProperty(ACCELEROMETER_IS_ENABLED, isEnabled);
+    }
+
+     public boolean isBatteryMeasureEnabled() {
+        return config.getBoolean(BATTERY_MEASURE_IS_ENABLED);
+    }
+
+    public void setBatteryMeasureEnabled(boolean isEnabled) {
+        config.setProperty(BATTERY_MEASURE_IS_ENABLED, isEnabled);
     }
 
 

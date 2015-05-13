@@ -13,10 +13,19 @@ public class AdsConfiguration {
     private Sps sps = Sps.S500;     // samples per second (sample rate)
     private ArrayList<AdsChannelConfiguration> adsChannels = new ArrayList<AdsChannelConfiguration>();
     private boolean isAccelerometerEnabled = true;
+    private boolean isBatteryVoltageMeasureEnabled = false;
     private Divider accelerometerDivider = Divider.D10;
     private String comPortName = "COM1";
     private boolean isHighResolutionMode = true;
     private DeviceType deviceType;
+
+    public boolean isBatteryVoltageMeasureEnabled() {
+        return isBatteryVoltageMeasureEnabled;
+    }
+
+    public void setBatteryVoltageMeasureEnabled(boolean batteryVoltageMeasureEnabled) {
+        isBatteryVoltageMeasureEnabled = batteryVoltageMeasureEnabled;
+    }
 
     public boolean isHighResolutionMode() {
         return isHighResolutionMode;

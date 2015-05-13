@@ -91,6 +91,20 @@ class BdfHeaderWriter {
                 reservedForChannels.append(adjustLength("", 32));
             }
         }
+        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+                labels.append(adjustLength("Battery voltage", 16));
+                transducerTypes.append(adjustLength("None", 80));
+                physicalDimensions.append(adjustLength("V", 8));
+                physicalMinimums.append(adjustLength("0", 8));
+                physicalMaximums.append(adjustLength("2.5", 8));
+                digitalMinimums.append(adjustLength("0", 8));
+                digitalMaximums.append(adjustLength("10240", 8));
+                preFilterings.append(adjustLength("None", 80));
+                int nrOfSamplesInEachDataRecord = (int) Math.round(bdfHeaderData.getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                        adsConfiguration.getAccelerometerDivider().getValue();
+                samplesNumbers.append(adjustLength(Integer.toString(nrOfSamplesInEachDataRecord), 8));
+                reservedForChannels.append(adjustLength("", 32));
+        }
         bdfHeader.append(labels);
         bdfHeader.append(transducerTypes);
         bdfHeader.append(physicalDimensions);

@@ -12,42 +12,54 @@ abstract class FrameDecoder implements ComPortListener {
     public static final int START_FRAME_MARKER = 0xAA;
     public static final int STOP_FRAME_MARKER = 0x55;
     private int frameIndex;
-    private int rawFrameSize;
+    private int frameSize;
+    private int dataRecordSize;
     private int numberOf3ByteSamples;
     private int decodedFrameSize;
     private int[] rawFrame;
     AdsConfiguration adsConfiguration;
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
+   // private List<Integer> debugBuf = new ArrayList<Integer>();
 
     public FrameDecoder(AdsConfiguration configuration) {
         adsConfiguration = configuration;
         numberOf3ByteSamples = getNumberOf3ByteSamples(configuration);
-        rawFrameSize = getRawFrameSize(configuration);
+        dataRecordSize = getRawFrameSize(configuration);
         decodedFrameSize = getDecodedFrameSize(configuration);
-        rawFrame = new int[rawFrameSize];
-        log.info("Com port frame size: " + rawFrameSize + " bytes");
+        rawFrame = new int[dataRecordSize];
+        log.info("Com port frame size: " + dataRecordSize + " bytes");
     }
 
     @Override
     public void onByteReceived(byte b) {
         int inByte = (b & 0xFF);
+       // debugBuf.add(inByte);
         if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
             rawFrame[frameIndex] = inByte;
             frameIndex++;
-        } else if (frameIndex == 1 && inByte == START_FRAME_MARKER) {
+        } else if (frameIndex == 1 && inByte == START_FRAME_MARKER) {  //receiving data record
+            rawFrame[frameIndex] = inByte;
+            frameSize = dataRecordSize;
+            frameIndex++;
+        } else if (frameIndex == 1 && inByte == STOP_FRAME_MARKER) {  //receiving message
             rawFrame[frameIndex] = inByte;
             frameIndex++;
-        } else if (frameIndex > 1 && frameIndex < (rawFrameSize - 1)) {
+        } else if (frameIndex == 2) {
             rawFrame[frameIndex] = inByte;
             frameIndex++;
-        } else if (frameIndex == (rawFrameSize - 1)) {
+            if (rawFrame[1] == STOP_FRAME_MARKER) {   //message length
+                frameSize = inByte;
+            }
+        } else if (frameIndex > 2 && frameIndex < (frameSize - 1)) {
+            rawFrame[frameIndex] = inByte;
+            frameIndex++;
+        } else if (frameIndex == (frameSize - 1)) {
             rawFrame[frameIndex] = inByte;
             if (inByte == STOP_FRAME_MARKER) {
                 onFrameReceived();
             }
             frameIndex = 0;
-
         } else {
             log.warn("Lost Frame. Frame index = " + frameIndex + " inByte = " + inByte);
             frameIndex = 0;
@@ -55,6 +67,24 @@ abstract class FrameDecoder implements ComPortListener {
     }
 
     private void onFrameReceived() {
+        if (rawFrame[1] == START_FRAME_MARKER) {
+            onDataRecordReceived();
+        }
+        if (rawFrame[1] == STOP_FRAME_MARKER) {
+            onMessageReceived();
+        }
+    }
+
+    private void onMessageReceived() {
+        if ((rawFrame[3] == 0xA3) && (rawFrame[5] == 0x01)) {
+            log.info("Middle battery message received");
+        }
+        if ((rawFrame[3] == 0xA3) && (rawFrame[5] == 0x02)) {
+            log.info("Low battery message received");
+        }
+    }
+
+    private void onDataRecordReceived() {
         int counter = ((rawFrame[3] << 24) + ((rawFrame[2]) << 16)) / 65536;
 
         int[] decodedFrame = new int[decodedFrameSize];
@@ -70,6 +100,11 @@ abstract class FrameDecoder implements ComPortListener {
                 decodedFrame[decodedFrameOffset++] = (((rawFrame[rawFrameOffset + 1] << 24) + ((rawFrame[rawFrameOffset]) << 16)) / 65536);
                 rawFrameOffset += 2;
             }
+        }
+
+        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+                decodedFrame[decodedFrameOffset++] = (((rawFrame[rawFrameOffset + 1] << 24) + ((rawFrame[rawFrameOffset]) << 16)) / 65536);
+                rawFrameOffset += 2;
         }
 
         if (adsConfiguration.isLoffEnabled()) {
@@ -91,6 +126,9 @@ abstract class FrameDecoder implements ComPortListener {
         if (adsConfiguration.isAccelerometerEnabled()) {
             result += 6;
         }
+        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+            result += 2;
+        }
         if (adsConfiguration.isLoffEnabled()) {
             result += 1;
         }
@@ -103,6 +141,9 @@ abstract class FrameDecoder implements ComPortListener {
         result += getNumberOf3ByteSamples(configuration);
         if (configuration.isAccelerometerEnabled()) {
             result += 3;
+        }
+        if (configuration.isBatteryVoltageMeasureEnabled()) {
+            result += 1;
         }
         result += 2;
         return result;

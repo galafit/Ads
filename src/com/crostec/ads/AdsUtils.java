@@ -21,6 +21,9 @@ public class AdsUtils {
                 dividersList.add(adsConfiguration.getAccelerometerDivider().getValue());
             }
         }
+        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+                dividersList.add(10);
+        }
         return dividersList;
     }
 

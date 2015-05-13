@@ -405,26 +405,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void updateLoffStatus2ch(int[] dataFrame) {
         int loffStatusRegisterValue = dataFrame[dataFrame.length - 2];
-       /* if ((loffStatusRegisterValue & 1) == 0) {
-            channelLoffStatPositive[0].setIcon(iconConnected);
-        } else {
-            channelLoffStatPositive[0].setIcon(iconDisconnected);
-        }
-        if ((loffStatusRegisterValue & 2) == 0) {
-            channelLoffStatNegative[0].setIcon(iconConnected);
-        } else {
-            channelLoffStatNegative[0].setIcon(iconDisconnected);
-        }
-        if ((loffStatusRegisterValue & 4) == 0) {
-            channelLoffStatPositive[1].setIcon(iconConnected);
-        } else {
-            channelLoffStatPositive[1].setIcon(iconDisconnected);
-        }
-        if ((loffStatusRegisterValue & 8) == 0) {
-            channelLoffStatNegative[1].setIcon(iconConnected);
-        } else {
-            channelLoffStatNegative[1].setIcon(iconDisconnected);
-        }*/
         List<AdsChannelConfiguration> channelsList = bdfHeaderData.getAdsConfiguration().getAdsChannels();
         for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getDeviceType().getNumberOfAdsChannels(); i++) {
             AdsChannelConfiguration channelConfiguration = channelsList.get(i);
