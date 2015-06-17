@@ -15,8 +15,7 @@ public class AdsConfigurator2Ch extends AdsConfigurator{
     @Override
     public List<Byte> writeAdsConfiguration(AdsConfiguration adsConfiguration) {
         List<Byte> result = new ArrayList<Byte>();
-        result.add((byte)33);       //длина пакета
-        result.add((byte)0xFF);     //stop recording
+        result.add((byte)32);       //длина пакета
 
         result.add((byte)0xF0);     //ads1292 command
         result.add((byte)0x11);     //ads1292 stop continuous

@@ -9,14 +9,15 @@ import java.util.List;
 
 abstract class FrameDecoder implements ComPortListener {
 
-    public static final int START_FRAME_MARKER = 0xAA;
-    public static final int STOP_FRAME_MARKER = 0x55;
+    public static final byte START_FRAME_MARKER = (byte) (0xAA & 0xFF);
+    public static final byte STOP_FRAME_MARKER = (byte) (0x55 & 0xFF);
+    public static final byte MESSAGE_MARKER = (byte) (0xA5 & 0xFF);
     private int frameIndex;
     private int frameSize;
     private int dataRecordSize;
     private int numberOf3ByteSamples;
     private int decodedFrameSize;
-    private int[] rawFrame;
+    private byte[] rawFrame;
     AdsConfiguration adsConfiguration;
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
@@ -27,13 +28,12 @@ abstract class FrameDecoder implements ComPortListener {
         numberOf3ByteSamples = getNumberOf3ByteSamples(configuration);
         dataRecordSize = getRawFrameSize(configuration);
         decodedFrameSize = getDecodedFrameSize(configuration);
-        rawFrame = new int[dataRecordSize];
+        rawFrame = new byte[dataRecordSize];
         log.info("Com port frame size: " + dataRecordSize + " bytes");
     }
 
     @Override
-    public void onByteReceived(byte b) {
-        int inByte = (b & 0xFF);
+    public void onByteReceived(byte inByte) {
        // debugBuf.add(inByte);
         if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
             rawFrame[frameIndex] = inByte;
@@ -42,14 +42,14 @@ abstract class FrameDecoder implements ComPortListener {
             rawFrame[frameIndex] = inByte;
             frameSize = dataRecordSize;
             frameIndex++;
-        } else if (frameIndex == 1 && inByte == STOP_FRAME_MARKER) {  //receiving message
+        } else if (frameIndex == 1 && inByte == MESSAGE_MARKER) {  //receiving message
             rawFrame[frameIndex] = inByte;
             frameIndex++;
         } else if (frameIndex == 2) {
             rawFrame[frameIndex] = inByte;
             frameIndex++;
-            if (rawFrame[1] == STOP_FRAME_MARKER) {   //message length
-                frameSize = inByte;
+            if (rawFrame[1] == MESSAGE_MARKER) {   //message length
+                frameSize = inByte & 0xFF;
             }
         } else if (frameIndex > 2 && frameIndex < (frameSize - 1)) {
             rawFrame[frameIndex] = inByte;
@@ -70,40 +70,37 @@ abstract class FrameDecoder implements ComPortListener {
         if (rawFrame[1] == START_FRAME_MARKER) {
             onDataRecordReceived();
         }
-        if (rawFrame[1] == STOP_FRAME_MARKER) {
+        if (rawFrame[1] == MESSAGE_MARKER) {
             onMessageReceived();
         }
     }
 
     private void onMessageReceived() {
-        if ((rawFrame[3] == 0xA3) && (rawFrame[5] == 0x01)) {
-            log.info("Middle battery message received");
-        }
-        if ((rawFrame[3] == 0xA3) && (rawFrame[5] == 0x02)) {
+        if (((rawFrame[3]&0xFF) == 0xA3) && ((rawFrame[5]&0xFF) == 0x01)) {
             log.info("Low battery message received");
         }
     }
 
     private void onDataRecordReceived() {
-        int counter = ((rawFrame[3] << 24) + ((rawFrame[2]) << 16)) / 65536;
+        int counter = AdsUtils.bytesToSignedInt(rawFrame[2],rawFrame[3]);
 
         int[] decodedFrame = new int[decodedFrameSize];
         int rawFrameOffset = 4;
         int decodedFrameOffset = 0;
         for (int i = 0; i < numberOf3ByteSamples; i++) {
-            decodedFrame[decodedFrameOffset++] = (((rawFrame[2 +rawFrameOffset] << 24) + ((rawFrame[1 + rawFrameOffset]) << 16) + (rawFrame[rawFrameOffset] << 8)) / 256);
+            decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset],rawFrame[rawFrameOffset + 1],rawFrame[rawFrameOffset + 2]);
             rawFrameOffset += 3;
         }
 
         if (adsConfiguration.isAccelerometerEnabled()) {
             for (int i = 0; i < 3; i++) {
-                decodedFrame[decodedFrameOffset++] = (((rawFrame[rawFrameOffset + 1] << 24) + ((rawFrame[rawFrameOffset]) << 16)) / 65536);
+                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset],rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
             }
         }
 
         if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
-                decodedFrame[decodedFrameOffset++] = (((rawFrame[rawFrameOffset + 1] << 24) + ((rawFrame[rawFrameOffset]) << 16)) / 65536);
+                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset],rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
         }
 

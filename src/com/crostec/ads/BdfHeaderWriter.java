@@ -30,10 +30,10 @@ class BdfHeaderWriter {
         String channelsDigitalMaximum = "8388607";
         String channelsDigitalMinimum = "-8388608";
 
-        String accelerometerDigitalMaximum = "30800";
-        String accelerometerDigitalMinimum = "-30800";
-        String accelerometerPhysicalMaximum = "2";
-        String accelerometerPhysicalMinimum = "-2";
+        String accelerometerDigitalMaximum = "9610";
+        String accelerometerDigitalMinimum = "4190";
+        String accelerometerPhysicalMaximum = "1000";
+        String accelerometerPhysicalMinimum = "-1000";
 
         bdfHeader.append(adjustLength(identificationCode, 7));  //7 not 8 because first non ascii byte we will add later
         bdfHeader.append(adjustLength(localPatientIdentification, 80));
@@ -79,7 +79,7 @@ class BdfHeaderWriter {
             for (int i = 0; i < 3; i++) {     //3 accelerometer chanels
                 labels.append(adjustLength(bdfHeaderData.getAccelerometerChannelNames().get(i), 16));
                 transducerTypes.append(adjustLength("None", 80));
-                physicalDimensions.append(adjustLength("g", 8));
+                physicalDimensions.append(adjustLength("mg", 8));
                 physicalMinimums.append(adjustLength(accelerometerPhysicalMinimum, 8));
                 physicalMaximums.append(adjustLength(accelerometerPhysicalMaximum, 8));
                 digitalMinimums.append(adjustLength(accelerometerDigitalMinimum, 8));
@@ -96,7 +96,7 @@ class BdfHeaderWriter {
                 transducerTypes.append(adjustLength("None", 80));
                 physicalDimensions.append(adjustLength("V", 8));
                 physicalMinimums.append(adjustLength("0", 8));
-                physicalMaximums.append(adjustLength("2.5", 8));
+                physicalMaximums.append(adjustLength("10240", 8));
                 digitalMinimums.append(adjustLength("0", 8));
                 digitalMaximums.append(adjustLength("10240", 8));
                 preFilterings.append(adjustLength("None", 80));

@@ -13,7 +13,6 @@ public class Controller {
     private SettingsWindow settingsWindow;
     private Ads ads;
     private BdfWriter bdfWriter;
-    MathlabDataListener mathlabDataListener;
 
     private static  final Log log = LogFactory.getLog(Controller.class);
 
