@@ -6,47 +6,77 @@ import java.util.List;
 /**
  *
  */
-public class AdsConfigurator8Ch extends AdsConfigurator {
+public class AdsConfigurator8Ch implements AdsConfigurator {
     public static final int NUMBER_OF_ADS_CHANNELS = 8;
-    public static final int NUMBER_OF_ACCELEROMETER_CHANNELS = 3;
 
     @Override
     public List<Byte> writeAdsConfiguration(AdsConfiguration adsConfiguration) {
+        //-----------------------------------------
         List<Byte> result = new ArrayList<Byte>();
-        result.addAll(startPinLo());
-        result.addAll(writeCommand(0x11));  //stop continious
+        result.add((byte)51);       //длина пакета
+
+        result.add((byte)0xF0);     //ads1292 command
+        result.add((byte)0x11);     //ads1292 stop continuous
+
+        result.add((byte)0xF1);     //запись регистров ads1298
+        result.add((byte)0x01);     //адрес первого регистра
+        result.add((byte)0x17);     //количество регистров
+
+        result.add((byte) getRegister_1Value(adsConfiguration));         //register 0x01   set SPS
+        result.add((byte)testSignalEnabledBits(adsConfiguration));       //register 0x02   test signal
+        result.add((byte)0xCC);                                          //register 0x03
+        boolean isLoffEnabled = adsConfiguration.isLoffEnabled();
+        result.add((byte)(isLoffEnabled? 0x13 : 0x00));                  //register 0x04
+        for (int i = 0; i < 8; i++) {
+            result.add((byte) getChanelRegisterValue(adsConfiguration.getAdsChannels().get(i)));//registers 0x05 - 0x0C
+        }
+         int rlsSensBits = getRLDSensBits(adsConfiguration.getAdsChannels());
+        result.add((byte)rlsSensBits);  //RLD sens positive              register 0x0D
+        result.add((byte)rlsSensBits);  //RLD sens negative              register 0x0E
+
+        int loffSensBits = getLoffSensRegisterValue(adsConfiguration.getAdsChannels());
+        result.add((byte)loffSensBits); //loff sens positive             //register 0x0F
+        result.add((byte)loffSensBits); //loff sens negative             //register 0x10
+        result.add((byte)0x00);                                          //register 0x11
+        result.add((byte)0x00);                                          //register 0x12
+        result.add((byte)0x00);                                          //register 0x13
+        result.add((byte)0x0F);                                          //register 0x14
+        result.add((byte)0x00);                                          //register 0x15
+        result.add((byte)0x20);                                          //register 0x16
+        result.add((byte)(isLoffEnabled? 0x02 : 0x00));                  //register 0x17
+
+
+        result.add((byte)0xF2);     //делители частоты для 8 каналов ads1298  возможные значения 0,1,2,5,10;
         for (int i = 0; i < NUMBER_OF_ADS_CHANNELS; i++) {
             AdsChannelConfiguration adsChannelConfiguration = adsConfiguration.getAdsChannels().get(i);
             int divider = adsChannelConfiguration.isEnabled ? adsChannelConfiguration.getDivider().getValue() : 0;
-            result.addAll(writeDividerForChannel(i, divider));
+            result.add((byte)divider);
         }
-        for (int i = NUMBER_OF_ADS_CHANNELS; i < NUMBER_OF_ACCELEROMETER_CHANNELS + NUMBER_OF_ADS_CHANNELS; i++) {
-            int divider = adsConfiguration.isAccelerometerEnabled() ? adsConfiguration.getAccelerometerDivider().getValue() : 0;
-            result.addAll(writeDividerForChannel(i, divider));
-        }
-        result.addAll(writeAccelerometerEnabled(adsConfiguration.isAccelerometerEnabled()));
 
-        result.addAll(writeRegister(0x41, getRegister_1Value(adsConfiguration)));  //set SPS
-        result.addAll(writeRegister(0x42, testSignalEnabledBits(adsConfiguration)));  //test signal
-        if(isLoffEnabled(adsConfiguration)){
-            result.addAll(writeRegister(0x44, 0x13)); //turn on DC lead off detection
-            result.addAll(writeRegister(0x57, 0x02)); //turn on loff comparators
-        } else {
-            result.addAll(writeRegister(0x44, 0x00)); //default LOFF register value
-            result.addAll(writeRegister(0x57, 0x00)); //default CONF4 register value. turn off loff comparators
-        }
-        for (int i = 0; i < 8; i++) {
-            result.addAll(writeRegister(0x45 + i, getChanelRegisterValue(adsConfiguration.getAdsChannels().get(i))));
-        }
-        int rlsSensBits = getRLDSensBits(adsConfiguration.getAdsChannels());
-        result.addAll(writeRegister(0x4D, rlsSensBits));  //RLD sens positive
-        result.addAll(writeRegister(0x4E, rlsSensBits));  //RLD sens negative
+        result.add((byte)0xF3);     //accelerometer mode: 0 - disabled, 1 - enabled
+        int accelerometerMode = adsConfiguration.isAccelerometerEnabled() ? 1 : 0;
+        result.add((byte)accelerometerMode);
 
-        int loffSensBits = getLoffSensRegisterValue(adsConfiguration.getAdsChannels());
-        result.addAll(writeRegister(0x4F, loffSensBits));  //loff sens positive
-        result.addAll(writeRegister(0x50, loffSensBits));  //loff sens negative
+        result.add((byte)0xF4);     //send battery voltage data: 0 - disabled, 1 - enabled
+        int batteryMeasure = adsConfiguration.isBatteryVoltageMeasureEnabled() ? 1 : 0;
+        result.add((byte)batteryMeasure);
 
-        result.addAll(writeConfigDataReceivedCode());
+        result.add((byte)0xF5);     //передача данных loff статуса: 0 - disabled, 1 - enabled
+        result.add((byte)(isLoffEnabled ? 1 : 0));
+
+        result.add((byte)0xF6);     //reset timeout. In seconds
+        result.add((byte)20);
+
+        result.add((byte)0xF0);     //ads1292 command
+        result.add((byte)0x10);     //ads1292 start continuous
+
+        result.add((byte)0xFE);     //start recording
+
+        result.add((byte)0x55);     //footer1
+        result.add((byte)0x55);     //footer1
+        for (int i = 0; i < result.size(); i++) {
+             System.out.printf("i=%d; val=%x \n",i, result.get(i));
+        }
         return result;
     }
 
@@ -88,30 +118,20 @@ public class AdsConfigurator8Ch extends AdsConfigurator {
     //--------------------------------
 
     private int getChanelRegisterValue(AdsChannelConfiguration channelConfiguration) {
-        int result = 0x80;   //channel disabled
         if (channelConfiguration.isEnabled()) {
-            result = 0x00;
+            return channelConfiguration.getGain().getRegisterBits() + channelConfiguration.getCommutatorState().getRegisterBits();
         }
-        return result + channelConfiguration.getGain().getRegisterBits() + channelConfiguration.getCommutatorState().getRegisterBits();
+        return 0x81;   //channel disabled
     }
 
     private int testSignalEnabledBits(AdsConfiguration configuration) {
-        int result = 0x00;
+        int result = 0x40;
         for (AdsChannelConfiguration adsChannelConfiguration : configuration.getAdsChannels()) {
-            if (adsChannelConfiguration.getCommutatorState().equals(CommutatorState.TEST_SIGNAL)) {
-                result = 0x10;
+            if (adsChannelConfiguration.isEnabled() && adsChannelConfiguration.getCommutatorState().equals(CommutatorState.TEST_SIGNAL)) {
+                result = 0x50;
             }
         }
         return result;
-    }
-
-    private boolean isLoffEnabled(AdsConfiguration configuration) {
-        for (AdsChannelConfiguration adsChannelConfiguration : configuration.getAdsChannels()) {
-            if (adsChannelConfiguration.isEnabled && adsChannelConfiguration.isLoffEnable) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private int getLoffSensRegisterValue(List<AdsChannelConfiguration> channelConfigurationList){

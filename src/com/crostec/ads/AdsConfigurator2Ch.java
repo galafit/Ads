@@ -6,7 +6,7 @@ import java.util.List;
 /**
  *
  */
-public class AdsConfigurator2Ch extends AdsConfigurator{
+public class AdsConfigurator2Ch implements AdsConfigurator{
 
     public static final int NUMBER_OF_ADS_CHANNELS = 2;
     public static final int NUMBER_OF_ACCELEROMETER_CHANNELS = 3;

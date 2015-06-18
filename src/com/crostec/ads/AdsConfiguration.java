@@ -69,7 +69,7 @@ public class AdsConfiguration {
 
     public boolean isLoffEnabled() {
         for (AdsChannelConfiguration adsChannel : adsChannels) {
-           if(adsChannel.isLoffEnable()){
+           if(adsChannel.isEnabled && adsChannel.isLoffEnable()){
                return true;
            }
         }

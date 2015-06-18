@@ -21,7 +21,7 @@ abstract class FrameDecoder implements ComPortListener {
     AdsConfiguration adsConfiguration;
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
-   // private List<Integer> debugBuf = new ArrayList<Integer>();
+    private List<Integer> debugBuf  = new ArrayList<Integer>();
 
     public FrameDecoder(AdsConfiguration configuration) {
         adsConfiguration = configuration;
@@ -34,7 +34,7 @@ abstract class FrameDecoder implements ComPortListener {
 
     @Override
     public void onByteReceived(byte inByte) {
-       // debugBuf.add(inByte);
+        debugBuf.add(inByte & 0xFF);
         if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
             rawFrame[frameIndex] = inByte;
             frameIndex++;
