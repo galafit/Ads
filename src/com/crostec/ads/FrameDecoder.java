@@ -21,7 +21,6 @@ abstract class FrameDecoder implements ComPortListener {
     AdsConfiguration adsConfiguration;
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
-    private List<Integer> debugBuf  = new ArrayList<Integer>();
 
     public FrameDecoder(AdsConfiguration configuration) {
         adsConfiguration = configuration;
@@ -34,7 +33,6 @@ abstract class FrameDecoder implements ComPortListener {
 
     @Override
     public void onByteReceived(byte inByte) {
-        debugBuf.add(inByte & 0xFF);
         if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
             rawFrame[frameIndex] = inByte;
             frameIndex++;
@@ -76,41 +74,50 @@ abstract class FrameDecoder implements ComPortListener {
     }
 
     private void onMessageReceived() {
-        if (((rawFrame[3]&0xFF) == 0xA3) && ((rawFrame[5]&0xFF) == 0x01)) {
+        System.out.println("Message received: ");
+        for (int i = 0; i < rawFrame.length; i++) {
+            int val = rawFrame[i] & 0xFF;
+            System.out.printf("i=%d; val=%x \n",i, val);
+        }
+        if (((rawFrame[3] & 0xFF) == 0xA3) && ((rawFrame[5] & 0xFF) == 0x01)) {
             log.info("Low battery message received");
         }
     }
 
     private void onDataRecordReceived() {
-        int counter = AdsUtils.bytesToSignedInt(rawFrame[2],rawFrame[3]);
+        int counter = AdsUtils.bytesToSignedInt(rawFrame[2], rawFrame[3]);
 
         int[] decodedFrame = new int[decodedFrameSize];
         int rawFrameOffset = 4;
         int decodedFrameOffset = 0;
         for (int i = 0; i < numberOf3ByteSamples; i++) {
-            decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset],rawFrame[rawFrameOffset + 1],rawFrame[rawFrameOffset + 2]);
+            decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1], rawFrame[rawFrameOffset + 2]);
             rawFrameOffset += 3;
         }
 
         if (adsConfiguration.isAccelerometerEnabled()) {
             for (int i = 0; i < 3; i++) {
-                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset],rawFrame[rawFrameOffset + 1]);
+                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
             }
         }
 
         if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
-                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset],rawFrame[rawFrameOffset + 1]);
-                rawFrameOffset += 2;
+            decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
+            rawFrameOffset += 2;
         }
 
         if (adsConfiguration.isLoffEnabled()) {
+            decodedFrame[decodedFrameOffset++] = rawFrame[rawFrameOffset];
+            rawFrameOffset += 1;
+            if (adsConfiguration.getDeviceType().getNumberOfAdsChannels() == 8) {
                 decodedFrame[decodedFrameOffset++] = rawFrame[rawFrameOffset];
                 rawFrameOffset += 1;
+            }
         }
 
         int numberOfLostFrames = getNumberOfLostFrames(counter);
-         for (int i = 0; i < numberOfLostFrames; i++) {
+        for (int i = 0; i < numberOfLostFrames; i++) {
             notifyListeners(decodedFrame);
         }
         notifyListeners(decodedFrame);
@@ -127,7 +134,11 @@ abstract class FrameDecoder implements ComPortListener {
             result += 2;
         }
         if (adsConfiguration.isLoffEnabled()) {
-            result += 1;
+            if (adsConfiguration.getDeviceType().getNumberOfAdsChannels() == 8) {
+                result += 2;
+            } else {
+                result += 1;
+            }
         }
         result += 1;//footer
         return result;
