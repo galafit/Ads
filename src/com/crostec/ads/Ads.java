@@ -41,7 +41,6 @@ public class Ads {
             };
             comPort = new ComPort(adsConfiguration.getComPortName(), 460800);
             comPort.setComPortListener(frameDecoder);
-
             comPort.writeToPort(adsConfiguration.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfiguration));
             isRecording = true;
         } catch (SerialPortException e) {

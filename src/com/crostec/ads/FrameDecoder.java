@@ -74,13 +74,22 @@ abstract class FrameDecoder implements ComPortListener {
     }
 
     private void onMessageReceived() {
-        System.out.println("Message received: ");
-        for (int i = 0; i < rawFrame.length; i++) {
-            int val = rawFrame[i] & 0xFF;
-            System.out.printf("i=%d; val=%x \n",i, val);
-        }
         if (((rawFrame[3] & 0xFF) == 0xA3) && ((rawFrame[5] & 0xFF) == 0x01)) {
             log.info("Low battery message received");
+        } else if ((rawFrame[3] & 0xFF) == 0xA0) {
+            log.info("Hello message received");
+        } else if ((rawFrame[3] & 0xFF) == 0xA1) {
+            log.info("Firmware version message received");
+        } else if (((rawFrame[3] & 0xFF) == 0xA2) && ((rawFrame[5] & 0xFF) == 0x04)) {
+            log.info("TX fail message received");
+        } else if ((rawFrame[3] & 0xFF) == 0xA5) {
+            log.info("Stop recording message received");
+        }else {
+            System.out.println("Unknown message received: ");
+            for (int i = 0; i < rawFrame[2]; i++) {
+                int val = rawFrame[i] & 0xFF;
+                System.out.printf("i=%d; val=%x \n", i, val);
+            }
         }
     }
 
