@@ -5,7 +5,7 @@ package com.crostec.ads;
  */
 public enum Sps {
 
-    S250(1, 250),
+   // S250(1, 250),
     S500(2, 500),
     S1000(3, 1000),
     S2000(4, 2000);

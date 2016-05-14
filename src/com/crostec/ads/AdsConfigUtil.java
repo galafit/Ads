@@ -23,6 +23,7 @@ public class AdsConfigUtil {
             adsChannelConfiguration.setLoffEnable(adsConfigProperties.isChannelLoffEnable(chNum));
             adsChannelConfiguration.setRldSenseEnabled(adsConfigProperties.isChannelRldSenseEnable(chNum));
             adsChannelConfiguration.setEnabled(adsConfigProperties.isChannelEnabled(chNum));
+            adsChannelConfiguration.set50HzFilterEnabled(adsConfigProperties.is50HzFilterEnabled(chNum));
             adsConfiguration.getAdsChannels().add(adsChannelConfiguration);
         }
         return adsConfiguration;
@@ -40,6 +41,7 @@ public class AdsConfigUtil {
             adsConfigProperties.setChannelGain(i, channel.getGain());
             adsConfigProperties.setChannelCommutatorState(i, channel.getCommutatorState());
             adsConfigProperties.setChannelEnabled(i, channel.isEnabled());
+            adsConfigProperties.set50HzFilterEnabled(i, channel.is50HzFilterEnabled());
             adsConfigProperties.setChannelLoffEnabled(i, channel.isLoffEnable());
             adsConfigProperties.setChannelRldSenseEnabled(i, channel.isRldSenseEnabled());
         }

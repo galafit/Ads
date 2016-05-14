@@ -14,7 +14,6 @@ import java.util.List;
  * Mac OS X 10.5 and higher(x86, x86-64, PPC, PPC64)
  * https://code.google.com/p/java-simple-serial-connector/
  * http://www.quizful.net/post/java-serial-ports
- *
  */
 public class ComPort implements SerialPortEventListener {
 
@@ -26,18 +25,18 @@ public class ComPort implements SerialPortEventListener {
         boolean isComPortExist = false;
         comPortName.trim();
         String[] portNames = SerialPortList.getPortNames();
-        for(int i = 0; i < portNames.length; i++){
-            if(comPortName != null && comPortName.equalsIgnoreCase(portNames[i])) {
+        for (int i = 0; i < portNames.length; i++) {
+            if (comPortName != null && comPortName.equalsIgnoreCase(portNames[i])) {
                 isComPortExist = true;
             }
         }
 
-        if(!isComPortExist) {
-           String msg = "No port with the name " + comPortName;
-           throw new AdsException(msg);
+        if (!isComPortExist) {
+            String msg = "No port with the name " + comPortName;
+            throw new AdsException(msg);
         }
         comPort = new SerialPort(comPortName);
-        if(!comPort.isOpened()) {
+        if (!comPort.isOpened()) {
             comPort.openPort();//Open serial port
             comPort.setParams(speed,
                     SerialPort.DATABITS_8,
@@ -48,6 +47,15 @@ public class ComPort implements SerialPortEventListener {
             // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
             comPort.setEventsMask(SerialPort.MASK_RXCHAR);
             comPort.addEventListener(this);
+            comPort.setRTS(true);
+            comPort.setDTR(true);
+            try {
+                Thread.sleep(100);
+                comPort.setDTR(false);
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
         }
     }
 

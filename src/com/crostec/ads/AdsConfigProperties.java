@@ -21,6 +21,7 @@ class AdsConfigProperties {
     public static final String CHANNEL_GAIN = "gainChannel";
     public static final String CHANNEL_COMMUTATOR_STATE = "commutatorStateChannel";
     public static final String CHANNEL_IS_ENABLED = "isEnabledChannel";
+    public static final String CHANNEL_IS_50_HZ_FILTER_ENABLED = "is50HzFilterEnabledChannel";
     public static final String CHANNEL_LOFF_ENABLED = "loffEnabledChannel";
     public static final String CHANNEL_RLD_SENSE_ENABLED = "rldSenseEnabledChannel";
     public static final String ACCELEROMETER_DIVIDER = "dividerAccelerometer";
@@ -74,6 +75,14 @@ class AdsConfigProperties {
 
     public void setChannelEnabled(int channelNumber, boolean isEnabled) {
         config.setProperty(CHANNEL_IS_ENABLED + channelNumber, isEnabled);
+    }
+
+    public boolean is50HzFilterEnabled(int channelNumber) {
+        return config.getBoolean(CHANNEL_IS_50_HZ_FILTER_ENABLED + channelNumber);
+    }
+
+    public void set50HzFilterEnabled(int channelNumber, boolean isEnabled) {
+        config.setProperty(CHANNEL_IS_50_HZ_FILTER_ENABLED + channelNumber, isEnabled);
     }
 
     public boolean isAccelerometerEnabled() {

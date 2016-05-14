@@ -5,7 +5,7 @@ package com.crostec.ads;
 import static com.crostec.ads.Divider.*;
 
 public enum DeviceType {
-    ADS1298(8, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D1, D2, D5, D10}),
+    ADS1298(8, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10}),
 
     ADS1292(2, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10});
 

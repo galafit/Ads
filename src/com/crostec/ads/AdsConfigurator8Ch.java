@@ -82,11 +82,11 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
 
     private int getRegister_1Value(AdsConfiguration adsConfiguration) {
         int registerValue = 0;
-        if (adsConfiguration.isHighResolutionMode()) {
+        //if (adsConfiguration.isHighResolutionMode()) {
             switch (adsConfiguration.getSps()) {
-                case S250:
+                /*case S250:
                     registerValue = 0x06;//switch to low power mode
-                    break;
+                    break;*/
                 case S500:
                     registerValue = 0x86;
                     break;
@@ -96,8 +96,8 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
                 case S2000:
                     registerValue = 0x84;
                     break;
-            }
-        } else {
+          //  }
+        } /*else {
             switch (adsConfiguration.getSps()) {
                 case S250:
                     registerValue = 0x06;
@@ -112,7 +112,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
                     registerValue = 0x03;
                     break;
             }
-        }
+        }*/
         return registerValue;
     }
     //--------------------------------

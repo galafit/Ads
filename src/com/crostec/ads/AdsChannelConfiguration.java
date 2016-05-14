@@ -7,6 +7,7 @@ public class AdsChannelConfiguration {
 
     protected Divider divider = Divider.D1;
     protected boolean isEnabled = true;
+    protected boolean is50HzFilterEnabled = true;
     private Gain gain = Gain.G2;
     private CommutatorState commutatorState = CommutatorState.INPUT;
     protected boolean isLoffEnable = true;
@@ -58,6 +59,14 @@ public class AdsChannelConfiguration {
 
     public void setEnabled(boolean enabled) {
         isEnabled = enabled;
+    }
+
+    public boolean is50HzFilterEnabled() {
+        return is50HzFilterEnabled;
+    }
+
+    public void set50HzFilterEnabled(boolean is50HzFilterEnabled) {
+        this.is50HzFilterEnabled = is50HzFilterEnabled;
     }
 
     @Override

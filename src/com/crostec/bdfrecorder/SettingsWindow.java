@@ -23,7 +23,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private int adsDataFrameFrequency;
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
-    private String spsLabel = "Sampling Frequency (Hz)";
+    private String spsLabel = "Maximum Frequency (Hz)";
     private String comPortLabel = "Com Port";
     private JComboBox spsField;
     private JTextField comPortName;
@@ -31,6 +31,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JComboBox[] channelGain;
     private JComboBox[] channelCommutatorState;
     private JCheckBox[] channelEnable;
+    private JCheckBox[] channel50Hz;
     private JTextField[] channelName;
 
     private JComboBox accelerometerFrequency;
@@ -61,7 +62,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JCheckBox[] channelLoffEnable;
     private String title = "EDF Recorder";
     private JComponent[] channelsHeaders = {new JLabel("Number"), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"),
-            new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Lead Off Detection"), new JLabel(" ")};
+            new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Lead Off Detection"), new JLabel(" "),new JLabel("50 Hz Filter")};
 
 
     public SettingsWindow(Controller controller, BdfHeaderData bdfHeaderData) {
@@ -93,6 +94,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         channelGain = new JComboBox[adsChannelsNumber];
         channelCommutatorState = new JComboBox[adsChannelsNumber];
         channelEnable = new JCheckBox[adsChannelsNumber];
+        channel50Hz = new JCheckBox[adsChannelsNumber];
         channelName = new JTextField[adsChannelsNumber];
         channelLoffStatPositive = new MarkerLabel[adsChannelsNumber];
         channelLoffStatNegative = new MarkerLabel[adsChannelsNumber];
@@ -103,6 +105,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             channelGain[i] = new JComboBox();
             channelCommutatorState[i] = new JComboBox();
             channelEnable[i] = new JCheckBox();
+            channel50Hz[i] = new JCheckBox();
             channelName[i] = new JTextField(textFieldLength);
             channelLoffStatPositive[i] = new MarkerLabel(iconDisabled);
             channelLoffStatNegative[i] = new MarkerLabel(iconDisabled);
@@ -235,6 +238,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             loffPanel.add(channelLoffStatNegative[i]);
             channelsPanel.add(loffPanel);
             channelsPanel.add(new JLabel(" "));
+                        channelsPanel.add(channel50Hz[i]);
         }
 
         // Add line of accelerometer
@@ -326,6 +330,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
         for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getAdsChannels().size(); i++) {
             channelEnable[i].setEnabled(isEnable);
+            channel50Hz[i].setEnabled(isEnable);
             channelName[i].setEnabled(isEnable);
             channelFrequency[i].setEnabled(isEnable);
             channelGain[i].setEnabled(isEnable);
@@ -381,6 +386,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             if (!channel.isEnabled()) {
                 enableAdsChannel(i, false);
             }
+            channel50Hz[i].setSelected(channel.is50HzFilterEnabled());
             channelLoffEnable[i].setSelected(channel.isLoffEnable());
         }
 
@@ -461,6 +467,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             bdfHeaderData.getAdsChannelNames().add(getChannelName(i));
             channel.setDivider(getChannelDivider(i));
             channel.setEnabled(isChannelEnable(i));
+            channel.set50HzFilterEnabled(is50HzFilterEnable(i));
             channel.setGain(getChannelGain(i));
             channel.setCommutatorState(getChannelCommutatorState(i));
             channel.setLoffEnable(channelLoffEnable[i].isSelected());
@@ -523,6 +530,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void enableAdsChannel(int channelNumber, boolean isEnable) {
+        channel50Hz[channelNumber].setEnabled(isEnable);
         channelFrequency[channelNumber].setEnabled(isEnable);
         channelGain[channelNumber].setEnabled(isEnable);
         channelCommutatorState[channelNumber].setEnabled(isEnable);
@@ -564,6 +572,10 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private boolean isChannelEnable(int channelNumber) {
         return channelEnable[channelNumber].isSelected();
+    }
+
+    private boolean is50HzFilterEnable(int channelNumber) {
+        return channel50Hz[channelNumber].isSelected();
     }
 
     private String getChannelName(int channelNumber) {
