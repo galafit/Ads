@@ -1,4 +1,4 @@
-package com.crostec.bdfrecorder;
+package com.crostec.gui;
 
 import javax.swing.*;
 import java.awt.*;

@@ -106,4 +106,8 @@ public class ComPort implements SerialPortEventListener {
             }
         }
     }
+
+    public static  String[] getportNames() {
+        return SerialPortList.getPortNames();
+    }
 }

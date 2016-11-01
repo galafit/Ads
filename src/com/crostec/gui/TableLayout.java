@@ -1,4 +1,4 @@
-package com.crostec.bdfrecorder;
+package com.crostec.gui;
 
 // Table layout manager, with the flexibility of GridBagLayout but the ease
 // of use of HTML table declarations.

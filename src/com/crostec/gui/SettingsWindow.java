@@ -1,6 +1,10 @@
-package com.crostec.bdfrecorder;
+package com.crostec.gui;
 
 import com.crostec.ads.*;
+import com.crostec.bdfrecorder.Controller;
+import com.crostec.gui.comport_gui.ComportUI;
+import com.crostec.gui.file_gui.FileToSaveUI;
+import comport.ComportFacade;
 
 import javax.swing.*;
 import java.awt.*;
@@ -24,9 +28,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
     private String spsLabel = "Maximum Frequency (Hz)";
-    private String comPortLabel = "Com Port";
     private JComboBox spsField;
-    private JTextField comPortName;
     private JComboBox[] channelFrequency;
     private JComboBox[] channelGain;
     private JComboBox[] channelCommutatorState;
@@ -40,11 +42,12 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JTextField patientIdentification;
     private JTextField recordingIdentification;
 
-    private JTextField fileToSave;
-
     private String start = "Start";
     private String stop = "Stop";
     private JButton startButton = new JButton(start);
+
+    private ComportUI comportUI;
+    private FileToSaveUI fileToSaveUI;
 
     private Color colorProcess = Color.GREEN;
     private Color colorProblem = Color.RED;
@@ -80,15 +83,13 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
         spsField = new JComboBox(Sps.values());
         spsField.setSelectedItem(bdfHeaderData.getAdsConfiguration().getSps());
-        int textFieldLength = 5;
-        comPortName = new JTextField(textFieldLength);
 
-        textFieldLength = 25;
+        comportUI = new ComportUI(new ComportFacade());
+        fileToSaveUI = new FileToSaveUI();
+
+        int textFieldLength = 25;
         patientIdentification = new JTextField(textFieldLength);
         recordingIdentification = new JTextField(textFieldLength);
-
-        textFieldLength = 55;
-        fileToSave = new JTextField(textFieldLength);
 
         channelFrequency = new JComboBox[adsChannelsNumber];
         channelGain = new JComboBox[adsChannelsNumber];
@@ -155,7 +156,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                     setProcessReport("Saved to file: " + bdfHeaderData.getFileNameToSave());  //todo enter file name
                 } else {
                     startButton.setText(stop);
-                    comPortName.setEnabled(false);
+                    comportUI.setEnabled(false);
                     disableFields();
                     saveDataToModel();
                     adsDataFrameSize = AdsUtils.getDecodedFrameSize(bdfHeaderData.getAdsConfiguration());
@@ -205,14 +206,11 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         spsPanel.add(new JLabel(spsLabel));
         spsPanel.add(spsField);
 
-        JPanel comPortPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        comPortPanel.add(new Label(comPortLabel));
-        comPortPanel.add(comPortName);
 
         hgap = 60;
         vgap = 15;
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        topPanel.add(comPortPanel);
+        topPanel.add(comportUI);
         topPanel.add(spsPanel);
         topPanel.add(buttonPanel);
 
@@ -277,16 +275,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         identificationBorderPanel.add(identificationPanel);
 
 
-        hgap = 5;
-        vgap = 0;
-        JPanel saveAsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
-        saveAsPanel.add(fileToSave);
-
-        hgap = 15;
-        vgap = 5;
-        JPanel saveAsBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        saveAsBorderPanel.setBorder(BorderFactory.createTitledBorder("Save As"));
-        saveAsBorderPanel.add(saveAsPanel);
 
         hgap = 10;
         vgap = 5;
@@ -299,7 +287,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         JPanel adsPanel = new JPanel(new BorderLayout(hgap, vgap));
         adsPanel.add(channelsBorderPanel, BorderLayout.NORTH);
         adsPanel.add(identificationBorderPanel, BorderLayout.CENTER);
-        adsPanel.add(saveAsBorderPanel, BorderLayout.SOUTH);
+        adsPanel.add(fileToSaveUI, BorderLayout.SOUTH);
 
         // Root Panel of the SettingsWindow
         add(topPanel, BorderLayout.NORTH);
@@ -307,10 +295,10 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         add(reportPanel, BorderLayout.SOUTH);
 
         // set the same size for identificationPanel and  saveAsPanel
-        int height = Math.max(identificationPanel.getPreferredSize().height, saveAsPanel.getPreferredSize().height);
-        int width = Math.max(identificationPanel.getPreferredSize().width, saveAsPanel.getPreferredSize().width);
-        saveAsPanel.setPreferredSize(new Dimension(width, height));
-        identificationPanel.setPreferredSize(new Dimension(width, height));
+        int height = Math.max(identificationBorderPanel.getPreferredSize().height, fileToSaveUI.getPreferredSize().height);
+        int width = Math.max(identificationBorderPanel.getPreferredSize().width, fileToSaveUI.getPreferredSize().width);
+        fileToSaveUI.setPreferredSize(new Dimension(width, height));
+        identificationBorderPanel.setPreferredSize(new Dimension(width, height));
 
 
         pack();
@@ -322,7 +310,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         spsField.setEnabled(isEnable);
         patientIdentification.setEnabled(isEnable);
         recordingIdentification.setEnabled(isEnable);
-        fileToSave.setEnabled(isEnable);
+        fileToSaveUI.setEnabled(isEnable);
 
         accelerometerName.setEnabled(isEnable);
         accelerometerEnable.setEnabled(isEnable);
@@ -374,7 +362,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void loadDataFromModel() {
         spsField.setSelectedItem(bdfHeaderData.getAdsConfiguration().getSps());
-        comPortName.setText(bdfHeaderData.getAdsConfiguration().getComPortName());
+        comportUI.setCurrentPort(bdfHeaderData.getAdsConfiguration().getComPortName());
+        fileToSaveUI.setDirectory(bdfHeaderData.getDirectoryToSave());
 //        fileToSave.setText(FILENAME_PATTERN);
         patientIdentification.setText(bdfHeaderData.getPatientIdentification());
         recordingIdentification.setText(bdfHeaderData.getRecordingIdentification());
@@ -474,8 +463,10 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
         bdfHeaderData.getAdsConfiguration().setAccelerometerEnabled(isAccelerometerEnable());
         bdfHeaderData.getAdsConfiguration().setAccelerometerDivider(getAccelerometerDivider());
-        bdfHeaderData.setFileNameToSave(new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis())) + fileToSave.getText() + ".bdf");
+        bdfHeaderData.setFileNameToSave(fileToSaveUI.getFilename());
+        bdfHeaderData.setDirectoryToSave(fileToSaveUI.getDirectory());
     }
+
 
     private void setChannelsFrequencies(Sps sps) {
         int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getAdsChannels().size();
@@ -583,7 +574,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private String getComPortName() {
-        return comPortName.getText();
+        return comportUI.getComPortName();
     }
 
     private String getPatientIdentification() {

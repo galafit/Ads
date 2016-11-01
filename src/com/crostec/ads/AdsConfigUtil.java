@@ -15,6 +15,7 @@ public class AdsConfigUtil {
         adsConfiguration.setAccelerometerEnabled(adsConfigProperties.isAccelerometerEnabled());
         adsConfiguration.setBatteryVoltageMeasureEnabled(adsConfigProperties.isBatteryMeasureEnabled());
         adsConfiguration.setAccelerometerDivider(adsConfigProperties.getAccelerometerDivider());
+        adsConfiguration.setDirectoryToSave(adsConfigProperties.getDirectoryToSave());
         for (int chNum = 0; chNum < adsConfigProperties.getDeviceType().getNumberOfAdsChannels(); chNum++) {
             AdsChannelConfiguration adsChannelConfiguration = new AdsChannelConfiguration();
             adsChannelConfiguration.setDivider(adsConfigProperties.getChannelDivider(chNum));
@@ -35,6 +36,7 @@ public class AdsConfigUtil {
         adsConfigProperties.setAccelerometerDivider(adsConfiguration.getAccelerometerDivider());
         adsConfigProperties.setAccelerometerEnabled(adsConfiguration.isAccelerometerEnabled());
         adsConfigProperties.setBatteryMeasureEnabled(adsConfiguration.isBatteryVoltageMeasureEnabled());
+        adsConfigProperties.setDirectoryToSave(adsConfiguration.getDirectoryToSave());
         for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
             AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
             adsConfigProperties.setChannelDivider(i, channel.getDivider());

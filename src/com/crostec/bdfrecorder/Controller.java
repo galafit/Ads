@@ -1,6 +1,7 @@
 package com.crostec.bdfrecorder;
 
 import com.crostec.ads.*;
+import com.crostec.gui.SettingsWindow;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

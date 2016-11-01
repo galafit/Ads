@@ -31,9 +31,15 @@ public class BdfHeaderData {
     public String getFileNameToSave() {
         return fileNameToSave;
     }
-
     public void setFileNameToSave(String fileNameToSave) {
         this.fileNameToSave = fileNameToSave;
+    }
+
+    public String getDirectoryToSave() {
+        return adsConfiguration.getDirectoryToSave();
+    }
+    public void setDirectoryToSave(String directory) {
+        adsConfiguration.setDirectoryToSave(directory);
     }
 
     public List<String> getAdsChannelNames() {

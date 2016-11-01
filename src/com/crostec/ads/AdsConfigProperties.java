@@ -27,6 +27,7 @@ class AdsConfigProperties {
     public static final String ACCELEROMETER_DIVIDER = "dividerAccelerometer";
     public static final String ACCELEROMETER_IS_ENABLED = "isEnabledAccelerometer";
     public static final String BATTERY_MEASURE_IS_ENABLED = "isBatteryMeasureEnabled";
+    public static final String DIRECTORY_TO_SAVE = "directoryToSaveFiles";
     private PropertiesConfiguration config;
 
     public AdsConfigProperties() {
@@ -35,6 +36,14 @@ class AdsConfigProperties {
         } catch (ConfigurationException e) {
             log.error(e);
         }
+    }
+
+    public String getDirectoryToSave() {
+        return config.getString(DIRECTORY_TO_SAVE);
+    }
+
+    public void setDirectoryToSave(String directoryToSave) {
+            config.setProperty(DIRECTORY_TO_SAVE, directoryToSave);
     }
 
     public DeviceType getDeviceType(){

@@ -5,8 +5,7 @@ import com.crostec.ads.Ads;
 import com.crostec.ads.AdsConfigUtil;
 import com.crostec.ads.AdsConfiguration;
 import com.crostec.ads.BdfHeaderData;
-import com.crostec.bdfrecorder.Controller;
-import com.crostec.bdfrecorder.SettingsWindow;
+import com.crostec.gui.SettingsWindow;
 
 public class BdfRecorder {
     public static void main(String[] args) {

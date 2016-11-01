@@ -19,6 +19,16 @@ public class AdsConfiguration {
     private boolean isHighResolutionMode = true;
     private DeviceType deviceType;
 
+    private String directoryToSave = System.getProperty("user.home");
+
+    public String getDirectoryToSave() {
+        return directoryToSave;
+    }
+
+    public void setDirectoryToSave(String directoryToSave) {
+        this.directoryToSave = directoryToSave;
+    }
+
     public boolean isBatteryVoltageMeasureEnabled() {
         return isBatteryVoltageMeasureEnabled;
     }
