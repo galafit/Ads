@@ -1,6 +1,7 @@
 package com.crostec.ads;
 
 import javax.naming.ConfigurationException;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,9 +20,17 @@ public class AdsConfiguration {
     private boolean isHighResolutionMode = true;
     private DeviceType deviceType;
 
-    private String directoryToSave = System.getProperty("user.home");
+    private String directoryToSave;
+
 
     public String getDirectoryToSave() {
+        if(directoryToSave == null) {
+            File recordsDir = new File(System.getProperty("user.dir"), "records");
+            if(!recordsDir.exists() || !recordsDir.isDirectory()) {
+                recordsDir.mkdir();
+            }
+          directoryToSave = recordsDir.getPath();
+        }
         return directoryToSave;
     }
 

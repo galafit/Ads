@@ -17,6 +17,7 @@ class AdsConfigProperties {
     public static final String DEVICE_TYPE = "deviceType";
     public static final String COM_PORT_NAME = "comPort";
     public static final String SPS = "sps";
+    public static final String CHANNEL_NAME = "nameChannel";
     public static final String CHANNEL_DIVIDER = "dividerChannel";
     public static final String CHANNEL_GAIN = "gainChannel";
     public static final String CHANNEL_COMMUTATOR_STATE = "commutatorStateChannel";
@@ -28,6 +29,7 @@ class AdsConfigProperties {
     public static final String ACCELEROMETER_IS_ENABLED = "isEnabledAccelerometer";
     public static final String BATTERY_MEASURE_IS_ENABLED = "isBatteryMeasureEnabled";
     public static final String DIRECTORY_TO_SAVE = "directoryToSaveFiles";
+
     private PropertiesConfiguration config;
 
     public AdsConfigProperties() {
@@ -36,6 +38,14 @@ class AdsConfigProperties {
         } catch (ConfigurationException e) {
             log.error(e);
         }
+    }
+
+    public String getChannelName(int channelNumber) {
+        return config.getString(CHANNEL_NAME + channelNumber);
+    }
+
+    public void setChannelName(int channelNumber, String channelName) {
+        config.setProperty(CHANNEL_NAME + channelNumber, channelName);
     }
 
     public String getDirectoryToSave() {

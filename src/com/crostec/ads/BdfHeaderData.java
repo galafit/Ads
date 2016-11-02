@@ -20,8 +20,9 @@ public class BdfHeaderData {
 
     public BdfHeaderData(AdsConfiguration adsConfiguration) {
         this.adsConfiguration = adsConfiguration;
+        List<AdsChannelConfiguration> channelsConfiguration = adsConfiguration.getAdsChannels();
         for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
-              adsChannelNames.add("Channel " + (i+1));
+              adsChannelNames.add(channelsConfiguration.get(i).getName());
         }
         accelerometerChannelNames.add("Accelerometer X");
         accelerometerChannelNames.add("Accelerometer Y");

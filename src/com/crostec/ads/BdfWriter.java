@@ -30,7 +30,11 @@ public class BdfWriter implements AdsDataListener {
         try {
             String directory = bdfHeaderData.getDirectoryToSave();
             String filename = normalizeFilename(bdfHeaderData.getFileNameToSave());
-            this.fileToSave = new RandomAccessFile(new File(directory, filename), "rw");
+            File file = new File(directory, filename);
+            if(file.exists()) {
+               file.delete();
+            }
+            this.fileToSave = new RandomAccessFile(file, "rw");
         } catch (FileNotFoundException e) {
             LOG.error(e);
         }
@@ -120,6 +124,6 @@ public class BdfWriter implements AdsDataListener {
         }
         // If the extension do not match with  FILE_EXTENSION We need to replace it
         filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);
-        return defaultFilename + filename;
+        return defaultFilename + "_" + filename;
     }
 }

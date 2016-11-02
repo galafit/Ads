@@ -12,11 +12,11 @@ import java.io.File;
  * Created by gala on 01/11/16.
  */
 public class DirectoryField extends JComboBox {
-    JFileChooser fileChooser = new JFileChooser();
+
+    private JFileChooser fileChooser;
 
     public DirectoryField() {
-        String homeDir = System.getProperty("user.home");
-        fileChooser = new JFileChooser(new File(homeDir));
+        fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Specify a directory to save");
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         fileChooser.setAcceptAllFileFilterUsed(false);
@@ -58,7 +58,6 @@ public class DirectoryField extends JComboBox {
         // disable the popup menu opening from Key-Event Alt-Down
         // which opens the popup menu even if remove all the key listeners and clear the action map
         setFocusable(false);
-        setDirectory(homeDir);
     }
 
     public DirectoryField(String dirName) {

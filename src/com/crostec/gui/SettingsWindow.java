@@ -2,6 +2,7 @@ package com.crostec.gui;
 
 import com.crostec.ads.*;
 import com.crostec.bdfrecorder.Controller;
+import com.crostec.gui.comport_gui.ComportDataProviderMock;
 import com.crostec.gui.comport_gui.ComportUI;
 import com.crostec.gui.file_gui.FileToSaveUI;
 import comport.ComportFacade;
@@ -9,9 +10,7 @@ import comport.ComportFacade;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
@@ -84,7 +83,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         spsField = new JComboBox(Sps.values());
         spsField.setSelectedItem(bdfHeaderData.getAdsConfiguration().getSps());
 
-        comportUI = new ComportUI(new ComportFacade());
+        comportUI = new ComportUI(new ComportFacade(), bdfHeaderData.getAdsConfiguration().getComPortName());
         fileToSaveUI = new FileToSaveUI();
 
         int textFieldLength = 25;
@@ -155,15 +154,27 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                     enableFields();
                     setProcessReport("Saved to file: " + bdfHeaderData.getFileNameToSave());  //todo enter file name
                 } else {
-                    startButton.setText(stop);
-                    comportUI.setEnabled(false);
-                    disableFields();
-                    saveDataToModel();
-                    adsDataFrameSize = AdsUtils.getDecodedFrameSize(bdfHeaderData.getAdsConfiguration());
-                    adsDataFrameCounter = 0;
-                    adsDataFrameFrequency = bdfHeaderData.getAdsConfiguration().getSps().getValue() / bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue();
-                    setProcessReport("Connecting...");
-                    controller.startRecording(bdfHeaderData);
+                    if (!isComportAvailable()){
+                        String msg = "No ComPort with the name: " + getComPortName()+ " !\n"+
+                                "Check if the «USB receiver» is connected\n" +
+                                "and choose the correct ComPort";
+                        JOptionPane.showMessageDialog(SettingsWindow.this, msg);
+
+                    }
+                    else{
+                        startButton.setText(stop);
+                        disableFields();
+                        saveComPortData();
+                        saveDataToModel();
+                        adsDataFrameSize = AdsUtils.getDecodedFrameSize(bdfHeaderData.getAdsConfiguration());
+                        adsDataFrameCounter = 0;
+                        adsDataFrameFrequency = bdfHeaderData.getAdsConfiguration().getSps().getValue() / bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue();
+                        setProcessReport("Connecting...");
+                        controller.startRecording(bdfHeaderData);
+                    }
+
+
+
                 }
             }
         });
@@ -311,7 +322,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         patientIdentification.setEnabled(isEnable);
         recordingIdentification.setEnabled(isEnable);
         fileToSaveUI.setEnabled(isEnable);
-
+        comportUI.setEnabled(isEnable);
         accelerometerName.setEnabled(isEnable);
         accelerometerEnable.setEnabled(isEnable);
         accelerometerFrequency.setEnabled(isEnable);
@@ -362,7 +373,6 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void loadDataFromModel() {
         spsField.setSelectedItem(bdfHeaderData.getAdsConfiguration().getSps());
-        comportUI.setCurrentPort(bdfHeaderData.getAdsConfiguration().getComPortName());
         fileToSaveUI.setDirectory(bdfHeaderData.getDirectoryToSave());
 //        fileToSave.setText(FILENAME_PATTERN);
         patientIdentification.setText(bdfHeaderData.getPatientIdentification());
@@ -447,13 +457,12 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void saveDataToModel() {
         bdfHeaderData.getAdsConfiguration().setSps(getSps());
-        bdfHeaderData.getAdsConfiguration().setComPortName(getComPortName());
         bdfHeaderData.setPatientIdentification(getPatientIdentification());
         bdfHeaderData.setRecordingIdentification(getRecordingIdentification());
         bdfHeaderData.getAdsChannelNames().clear();
         for (int i = 0; i < bdfHeaderData.getAdsConfiguration().getAdsChannels().size(); i++) {
             AdsChannelConfiguration channel = bdfHeaderData.getAdsConfiguration().getAdsChannels().get(i);
-            bdfHeaderData.getAdsChannelNames().add(getChannelName(i));
+            channel.setName(getChannelName(i));
             channel.setDivider(getChannelDivider(i));
             channel.setEnabled(isChannelEnable(i));
             channel.set50HzFilterEnabled(is50HzFilterEnable(i));
@@ -467,6 +476,13 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         bdfHeaderData.setDirectoryToSave(fileToSaveUI.getDirectory());
     }
 
+    private void saveComPortData(){
+            bdfHeaderData.getAdsConfiguration().setComPortName(getComPortName());
+    }
+
+    private boolean isComportAvailable() {
+        return comportUI.isCurrentComportAvailable();
+    }
 
     private void setChannelsFrequencies(Sps sps) {
         int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getAdsChannels().size();
@@ -574,7 +590,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private String getComPortName() {
-        return comportUI.getComPortName();
+        return comportUI.getCurrentComport();
     }
 
     private String getPatientIdentification() {

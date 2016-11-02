@@ -1,5 +1,7 @@
 package com.crostec.gui.comport_gui;
 
+import com.sun.istack.internal.Nullable;
+
 import javax.swing.*;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
@@ -10,25 +12,25 @@ import java.awt.*;
  */
 public class ComportUI extends JPanel {
     private ComportModel comportModel;
-    private JComboBox comPort;
+    private JComboBox comportComboBox;
     private String labelText = "ComPort:  ";
-    private String currentComPort;
 
-
-    public ComportUI(ComportModel comportModel) {
-        this.comportModel = comportModel;
+    public ComportUI(ComportDataProvider comportDataProvider, @Nullable  String defaultComport) {
+        this.comportModel = new ComportModel(comportDataProvider, defaultComport);
         int hgap = 0;
         int vgap = 0;
         setLayout(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
 
-        comPort = new JComboBox();
+        comportComboBox = new JComboBox(comportModel);
 
 // чтобы отследить подключение новых приборов каждый раз при открытии ComboBox
-// обновляется  список всех доступных портов
-        comPort.addPopupMenuListener(new PopupMenuListener() {
+// он перерисовывается чтобы отобразить список всех доступных портов
+        comportComboBox.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                loadData();
+                // obligate comportComboBox to synchronize with its model
+                // to show  available comports at the current moment
+                comportModel.update();
             }
 
             @Override
@@ -40,33 +42,22 @@ public class ComportUI extends JPanel {
 
             }
         });
-
         add(new Label(labelText));
-        add(comPort);
+        add(comportComboBox);
 
-        loadData();
-    }
-
-    public void setCurrentPort(String comPortName) {
-        currentComPort = comPortName;
-        loadData();
-    }
-
-    public String getComPortName() {
-        return (String) comPort.getSelectedItem();
     }
 
 
-    private void loadData() {
-        DefaultComboBoxModel model = new DefaultComboBoxModel(comportModel.getAvailableComports());
-        comPort.setModel( model );
-        if(currentComPort != null){
-            comPort.setSelectedItem(currentComPort);
-        }
+    public String getCurrentComport() {
+        return (String) comportComboBox.getSelectedItem();
+    }
+
+    public boolean isCurrentComportAvailable() {
+        return comportModel.isComPortAvailable(getCurrentComport());
     }
 
     @Override
     public void setEnabled(boolean isEnabled) {
-        comPort.setEnabled(isEnabled);
+        comportComboBox.setEnabled(isEnabled);
     }
 }
