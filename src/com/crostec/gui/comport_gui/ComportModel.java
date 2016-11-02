@@ -58,9 +58,10 @@ class ComportModel extends DefaultComboBoxModel {
             availableComportNumber = comportDataProvider.getAvailableComports().length;
         }
 
-        if(defaultComPort != null && ! isComPortAvailable(defaultComPort)) {
+        if(defaultComPort != null & !isComPortAvailable(defaultComPort)) {
             availableComportNumber++;
         }
+
         return availableComportNumber;
     }
 }
