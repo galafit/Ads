@@ -164,17 +164,14 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                     else{
                         startButton.setText(stop);
                         disableFields();
-                        saveComPortData();
                         saveDataToModel();
+                        saveComPortData();
                         adsDataFrameSize = AdsUtils.getDecodedFrameSize(bdfHeaderData.getAdsConfiguration());
                         adsDataFrameCounter = 0;
                         adsDataFrameFrequency = bdfHeaderData.getAdsConfiguration().getSps().getValue() / bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue();
                         setProcessReport("Connecting...");
                         controller.startRecording(bdfHeaderData);
                     }
-
-
-
                 }
             }
         });
