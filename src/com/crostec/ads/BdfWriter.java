@@ -28,9 +28,7 @@ public class BdfWriter implements AdsDataListener {
     public BdfWriter(BdfHeaderData bdfHeaderData) {
         this.bdfHeaderData = bdfHeaderData;
         try {
-            String directory = bdfHeaderData.getDirectoryToSave();
-            String filename = normalizeFilename(bdfHeaderData.getFileNameToSave());
-            File file = new File(directory, filename);
+            File file = bdfHeaderData.getFileToSave();
             if(file.exists()) {
                file.delete();
             }
@@ -103,27 +101,4 @@ public class BdfWriter implements AdsDataListener {
         }
     }
 
-    private String normalizeFilename(@Nullable String filename) {
-        String FILE_EXTENSION = "bdf";
-        String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
-
-        if (filename == null || filename.isEmpty()) {
-            return defaultFilename.concat(".").concat(FILE_EXTENSION);
-        }
-        filename = filename.trim();
-
-        // if filename has no extension
-        if (filename.lastIndexOf('.') == -1) {
-            filename = filename.concat(".").concat(FILE_EXTENSION);
-            return defaultFilename + filename;
-        }
-        // if  extension  match with given FILE_EXTENSIONS
-        // (?i) makes it case insensitive (catch BDF as well as bdf)
-        if (filename.matches("(?i).*\\." + FILE_EXTENSION)) {
-            return defaultFilename +filename;
-        }
-        // If the extension do not match with  FILE_EXTENSION We need to replace it
-        filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);
-        return defaultFilename + "_" + filename;
-    }
 }

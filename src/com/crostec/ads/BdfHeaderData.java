@@ -1,6 +1,11 @@
 package com.crostec.ads;
 
+import com.sun.istack.internal.Nullable;
+
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -24,18 +29,18 @@ public class BdfHeaderData {
         accelerometerChannelNames.add("Accelerometer Z");
     }
 
-    public String getFileNameToSave() {
-        return fileNameToSave;
-    }
     public void setFileNameToSave(String fileNameToSave) {
         this.fileNameToSave = fileNameToSave;
     }
 
-    public String getDirectoryToSave() {
-        return adsConfiguration.getDirectoryToSave();
-    }
     public void setDirectoryToSave(String directory) {
         adsConfiguration.setDirectoryToSave(directory);
+    }
+
+    public File getFileToSave() {
+        String directory = adsConfiguration.getDirectoryToSave();
+        String filename = normalizeFilename(fileNameToSave);
+        return new File(directory, filename);
     }
 
     public List<String> getAdsChannelNames() {
@@ -98,6 +103,30 @@ public class BdfHeaderData {
 
     public void setRecordingIdentification(String recordingIdentification) {
         this.recordingIdentification = recordingIdentification;
+    }
+
+    public static String normalizeFilename(@Nullable String filename) {
+        String FILE_EXTENSION = "bdf";
+        String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
+
+        if (filename == null || filename.isEmpty()) {
+            return defaultFilename.concat(".").concat(FILE_EXTENSION);
+        }
+        filename = filename.trim();
+
+        // if filename has no extension
+        if (filename.lastIndexOf('.') == -1) {
+            filename = filename.concat(".").concat(FILE_EXTENSION);
+            return defaultFilename + filename;
+        }
+        // if  extension  match with given FILE_EXTENSIONS
+        // (?i) makes it case insensitive (catch BDF as well as bdf)
+        if (filename.matches("(?i).*\\." + FILE_EXTENSION)) {
+            return defaultFilename +filename;
+        }
+        // If the extension do not match with  FILE_EXTENSION We need to replace it
+        filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);
+        return defaultFilename + "_" + filename;
     }
 
 
