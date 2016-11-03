@@ -23,6 +23,7 @@ class ComportModel extends DefaultComboBoxModel {
     }
 
     public boolean isComPortAvailable(String comPort) {
+        availableComports = comportDataProvider.getAvailableComports();
         if(comPort != null) {
             for(String port :  availableComports){
                 if ( port.equalsIgnoreCase(comPort)) {

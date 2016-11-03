@@ -15,15 +15,10 @@ public class BdfHeaderData {
     private long startRecordingTime;
     private double durationOfDataRecord = 1.0;  // duration of EDF data record (in seconds)
     private int numberOfDataRecords = -1;
-    List<String> adsChannelNames = new ArrayList<String>();
     List<String> accelerometerChannelNames = new ArrayList<String>();
 
     public BdfHeaderData(AdsConfiguration adsConfiguration) {
         this.adsConfiguration = adsConfiguration;
-        List<AdsChannelConfiguration> channelsConfiguration = adsConfiguration.getAdsChannels();
-        for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
-              adsChannelNames.add(channelsConfiguration.get(i).getName());
-        }
         accelerometerChannelNames.add("Accelerometer X");
         accelerometerChannelNames.add("Accelerometer Y");
         accelerometerChannelNames.add("Accelerometer Z");
@@ -44,6 +39,12 @@ public class BdfHeaderData {
     }
 
     public List<String> getAdsChannelNames() {
+        List<String> adsChannelNames = new ArrayList<String>();
+        List<AdsChannelConfiguration> channelsConfiguration = adsConfiguration.getAdsChannels();
+        for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
+            adsChannelNames.add(channelsConfiguration.get(i).getName());
+        }
+
         return adsChannelNames;
     }
 
