@@ -70,7 +70,7 @@ public class AdsUtils {
     public static String adjustLength(String text, int length) {
         StringBuilder sB = new StringBuilder(text);
         if (text.length() > length) {
-            sB.delete((length + 1), text.length());
+            sB.delete((length), text.length());
         } else {
             for (int i = text.length(); i < length; i++) {
                 sB.append(" ");

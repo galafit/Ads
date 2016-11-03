@@ -34,6 +34,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JCheckBox[] channelEnable;
     private JCheckBox[] channel50Hz;
     private JTextField[] channelName;
+    private int CHANNEL_NAME_LENGTH = 16;
+    private int IDENTIFICATION_LENGTH = 80;
 
     private JComboBox accelerometerFrequency;
     private JTextField accelerometerName;
@@ -86,9 +88,11 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         comportUI = new ComportUI(new ComportFacade(), bdfHeaderData.getAdsConfiguration().getComPortName());
         fileToSaveUI = new FileToSaveUI();
 
-        int textFieldLength = 25;
+        int textFieldLength = 30;
         patientIdentification = new JTextField(textFieldLength);
+        patientIdentification.setDocument(new FixSizeDocument(IDENTIFICATION_LENGTH));
         recordingIdentification = new JTextField(textFieldLength);
+        recordingIdentification.setDocument(new FixSizeDocument(IDENTIFICATION_LENGTH));
 
         channelFrequency = new JComboBox[adsChannelsNumber];
         channelGain = new JComboBox[adsChannelsNumber];
@@ -99,7 +103,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         channelLoffStatPositive = new MarkerLabel[adsChannelsNumber];
         channelLoffStatNegative = new MarkerLabel[adsChannelsNumber];
         channelLoffEnable = new JCheckBox[adsChannelsNumber];
-        textFieldLength = 16;
+        textFieldLength = CHANNEL_NAME_LENGTH;
         for (int i = 0; i < adsChannelsNumber; i++) {
             channelFrequency[i] = new JComboBox();
             channelGain[i] = new JComboBox();
@@ -107,6 +111,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             channelEnable[i] = new JCheckBox();
             channel50Hz[i] = new JCheckBox();
             channelName[i] = new JTextField(textFieldLength);
+            channelName[i].setDocument(new FixSizeDocument(CHANNEL_NAME_LENGTH));
             channelLoffStatPositive[i] = new MarkerLabel(iconDisabled);
             channelLoffStatNegative[i] = new MarkerLabel(iconDisabled);
             channelLoffEnable[i] = new JCheckBox();
