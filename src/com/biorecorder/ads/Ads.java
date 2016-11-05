@@ -31,6 +31,16 @@ public class Ads {
         pingCommand.add((byte)0xFB);
     }
 
+    public void comPortConnect(AdsConfiguration adsConfiguration){
+        try{
+            comPort = new ComPort(adsConfiguration.getComPortName(), 460800);
+        } catch (SerialPortException e) {
+            String failConnectMessage = "No connection to port " + adsConfiguration.getComPortName();
+            log.error(failConnectMessage, e);
+            throw new AdsException(failConnectMessage, e);
+        }
+    }
+
     public void startRecording(AdsConfiguration adsConfiguration) {
         movingAveragePreFilters.clear();
         int sps = adsConfiguration.getSps().getValue();
@@ -39,22 +49,25 @@ public class Ads {
             movingAveragePreFilters.add(new MovingAveragePreFilter(sps/(channelDivider * 50)));
         }
         this.adsConfiguration = adsConfiguration;
-        String failConnectMessage = "Connection failed. Check com port settings.\nReset power on the target amplifier. Restart the application.";
-        try {
             FrameDecoder frameDecoder = new FrameDecoder(adsConfiguration) {
                 @Override
                 public void notifyListeners(int[] decodedFrame) {
                     notifyAdsDataListeners(decodedFrame);
                 }
             };
-            comPort = new ComPort(adsConfiguration.getComPortName(), 460800);
+        if(comPort == null){
+            comPortConnect(adsConfiguration);
+        }
+        if(!comPort.isConnected()){
+            comPortConnect(adsConfiguration);
+        }
+        if(!comPort.getComPortName().equals(adsConfiguration.getComPortName()))  {
+            comPort.disconnect();
+            comPortConnect(adsConfiguration);
+        }
             comPort.setComPortListener(frameDecoder);
             comPort.writeToPort(adsConfiguration.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfiguration));
             isRecording = true;
-        } catch (SerialPortException e) {
-            log.error(failConnectMessage, e);
-            throw new AdsException(failConnectMessage, e);
-        }
         //---------------------------
         TimerTask timerTask = new TimerTask() {
             @Override
@@ -79,7 +92,6 @@ public class Ads {
         } catch (InterruptedException e) {
             log.warn(e);
         }
-        comPort.disconnect();
         pingTimer.cancel();
     }
 
@@ -125,5 +137,11 @@ public class Ads {
 
     public void removeAdsDataListener(AdsDataListener adsDataListener) {
         adsDataListeners.remove(adsDataListener);
+    }
+
+    public void comPortDisconnect() {
+        if(comPort!=null) {
+            comPort.disconnect();
+        }
     }
 }

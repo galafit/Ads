@@ -15,5 +15,6 @@ public class BdfRecorder {
         SettingsWindow settingsWindow = new SettingsWindow(controller, adsConfiguration);
         controller.setSettingsWindow(settingsWindow);
         ads.addAdsDataListener(settingsWindow);
+        controller.comPortConnect(adsConfiguration);
     }
 }

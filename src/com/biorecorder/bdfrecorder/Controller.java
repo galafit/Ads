@@ -38,9 +38,7 @@ public class Controller {
             ads.startRecording(bdfHeaderData.getAdsConfiguration());
         } catch (AdsException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
-            System.exit(0);
         }
-
     }
 
     public void stopRecording() {
@@ -52,10 +50,19 @@ public class Controller {
     public void closeApplication(BdfHeaderData bdfHeaderData) {
         new AdsConfigUtil().saveAdsConfiguration(bdfHeaderData.getAdsConfiguration());
         stopRecording();
+        ads.comPortDisconnect();
         System.exit(0);
     }
 
     public void setSettingsWindow(SettingsWindow settingsWindow) {
         this.settingsWindow = settingsWindow;
+    }
+
+    public void comPortConnect(AdsConfiguration adsConfiguration) {
+        try {
+            ads.comPortConnect(adsConfiguration);
+        } catch (AdsException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage());
+        }
     }
 }

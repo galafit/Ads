@@ -20,9 +20,11 @@ public class ComPort implements SerialPortEventListener {
     private static Log log = LogFactory.getLog(ComPort.class);
     SerialPort comPort;
     private ComPortListener comPortListener;
+    private String comPortName;
 
     public ComPort(String comPortName, int speed) throws SerialPortException {
         boolean isComPortExist = false;
+        this.comPortName = comPortName;
         comPortName.trim();
         String[] portNames = SerialPortList.getPortNames();
         for (int i = 0; i < portNames.length; i++) {
@@ -52,11 +54,19 @@ public class ComPort implements SerialPortEventListener {
             try {
                 Thread.sleep(100);
                 comPort.setDTR(false);
-                Thread.sleep(1000);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
         }
+    }
+
+    public String getComPortName(){
+        return comPortName;
+    }
+
+    public boolean isConnected(){
+        return comPort.isOpened();
     }
 
     public void disconnect() {
@@ -72,16 +82,22 @@ public class ComPort implements SerialPortEventListener {
 
     public void writeToPort(List<Byte> bytes) {
         if (comPort.isOpened()) {
-            try {
-                byte[] bytesArray = new byte[bytes.size()];
+                final byte[] bytesArray = new byte[bytes.size()];
                 for (int i = 0; i < bytes.size(); i++) {
                     bytesArray[i] = bytes.get(i);
                 }
-                comPort.writeBytes(bytesArray);
-            } catch (SerialPortException ex) {
-                log.error(ex);
-            }
-
+            Runnable rnbl = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        comPort.writeBytes(bytesArray);
+                    } catch (SerialPortException ex) {
+                        log.error(ex);
+                    }
+                }
+            };
+            Thread thrd = new Thread(rnbl);
+            thrd.start();
         } else {
             log.warn("Com port disconnected. Can't write to port.");
         }

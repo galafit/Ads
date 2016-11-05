@@ -161,11 +161,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                     setProcessReport("Saved to file: " + new File(getDirectory(), BdfHeaderData.normalizeFilename(getFilename())));  //todo enter file name
                 } else {
                     if (!isComportAvailable()){
-                        String msg = "No ComPort with the name: " + getComPortName()+ " !\n"+
-                                "Check if the «USB receiver» is connected\n" +
-                                "and choose the correct ComPort";
+                        String msg = "No ComPort with the name: " + getComPortName();
                         JOptionPane.showMessageDialog(SettingsWindow.this, msg);
-
                     }
                     else{
                         startButton.setText(stop);
