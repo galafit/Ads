@@ -20,7 +20,15 @@ public class AdsConfiguration {
     private DeviceType deviceType;
     private int noiseDivider;
     private String directoryToSave;
+    private boolean isAccelerometerOneChannelMode;
 
+    public boolean isAccelerometerOneChannelMode() {
+        return isAccelerometerOneChannelMode;
+    }
+
+    public void setAccelerometerOneChannelMode(boolean accelerometerOneChannelMode) {
+        isAccelerometerOneChannelMode = accelerometerOneChannelMode;
+    }
 
     public String getDirectoryToSave() {
         if(directoryToSave == null) {

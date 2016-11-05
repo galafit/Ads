@@ -29,8 +29,8 @@ class BdfHeaderWriter {
 
 //        String channelsDigitalMaximum = "8388607";
 //        String channelsDigitalMinimum = "-8388608";
-        int dMax = Math.round(8388607/bdfHeaderData.getAdsConfiguration().getNoiseDivider());
-        int dMin = Math.round(-8388608/bdfHeaderData.getAdsConfiguration().getNoiseDivider());
+        int dMax = Math.round(8388607 / bdfHeaderData.getAdsConfiguration().getNoiseDivider());
+        int dMin = Math.round(-8388608 / bdfHeaderData.getAdsConfiguration().getNoiseDivider());
         String channelsDigitalMaximum = String.valueOf(dMax);
         String channelsDigitalMinimum = String.valueOf(dMin);
 
@@ -67,7 +67,7 @@ class BdfHeaderWriter {
                 labels.append(adjustLength(bdfHeaderData.getAdsChannelNames().get(i), 16));
                 transducerTypes.append(adjustLength("Unknown", 80));
                 physicalDimensions.append(adjustLength("uV", 8));
-                int physicalMaximum = 2400000/channelConfigurations.get(i).getGain().getValue();
+                int physicalMaximum = 2400000 / channelConfigurations.get(i).getGain().getValue();
                 physicalMinimums.append(adjustLength("-" + physicalMaximum, 8));
                 physicalMaximums.append(adjustLength("" + physicalMaximum, 8));
                 digitalMinimums.append(adjustLength(channelsDigitalMinimum, 8));
@@ -80,10 +80,10 @@ class BdfHeaderWriter {
             }
         }
         if (adsConfiguration.isAccelerometerEnabled()) {
-            for (int i = 0; i < 3; i++) {     //3 accelerometer chanels
-                labels.append(adjustLength(bdfHeaderData.getAccelerometerChannelNames().get(i), 16));
+            if (adsConfiguration.isAccelerometerOneChannelMode()) {
+                labels.append(adjustLength("Accelerometer Sum", 16));
                 transducerTypes.append(adjustLength("None", 80));
-                physicalDimensions.append(adjustLength("mg", 8));
+                physicalDimensions.append(adjustLength("mg/sec", 8));
                 physicalMinimums.append(adjustLength(accelerometerPhysicalMinimum, 8));
                 physicalMaximums.append(adjustLength(accelerometerPhysicalMaximum, 8));
                 digitalMinimums.append(adjustLength(accelerometerDigitalMinimum, 8));
@@ -93,21 +93,36 @@ class BdfHeaderWriter {
                         adsConfiguration.getAccelerometerDivider().getValue();
                 samplesNumbers.append(adjustLength(Integer.toString(nrOfSamplesInEachDataRecord), 8));
                 reservedForChannels.append(adjustLength("", 32));
+            } else {
+                for (int i = 0; i < 3; i++) {     //3 accelerometer chanels
+                    labels.append(adjustLength(bdfHeaderData.getAccelerometerChannelNames().get(i), 16));
+                    transducerTypes.append(adjustLength("None", 80));
+                    physicalDimensions.append(adjustLength("mg", 8));
+                    physicalMinimums.append(adjustLength(accelerometerPhysicalMinimum, 8));
+                    physicalMaximums.append(adjustLength(accelerometerPhysicalMaximum, 8));
+                    digitalMinimums.append(adjustLength(accelerometerDigitalMinimum, 8));
+                    digitalMaximums.append(adjustLength(accelerometerDigitalMaximum, 8));
+                    preFilterings.append(adjustLength("None", 80));
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(bdfHeaderData.getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                            adsConfiguration.getAccelerometerDivider().getValue();
+                    samplesNumbers.append(adjustLength(Integer.toString(nrOfSamplesInEachDataRecord), 8));
+                    reservedForChannels.append(adjustLength("", 32));
+                }
             }
         }
         if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
-                labels.append(adjustLength("Battery voltage", 16));
-                transducerTypes.append(adjustLength("None", 80));
-                physicalDimensions.append(adjustLength("V", 8));
-                physicalMinimums.append(adjustLength("0", 8));
-                physicalMaximums.append(adjustLength("10240", 8));
-                digitalMinimums.append(adjustLength("0", 8));
-                digitalMaximums.append(adjustLength("10240", 8));
-                preFilterings.append(adjustLength("None", 80));
-                int nrOfSamplesInEachDataRecord = (int) Math.round(bdfHeaderData.getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
-                        adsConfiguration.getAccelerometerDivider().getValue();
-                samplesNumbers.append(adjustLength(Integer.toString(nrOfSamplesInEachDataRecord), 8));
-                reservedForChannels.append(adjustLength("", 32));
+            labels.append(adjustLength("Battery voltage", 16));
+            transducerTypes.append(adjustLength("None", 80));
+            physicalDimensions.append(adjustLength("V", 8));
+            physicalMinimums.append(adjustLength("0", 8));
+            physicalMaximums.append(adjustLength("10240", 8));
+            digitalMinimums.append(adjustLength("0", 8));
+            digitalMaximums.append(adjustLength("10240", 8));
+            preFilterings.append(adjustLength("None", 80));
+            int nrOfSamplesInEachDataRecord = (int) Math.round(bdfHeaderData.getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                    adsConfiguration.getAccelerometerDivider().getValue();
+            samplesNumbers.append(adjustLength(Integer.toString(nrOfSamplesInEachDataRecord), 8));
+            reservedForChannels.append(adjustLength("", 32));
         }
         bdfHeader.append(labels);
         bdfHeader.append(transducerTypes);

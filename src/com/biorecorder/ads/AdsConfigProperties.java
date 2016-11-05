@@ -30,6 +30,8 @@ class AdsConfigProperties {
     public static final String BATTERY_MEASURE_IS_ENABLED = "isBatteryMeasureEnabled";
     public static final String DIRECTORY_TO_SAVE = "directoryToSaveFiles";
     public static final String NOISE_DIVIDER = "noiseDivider";
+    public static final String IS_ACCELEROMETER_ONE_CHANNEL_MODE = "isAccelerometerOneChannelMode";
+
 
     private PropertiesConfiguration config;
 
@@ -185,6 +187,14 @@ class AdsConfigProperties {
 
     public int getNoiseDivider(){
         return config.getInt(NOISE_DIVIDER) ;
+    }
+
+    public boolean isAccelerometerOneChannelMode(){
+        return config.getBoolean(IS_ACCELEROMETER_ONE_CHANNEL_MODE) ;
+    }
+
+    public void setAccelerometerOneChannelMode(boolean isOneChannel){
+        config.setProperty(IS_ACCELEROMETER_ONE_CHANNEL_MODE,isOneChannel);
     }
 
     public void save() {

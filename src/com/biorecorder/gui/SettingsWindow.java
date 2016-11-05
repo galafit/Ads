@@ -5,6 +5,7 @@ import com.biorecorder.bdfrecorder.Controller;
 import com.biorecorder.gui.comport_gui.ComportUI;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 import com.biorecorder.comport.ComportFacade;
+import sun.font.TrueTypeFont;
 
 import javax.swing.*;
 import java.awt.*;
@@ -34,11 +35,12 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private JCheckBox[] channelEnable;
     private JCheckBox[] channel50Hz;
     private JTextField[] channelName;
+    private JComboBox accelerometerCommutator;
     private int CHANNEL_NAME_LENGTH = 16;
     private int IDENTIFICATION_LENGTH = 80;
 
     private JComboBox accelerometerFrequency;
-    private JLabel accelerometerName = new JLabel("Accelerometer");
+    private JTextField accelerometerName = new JTextField("Accelerometer");
     private JCheckBox accelerometerEnable;
     private JTextField patientIdentification;
     private JTextField recordingIdentification;
@@ -118,8 +120,11 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
         accelerometerEnable = new JCheckBox();
         accelerometerFrequency = new JComboBox();
-        Font font = accelerometerName.getFont();
-        accelerometerName.setFont(font.deriveFont(font.getStyle() | Font.BOLD));
+        accelerometerCommutator = new JComboBox();
+        /*Font font = accelerometerName.getFont();
+        accelerometerName.setFont(font.deriveFont(font.getStyle() | Font.BOLD));*/
+        accelerometerName.setPreferredSize(channelName[0].getPreferredSize());
+        accelerometerName.setEnabled(false);
     }
 
     private void setActions() {
@@ -255,6 +260,15 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         channelsPanel.add(accelerometerEnable);
         channelsPanel.add(accelerometerName);
         channelsPanel.add(accelerometerFrequency);
+        /*JComboBox accGain = new JComboBox();
+        channelsPanel.add(accGain);
+        accGain.addItem("1");
+        accGain.setSelectedIndex(0);
+        accGain.setPreferredSize(channelGain[0].getPreferredSize());
+        accGain.setEditable(false);*/
+        channelsPanel.add(new JLabel(" "));
+
+        channelsPanel.add(accelerometerCommutator);
 
         hgap = 0;
         vgap = 10;
@@ -325,6 +339,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         comportUI.setEnabled(isEnable);
         accelerometerEnable.setEnabled(isEnable);
         accelerometerFrequency.setEnabled(isEnable);
+        accelerometerCommutator.setEditable(isEnable);
 
         for (int i = 0; i < adsConfiguration.getAdsChannels().size(); i++) {
             channelEnable[i].setEnabled(isEnable);
@@ -396,6 +411,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         setChannelsFrequencies(adsConfiguration.getSps());
         setChannelsGain();
         setChannelsCommutatorState();
+        setAccelerometerCommutator();
     }
 
     public void updateLoffStatus(int[] dataFrame) {
@@ -471,6 +487,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
         adsConfiguration.setAccelerometerEnabled(isAccelerometerEnable());
         adsConfiguration.setAccelerometerDivider(getAccelerometerDivider());
+        adsConfiguration.setAccelerometerOneChannelMode(getAccelerometerCommutator());
         bdfHeaderData.setFileNameToSave(getFilename());
         bdfHeaderData.setDirectoryToSave(getDirectory());
         return bdfHeaderData;
@@ -543,6 +560,17 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
     }
 
+    private void setAccelerometerCommutator(){
+        accelerometerCommutator.addItem("1 Channel");
+        accelerometerCommutator.addItem("3 Channels");
+        if(adsConfiguration.isAccelerometerOneChannelMode()){
+            accelerometerCommutator.setSelectedIndex(0);
+        }else {
+            accelerometerCommutator.setSelectedIndex(1);
+        }
+        accelerometerCommutator.setPreferredSize(channelCommutatorState[0].getPreferredSize());
+    }
+
     private void enableAdsChannel(int channelNumber, boolean isEnable) {
         channel50Hz[channelNumber].setEnabled(isEnable);
         channelFrequency[channelNumber].setEnabled(isEnable);
@@ -557,7 +585,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private void enableAccelerometer(boolean isEnable) {
         accelerometerFrequency.setEnabled(isEnable);
-
+        accelerometerCommutator.setEnabled(isEnable);
     }
 
     private Divider getChannelDivider(int channelNumber) {
@@ -570,6 +598,10 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         return Divider.valueOf(divider);
     }
 
+    private boolean getAccelerometerCommutator(){
+        return (accelerometerCommutator.getSelectedIndex() == 0)? true :false;
+    }
+
 
     private int getChannelFrequency(int channelNumber) {
         return (Integer) channelFrequency[channelNumber].getSelectedItem();
@@ -580,7 +612,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private CommutatorState getChannelCommutatorState(int channelNumber) {
-        return CommutatorState.valueOf(((String)channelCommutatorState[channelNumber].getSelectedItem()));
+        return CommutatorState.valueOf(((String) channelCommutatorState[channelNumber].getSelectedItem()));
     }
 
     private boolean isChannelEnable(int channelNumber) {

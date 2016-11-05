@@ -18,6 +18,7 @@ abstract class FrameDecoder implements ComPortListener {
     AdsConfiguration adsConfiguration;
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
+    private int[] accPrev = new int[3];
 
     public FrameDecoder(AdsConfiguration configuration) {
         adsConfiguration = configuration;
@@ -102,9 +103,23 @@ abstract class FrameDecoder implements ComPortListener {
         }
 
         if (adsConfiguration.isAccelerometerEnabled()) {
+            int[] accVal = new int[3];
+            int accSum = 0;
             for (int i = 0; i < 3; i++) {
-                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
+//                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
+                accVal[i] =  AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
+            }
+            if(adsConfiguration.isAccelerometerOneChannelMode()){
+                for (int i = 0; i < accVal.length; i++) {
+                    accSum += Math.abs(accVal[i] - accPrev[i]);
+                    accPrev[i] = accVal[i];
+                }
+                decodedFrame[decodedFrameOffset++] = accSum;
+            }else {
+                 for (int i = 0; i < accVal.length; i++) {
+                    decodedFrame[decodedFrameOffset++] = accVal[i];
+                }
             }
         }
 
@@ -154,7 +169,7 @@ abstract class FrameDecoder implements ComPortListener {
         int result = 0;
         result += getNumberOf3ByteSamples(configuration);
         if (configuration.isAccelerometerEnabled()) {
-            result += 3;
+            result = result + (configuration.isAccelerometerOneChannelMode() ? 1 : 3);
         }
         if (configuration.isBatteryVoltageMeasureEnabled()) {
             result += 1;

@@ -16,7 +16,8 @@ public class AdsUtils {
                 dividersList.add(channelConfiguration.getDivider().getValue());
             }
         }
-        for (int i = 0; i < 3; i++) {
+        int n = adsConfiguration.isAccelerometerOneChannelMode() ? 1 : 3;
+        for (int i = 0; i < n; i++) {
             if (adsConfiguration.isAccelerometerEnabled()) {
                 dividersList.add(adsConfiguration.getAccelerometerDivider().getValue());
             }

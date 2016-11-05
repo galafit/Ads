@@ -29,6 +29,7 @@ public class AdsConfigUtil {
             adsConfiguration.getAdsChannels().add(adsChannelConfiguration);
         }
         adsConfiguration.setNoiseDivider(adsConfigProperties.getNoiseDivider());
+        adsConfiguration.setAccelerometerOneChannelMode(adsConfigProperties.isAccelerometerOneChannelMode());
         return adsConfiguration;
     }
 
@@ -50,6 +51,7 @@ public class AdsConfigUtil {
             adsConfigProperties.setChannelRldSenseEnabled(i, channel.isRldSenseEnabled());
             adsConfigProperties.setChannelName(i, channel.getName());
         }
+        adsConfigProperties.setAccelerometerOneChannelMode(adsConfiguration.isAccelerometerOneChannelMode());
         adsConfigProperties.save();
     }
 
