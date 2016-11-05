@@ -81,13 +81,13 @@ class BdfHeaderWriter {
         }
         if (adsConfiguration.isAccelerometerEnabled()) {
             if (adsConfiguration.isAccelerometerOneChannelMode()) {
-                labels.append(adjustLength("Accelerometer Sum", 16));
+                labels.append(adjustLength("Accelerometer", 16));
                 transducerTypes.append(adjustLength("None", 80));
-                physicalDimensions.append(adjustLength("mg/sec", 8));
-                physicalMinimums.append(adjustLength(accelerometerPhysicalMinimum, 8));
-                physicalMaximums.append(adjustLength(accelerometerPhysicalMaximum, 8));
-                digitalMinimums.append(adjustLength(accelerometerDigitalMinimum, 8));
-                digitalMaximums.append(adjustLength(accelerometerDigitalMaximum, 8));
+                physicalDimensions.append(adjustLength("g/sec", 8));
+                physicalMinimums.append(adjustLength("-1000", 8));
+                physicalMaximums.append(adjustLength("1000", 8));
+                digitalMinimums.append(adjustLength("-2000", 8));
+                digitalMaximums.append(adjustLength("2000", 8));
                 preFilterings.append(adjustLength("None", 80));
                 int nrOfSamplesInEachDataRecord = (int) Math.round(bdfHeaderData.getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
                         adsConfiguration.getAccelerometerDivider().getValue();
