@@ -18,7 +18,7 @@ public class AdsConfiguration {
     private String comPortName = "COM1";
     private boolean isHighResolutionMode = true;
     private DeviceType deviceType;
-
+    private int noiseDivider;
     private String directoryToSave;
 
 
@@ -119,4 +119,11 @@ public class AdsConfiguration {
         this.sps = sps;
     }
 
+    public void setNoiseDivider(int noiseDivider) {
+       this.noiseDivider = noiseDivider;
+    }
+
+    public int getNoiseDivider() {
+        return noiseDivider;
+    }
 }

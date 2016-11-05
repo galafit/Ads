@@ -29,6 +29,7 @@ class AdsConfigProperties {
     public static final String ACCELEROMETER_IS_ENABLED = "isEnabledAccelerometer";
     public static final String BATTERY_MEASURE_IS_ENABLED = "isBatteryMeasureEnabled";
     public static final String DIRECTORY_TO_SAVE = "directoryToSaveFiles";
+    public static final String NOISE_DIVIDER = "noiseDivider";
 
     private PropertiesConfiguration config;
 
@@ -180,6 +181,10 @@ class AdsConfigProperties {
 
     public void setChannelLoffEnabled(int channelNumber, boolean isLoffEnabled) {
         config.setProperty(CHANNEL_LOFF_ENABLED + channelNumber, isLoffEnabled);
+    }
+
+    public int getNoiseDivider(){
+        return config.getInt(NOISE_DIVIDER) ;
     }
 
     public void save() {

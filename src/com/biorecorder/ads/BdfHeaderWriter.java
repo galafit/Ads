@@ -27,8 +27,12 @@ class BdfHeaderWriter {
         int numberOfBytesInHeaderRecord = 256 * (1 + numberOfSignals);
         String versionOfDataFormat = "24BIT";
 
-        String channelsDigitalMaximum = "8388607";
-        String channelsDigitalMinimum = "-8388608";
+//        String channelsDigitalMaximum = "8388607";
+//        String channelsDigitalMinimum = "-8388608";
+        int dMax = Math.round(8388607/bdfHeaderData.getAdsConfiguration().getNoiseDivider());
+        int dMin = Math.round(-8388608/bdfHeaderData.getAdsConfiguration().getNoiseDivider());
+        String channelsDigitalMaximum = String.valueOf(dMax);
+        String channelsDigitalMinimum = String.valueOf(dMin);
 
         String accelerometerDigitalMaximum = "9610";
         String accelerometerDigitalMinimum = "4190";

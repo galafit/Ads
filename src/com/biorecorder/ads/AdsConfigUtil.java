@@ -28,6 +28,7 @@ public class AdsConfigUtil {
             adsChannelConfiguration.setName(adsConfigProperties.getChannelName(chNum));
             adsConfiguration.getAdsChannels().add(adsChannelConfiguration);
         }
+        adsConfiguration.setNoiseDivider(adsConfigProperties.getNoiseDivider());
         return adsConfiguration;
     }
 
