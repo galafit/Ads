@@ -1,12 +1,20 @@
 package com.biorecorder.ads;
 
+import com.biorecorder.edflib.BdfHeader;
+import com.biorecorder.edflib.SignalConfig;
 import com.sun.istack.internal.Nullable;
+import com.sun.xml.internal.bind.v2.TODO;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import static com.biorecorder.ads.AdsUtils.adjustLength;
+import static com.biorecorder.ads.AdsUtils.getDividersForActiveChannels;
 
 /**
  *
@@ -15,6 +23,7 @@ public class BdfHeaderData {
 
     private String fileNameToSave;
     private AdsConfiguration adsConfiguration;
+
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private long startRecordingTime;
@@ -41,16 +50,6 @@ public class BdfHeaderData {
         String directory = adsConfiguration.getDirectoryToSave();
         String filename = normalizeFilename(fileNameToSave);
         return new File(directory, filename);
-    }
-
-    public List<String> getAdsChannelNames() {
-        List<String> adsChannelNames = new ArrayList<String>();
-        List<AdsChannelConfiguration> channelsConfiguration = adsConfiguration.getAdsChannels();
-        for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
-            adsChannelNames.add(channelsConfiguration.get(i).getName());
-        }
-
-        return adsChannelNames;
     }
 
     public List<String> getAccelerometerChannelNames() {
@@ -104,6 +103,105 @@ public class BdfHeaderData {
     public void setRecordingIdentification(String recordingIdentification) {
         this.recordingIdentification = recordingIdentification;
     }
+
+
+    public BdfHeader getBdfHeader() {
+        BdfHeader bdfHeader = new BdfHeader();
+        bdfHeader.setPatientId(getPatientIdentification());
+        bdfHeader.setRecordingId(getRecordingIdentification());
+        bdfHeader.setStartTime(getStartRecordingTime());
+        bdfHeader.setDurationOfDataRecord(getDurationOfDataRecord());
+
+        int numberOfSignals = getDividersForActiveChannels(getAdsConfiguration()).size();  // number of signals in data record = number of active channels
+        int numberOfBytesInHeaderRecord = 256 * (1 + numberOfSignals);
+
+        List<SignalConfig> signalList = new ArrayList<SignalConfig>();
+        List<AdsChannelConfiguration> channelConfigurations = adsConfiguration.getAdsChannels();
+        for (int i = 0; i < channelConfigurations.size(); i++) {
+            if (channelConfigurations.get(i).isEnabled) {
+                SignalConfig signal = new SignalConfig();
+                signal.setTransducerType("Unknown");
+                signal.setPhysicalDimension("uV");
+                int physicalMaximum = 2400000 / channelConfigurations.get(i).getGain().getValue();
+                signal.setPhysicalMin(-physicalMaximum);
+                signal.setPhysicalMax(physicalMaximum);
+//        String channelsDigitalMaximum = "8388607";
+//        String channelsDigitalMinimum = "-8388608";
+                int digitalMaximum = Math.round(8388607 / getAdsConfiguration().getNoiseDivider());
+                int digitalMinimum = Math.round(-8388608 / getAdsConfiguration().getNoiseDivider());
+                signal.setDigitalMin(digitalMinimum);
+                signal.setDigitalMax(digitalMaximum);
+                signal.setPrefiltering("None");
+                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                        channelConfigurations.get(i).getDivider().getValue();
+                signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
+                signal.setLabel(channelConfigurations.get(i).getName());
+                signalList.add(signal);
+            }
+        }
+
+
+        if (adsConfiguration.isAccelerometerEnabled()) {
+            if (adsConfiguration.isAccelerometerOneChannelMode()) {
+                SignalConfig signal = new SignalConfig();
+                signal.setLabel("Accelerometer");
+                signal.setTransducerType("None");
+                signal.setPhysicalDimension("m/sec^3");
+                signal.setPhysicalMin(-1000);
+                signal.setPhysicalMax(1000);
+                signal.setDigitalMax(2000);
+                signal.setDigitalMin(-2000);
+                signal.setPrefiltering("None");
+                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                        adsConfiguration.getAccelerometerDivider().getValue();
+                signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
+                signalList.add(signal);
+            } else {
+                int accelerometerDigitalMaximum = 9610;
+                int accelerometerDigitalMinimum = 4190;
+                int accelerometerPhysicalMaximum = 1000;
+                int accelerometerPhysicalMinimum = -1000;
+
+                for (int i = 0; i < 3; i++) {     //3 accelerometer chanels
+                    SignalConfig signal = new SignalConfig();
+                    signal.setLabel(getAccelerometerChannelNames().get(i));
+                    signal.setTransducerType("None");
+                    signal.setPhysicalDimension("mg");
+                    signal.setPhysicalMin(accelerometerPhysicalMinimum);
+                    signal.setPhysicalMax(accelerometerPhysicalMaximum);
+                    signal.setDigitalMax(accelerometerDigitalMaximum);
+                    signal.setDigitalMin(accelerometerDigitalMinimum);
+                    signal.setPrefiltering("None");
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                            adsConfiguration.getAccelerometerDivider().getValue();
+                    signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
+                    signalList.add(signal);
+                }
+            }
+        }
+        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+            SignalConfig signal = new SignalConfig();
+            signal.setLabel("Battery voltage");
+            signal.setTransducerType("None");
+            signal.setPhysicalDimension("V");
+            signal.setPhysicalMin(0);
+            signal.setPhysicalMax(10240);
+            signal.setDigitalMax(10240);
+            signal.setDigitalMin(0);
+            signal.setPrefiltering("None");
+            int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
+                    adsConfiguration.getAccelerometerDivider().getValue();
+            signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
+            signalList.add(signal);
+        }
+
+        SignalConfig[] signals = signalList.toArray(new SignalConfig[signalList.size()]);
+        bdfHeader.setSignals(signals);
+        return bdfHeader;
+    }
+
+
+
 
     public static String normalizeFilename(@Nullable String filename) {
         String FILE_EXTENSION = "bdf";
