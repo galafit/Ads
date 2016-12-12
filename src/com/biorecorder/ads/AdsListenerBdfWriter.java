@@ -17,19 +17,21 @@ public class AdsListenerBdfWriter implements AdsDataListener {
     public AdsListenerBdfWriter(BdfHeaderData bdfHeaderData) throws IOException {
         numberOfFramesToJoin = bdfHeaderData.getAdsConfiguration().getSps().getValue() / bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
         bdfRecordsJoiner = new BdfRecordsJoiner(bdfHeaderData.getBdfHeader(), numberOfFramesToJoin);
-        bdfWriter = new BdfWriter(bdfHeaderData.getFileToSave(), bdfRecordsJoiner.getResultingBdfHeader());
+//        bdfWriter = new BdfWriter(bdfHeaderData.getFileToSave(), bdfRecordsJoiner.getResultingBdfHeader());
+        bdfWriter = new BdfWriter(bdfHeaderData.getFileToSave(), bdfHeaderData.getBdfHeader());
     }
 
     @Override
     public void onAdsDataReceived(int[] dataFrame) {
-        if(bdfRecordsJoiner.addDataRecord(dataFrame)) {
+//        if(bdfRecordsJoiner.addDataRecord(dataFrame)) {
             //TODO включить мозг насчет эксепшенов
             try {
-                bdfWriter.writeDataRecord(bdfRecordsJoiner.getResultingDataRecord());
+                bdfWriter.writeDataRecord(dataFrame);
+//                bdfWriter.writeDataRecord(bdfRecordsJoiner.getResultingDataRecord());
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
+//        }
     }
 
     @Override

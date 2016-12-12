@@ -27,7 +27,6 @@ public class BdfHeaderData {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private long startRecordingTime;
-    private double durationOfDataRecord = 1.0;  // duration of EDF data record (in seconds)
     private int numberOfDataRecords = -1;
     List<String> accelerometerChannelNames = new ArrayList<String>();
 
@@ -57,11 +56,8 @@ public class BdfHeaderData {
     }
 
     public double getDurationOfDataRecord() {
-        return durationOfDataRecord;
-    }
-
-    public void setDurationOfDataRecord(double durationOfDataRecord) {
-        this.durationOfDataRecord = durationOfDataRecord;
+        return 1.0 * adsConfiguration.getDeviceType().getMaxDiv().getValue()/
+                adsConfiguration.getSps().getValue();
     }
 
     public int getNumberOfDataRecords() {
@@ -111,7 +107,7 @@ public class BdfHeaderData {
         bdfHeader.setRecordingId(getRecordingIdentification());
         bdfHeader.setStartTime(getStartRecordingTime());
         bdfHeader.setDurationOfDataRecord(getDurationOfDataRecord());
-
+        bdfHeader.setBdf(true);
         int numberOfSignals = getDividersForActiveChannels(getAdsConfiguration()).size();  // number of signals in data record = number of active channels
         int numberOfBytesInHeaderRecord = 256 * (1 + numberOfSignals);
 
@@ -132,8 +128,9 @@ public class BdfHeaderData {
                 signal.setDigitalMin(digitalMinimum);
                 signal.setDigitalMax(digitalMaximum);
                 signal.setPrefiltering("None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
-                        channelConfigurations.get(i).getDivider().getValue();
+                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() *
+                        adsConfiguration.getSps().getValue() /
+                        channelConfigurations.get(i).getDivider().getValue());
                 signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
                 signal.setLabel(channelConfigurations.get(i).getName());
                 signalList.add(signal);
@@ -152,8 +149,8 @@ public class BdfHeaderData {
                 signal.setDigitalMax(2000);
                 signal.setDigitalMin(-2000);
                 signal.setPrefiltering("None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
-                        adsConfiguration.getAccelerometerDivider().getValue();
+                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
+                        adsConfiguration.getAccelerometerDivider().getValue());
                 signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
                 signalList.add(signal);
             } else {
@@ -172,8 +169,8 @@ public class BdfHeaderData {
                     signal.setDigitalMax(accelerometerDigitalMaximum);
                     signal.setDigitalMin(accelerometerDigitalMinimum);
                     signal.setPrefiltering("None");
-                    int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
-                            adsConfiguration.getAccelerometerDivider().getValue();
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
+                            adsConfiguration.getAccelerometerDivider().getValue());
                     signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
                     signalList.add(signal);
                 }
@@ -189,8 +186,8 @@ public class BdfHeaderData {
             signal.setDigitalMax(10240);
             signal.setDigitalMin(0);
             signal.setPrefiltering("None");
-            int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord()) * adsConfiguration.getSps().getValue() /
-                    adsConfiguration.getAccelerometerDivider().getValue();
+            int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
+                    adsConfiguration.getAccelerometerDivider().getValue());
             signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
             signalList.add(signal);
         }
