@@ -174,7 +174,7 @@ abstract class FrameDecoder implements ComPortListener {
         if (configuration.isBatteryVoltageMeasureEnabled()) {
             result += 1;
         }
-        result += 2;
+//        result += 2;
         return result;
     }
 
