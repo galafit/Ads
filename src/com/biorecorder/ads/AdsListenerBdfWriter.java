@@ -1,8 +1,9 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.edflib.BdfHeader;
 import com.biorecorder.edflib.BdfRecordsJoiner;
 import com.biorecorder.edflib.BdfWriter;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 
@@ -10,9 +11,10 @@ import java.io.IOException;
  * Created by gala on 12/12/16.
  */
 public class AdsListenerBdfWriter implements AdsDataListener {
-    BdfWriter bdfWriter;
-    int numberOfFramesToJoin;
-    BdfRecordsJoiner bdfRecordsJoiner;
+    private static final Log LOG = LogFactory.getLog(AdsListenerBdfWriter.class);
+    private BdfWriter bdfWriter;
+    private int numberOfFramesToJoin;
+    private BdfRecordsJoiner bdfRecordsJoiner;
 
     public AdsListenerBdfWriter(BdfHeaderData bdfHeaderData) throws IOException {
         numberOfFramesToJoin = bdfHeaderData.getAdsConfiguration().getSps().getValue() /
@@ -25,17 +27,22 @@ public class AdsListenerBdfWriter implements AdsDataListener {
     @Override
     public void onAdsDataReceived(int[] dataFrame) {
         if(bdfRecordsJoiner.addDataRecord(dataFrame)) {
-            //TODO включить мозг насчет эксепшенов
             try {
                 bdfWriter.writeDataRecord(bdfRecordsJoiner.getResultingDataRecord());
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.error(e);
+                throw new RuntimeException(e);
             }
         }
     }
 
     @Override
     public void onStopRecording() {
-        bdfWriter.stopWriting(true);
+        try {
+            bdfWriter.close(true);
+        } catch (IOException e) {
+            LOG.error(e);
+            throw new RuntimeException(e);
+        }
     }
 }
