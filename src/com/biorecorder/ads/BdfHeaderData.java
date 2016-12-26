@@ -1,20 +1,14 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.edflib.BdfHeader;
+
+import com.biorecorder.edflib.HeaderConfig;
 import com.biorecorder.edflib.SignalConfig;
 import com.sun.istack.internal.Nullable;
-import com.sun.xml.internal.bind.v2.TODO;
-
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import static com.biorecorder.ads.AdsUtils.adjustLength;
-import static com.biorecorder.ads.AdsUtils.getDividersForActiveChannels;
 
 /**
  *
@@ -101,17 +95,14 @@ public class BdfHeaderData {
     }
 
 
-    public BdfHeader getBdfHeader() {
-        BdfHeader bdfHeader = new BdfHeader();
-        bdfHeader.setPatientId(getPatientIdentification());
-        bdfHeader.setRecordingId(getRecordingIdentification());
-        bdfHeader.setStartTime(getStartRecordingTime());
-        bdfHeader.setDurationOfDataRecord(getDurationOfDataRecord());
-        bdfHeader.setBdf(true);
-        int numberOfSignals = getDividersForActiveChannels(getAdsConfiguration()).size();  // number of signals in data record = number of active channels
-        int numberOfBytesInHeaderRecord = 256 * (1 + numberOfSignals);
 
-        List<SignalConfig> signalList = new ArrayList<SignalConfig>();
+    public HeaderConfig getHeaderConfig() {
+        HeaderConfig headerConfig = new HeaderConfig();
+        headerConfig.setPatientId(getPatientIdentification());
+        headerConfig.setRecordingId(getRecordingIdentification());
+        headerConfig.setStartTime(getStartRecordingTime());
+        headerConfig.setDurationOfDataRecord(getDurationOfDataRecord());
+
         List<AdsChannelConfiguration> channelConfigurations = adsConfiguration.getAdsChannels();
         for (int i = 0; i < channelConfigurations.size(); i++) {
             if (channelConfigurations.get(i).isEnabled) {
@@ -133,7 +124,7 @@ public class BdfHeaderData {
                         channelConfigurations.get(i).getDivider().getValue());
                 signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
                 signal.setLabel(channelConfigurations.get(i).getName());
-                signalList.add(signal);
+                headerConfig.addSignalConfig(signal);
             }
         }
 
@@ -152,7 +143,7 @@ public class BdfHeaderData {
                 int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                         adsConfiguration.getAccelerometerDivider().getValue());
                 signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-                signalList.add(signal);
+                headerConfig.addSignalConfig(signal);
             } else {
                 int accelerometerDigitalMaximum = 9610;
                 int accelerometerDigitalMinimum = 4190;
@@ -172,7 +163,7 @@ public class BdfHeaderData {
                     int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                             adsConfiguration.getAccelerometerDivider().getValue());
                     signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-                    signalList.add(signal);
+                    headerConfig.addSignalConfig(signal);
                 }
             }
         }
@@ -189,12 +180,9 @@ public class BdfHeaderData {
             int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                     adsConfiguration.getAccelerometerDivider().getValue());
             signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-            signalList.add(signal);
+            headerConfig.addSignalConfig(signal);
         }
-
-        SignalConfig[] signals = signalList.toArray(new SignalConfig[signalList.size()]);
-        bdfHeader.setSignals(signals);
-        return bdfHeader;
+        return headerConfig;
     }
 
 
