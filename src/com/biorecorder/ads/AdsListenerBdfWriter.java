@@ -4,6 +4,7 @@ import com.biorecorder.edflib.BdfWriter;
 import com.biorecorder.edflib.DataRecordsWriter;
 import com.biorecorder.edflib.filters.DataRecordsJoiner;
 import com.biorecorder.edflib.filters.FrequencyAdjuster;
+import com.biorecorder.edflib.filters.SignalsSelector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -22,7 +23,13 @@ public class AdsListenerBdfWriter implements AdsDataListener {
         numberOfFramesToJoin = bdfHeaderData.getAdsConfiguration().getSps().getValue() /
                 bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
         frequencyAdjuster = new FrequencyAdjuster(new BdfWriter(bdfHeaderData.getFileToSave()));
-        dataRecordsWriter = new DataRecordsJoiner(numberOfFramesToJoin, frequencyAdjuster);
+        int numberOfSignals =  bdfHeaderData.getHeaderConfig().getNumberOfSignals();
+        boolean[] signqalsMask = new boolean[numberOfSignals];
+        for(int i = 0; i < numberOfSignals; i++) {
+           signqalsMask[i]  = true;
+        }
+
+        dataRecordsWriter = new DataRecordsJoiner(numberOfFramesToJoin, new SignalsSelector(frequencyAdjuster, signqalsMask));
         dataRecordsWriter.setHeaderConfig(bdfHeaderData.getHeaderConfig());
     }
 
