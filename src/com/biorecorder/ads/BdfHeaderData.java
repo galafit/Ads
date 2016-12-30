@@ -173,12 +173,25 @@ public class BdfHeaderData {
             signal.setTransducerType("None");
             signal.setPhysicalDimension("V");
             signal.setPhysicalMin(0);
-            signal.setPhysicalMax(10240);
+            signal.setPhysicalMax(50);
             signal.setDigitalMax(10240);
             signal.setDigitalMin(0);
             signal.setPrefiltering("None");
-            int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
-                    adsConfiguration.getAccelerometerDivider().getValue());
+            int nrOfSamplesInEachDataRecord = 1;
+            signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
+            headerConfig.addSignalConfig(signal);
+        }
+        if (adsConfiguration.isLoffEnabled()) {
+            SignalConfig signal = new SignalConfig();
+            signal.setLabel("Loff Status");
+            signal.setTransducerType("None");
+            signal.setPhysicalDimension("Bit mask");
+            signal.setPhysicalMin(0);
+            signal.setPhysicalMax(65536);
+            signal.setDigitalMax(65536);
+            signal.setDigitalMin(0);
+            signal.setPrefiltering("None");
+            int nrOfSamplesInEachDataRecord = 1;
             signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
             headerConfig.addSignalConfig(signal);
         }

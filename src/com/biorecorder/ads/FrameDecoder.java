@@ -129,9 +129,11 @@ abstract class FrameDecoder implements ComPortListener {
         }
 
         if (adsConfiguration.isLoffEnabled()) {
-            decodedFrame[decodedFrameOffset++] = rawFrame[rawFrameOffset];
-            rawFrameOffset += 1;
             if (adsConfiguration.getDeviceType().getNumberOfAdsChannels() == 8) {
+                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
+                rawFrameOffset += 2;
+            }
+            else {
                 decodedFrame[decodedFrameOffset++] = rawFrame[rawFrameOffset];
                 rawFrameOffset += 1;
             }
@@ -174,7 +176,14 @@ abstract class FrameDecoder implements ComPortListener {
         if (configuration.isBatteryVoltageMeasureEnabled()) {
             result += 1;
         }
-//        result += 2;
+        if(configuration.isLoffEnabled()) {
+            if (adsConfiguration.getDeviceType().getNumberOfAdsChannels() == 8) {
+                result += 2;
+            } else {
+                result += 1;
+            }
+        }
+
         return result;
     }
 

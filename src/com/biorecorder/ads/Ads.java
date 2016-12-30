@@ -20,15 +20,17 @@ public class Ads {
     private ComPort comPort;
     private boolean isRecording;
     private AdsConfiguration adsConfiguration;
+    private boolean isAveraging;
 
     private List<Byte> pingCommand = new ArrayList<Byte>();
     private Timer pingTimer;
     private List<MovingAveragePreFilter> movingAveragePreFilters = new ArrayList<MovingAveragePreFilter>();
     //private MovingAveragePreFilter movingAveragePreFilter = new MovingAveragePreFilter(10);
 
-    public Ads() {
+    public Ads(boolean isAveraging) {
         super();
         pingCommand.add((byte)0xFB);
+        this.isAveraging = isAveraging;
     }
 
     public void comPortConnect(AdsConfiguration adsConfiguration){
@@ -100,7 +102,10 @@ public class Ads {
     }
 
     private void notifyAdsDataListeners(int[] dataRecord) {
-        int[] filteredDataRecord = applyMovingAverageFilter(dataRecord);
+        int[] filteredDataRecord = dataRecord;
+        if(isAveraging) {
+            filteredDataRecord = applyMovingAverageFilter(dataRecord);
+        }
         for (AdsDataListener adsDataListener : adsDataListeners) {
             //applyMovingAverageFilter(dataRecord);
             //adsDataListener.onAdsDataReceived(dataRecord);

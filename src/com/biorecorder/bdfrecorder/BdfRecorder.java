@@ -8,7 +8,7 @@ import com.biorecorder.gui.SettingsWindow;
 
 public class BdfRecorder {
     public static void main(String[] args) {
-        Ads ads = new Ads();
+        Ads ads = new Ads(true);
         AdsConfigUtil adsConfigUtil = new AdsConfigUtil();
         AdsConfiguration adsConfiguration = adsConfigUtil.readConfiguration();
         Controller controller = new Controller(ads);
