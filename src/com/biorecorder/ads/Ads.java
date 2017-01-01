@@ -129,7 +129,7 @@ public class Ads {
                 int numberOfSamples = maxDiv/divider;
                 for (int j = 0; j < numberOfSamples; j++) {
                     if(channelConfiguration.is50HzFilterEnabled()){
-                        filteredDataRecord[dataRecordCounter] = movingAveragePreFilters.get(i).getFilteredValue(dataRecord[dataRecordCounter]);
+                        // filteredDataRecord[dataRecordCounter] = movingAveragePreFilters.get(i).getFilteredValue(dataRecord[dataRecordCounter]);
                    }
                     dataRecordCounter++;
                 }

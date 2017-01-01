@@ -2,10 +2,9 @@ package com.biorecorder.gui;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.bdfrecorder.Controller;
+import com.biorecorder.comport.ComportFacade;
 import com.biorecorder.gui.comport_gui.ComportUI;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
-import com.biorecorder.comport.ComportFacade;
-import sun.font.TrueTypeFont;
 
 import javax.swing.*;
 import java.awt.*;
@@ -424,7 +423,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void updateLoffStatus2ch(int[] dataFrame) {
-        int loffStatusRegisterValue = dataFrame[dataFrame.length - 2];
+        int loffStatusRegisterValue = dataFrame[dataFrame.length - 1];
         List<AdsChannelConfiguration> channelsList = adsConfiguration.getAdsChannels();
         for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
             AdsChannelConfiguration channelConfiguration = channelsList.get(i);

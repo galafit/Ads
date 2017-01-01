@@ -49,25 +49,13 @@ public class BdfHeaderData {
         return accelerometerChannelNames;
     }
 
-    public double getDurationOfDataRecord() {
+    private double getDurationOfDataRecord() {
         return 1.0 * adsConfiguration.getDeviceType().getMaxDiv().getValue()/
                 adsConfiguration.getSps().getValue();
     }
 
-    public int getNumberOfDataRecords() {
-        return numberOfDataRecords;
-    }
-
-    public void setNumberOfDataRecords(int numberOfDataRecords) {
-        this.numberOfDataRecords = numberOfDataRecords;
-    }
-
     public long getStartRecordingTime() {
         return startRecordingTime;
-    }
-
-    public void setStartRecordingTime(long startRecordingTime) {
-        this.startRecordingTime = startRecordingTime;
     }
 
     public AdsConfiguration getAdsConfiguration() {
