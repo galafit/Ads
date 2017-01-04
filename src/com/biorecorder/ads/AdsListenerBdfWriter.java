@@ -3,6 +3,7 @@ package com.biorecorder.ads;
 import com.biorecorder.edflib.BdfWriter;
 import com.biorecorder.edflib.DataRecordsWriter;
 import com.biorecorder.edflib.filters.*;
+import com.biorecorder.edflib.filters.signal_filters.SignalAveragingFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -60,7 +61,7 @@ public class AdsListenerBdfWriter implements AdsDataListener {
     @Override
     public void onAdsDataReceived(int[] dataFrame) {
         try {
-            dataRecordsWriter.writeDigitalDataRecords(dataFrame);
+            dataRecordsWriter.writeDigitalDataRecord(dataFrame);
         } catch (IOException e) {
             LOG.error(e);
             throw new RuntimeException(e);
