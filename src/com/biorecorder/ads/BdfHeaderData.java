@@ -1,7 +1,7 @@
 package com.biorecorder.ads;
 
 
-import com.biorecorder.edflib.HeaderConfig;
+import com.biorecorder.edflib.RecordConfig;
 import com.biorecorder.edflib.SignalConfig;
 import com.sun.istack.internal.Nullable;
 import java.io.File;
@@ -84,12 +84,12 @@ public class BdfHeaderData {
 
 
 
-    public HeaderConfig getHeaderConfig() {
-        HeaderConfig headerConfig = new HeaderConfig();
-        headerConfig.setPatientId(getPatientIdentification());
-        headerConfig.setRecordingId(getRecordingIdentification());
-        headerConfig.setStartTime(getStartRecordingTime());
-        headerConfig.setDurationOfDataRecord(getDurationOfDataRecord());
+    public RecordConfig getHeaderConfig() {
+        RecordConfig recordConfig = new RecordConfig();
+        recordConfig.setPatientId(getPatientIdentification());
+        recordConfig.setRecordingId(getRecordingIdentification());
+        recordConfig.setStartTime(getStartRecordingTime());
+        recordConfig.setDurationOfDataRecord(getDurationOfDataRecord());
 
         List<AdsChannelConfiguration> channelConfigurations = adsConfiguration.getAdsChannels();
         for (int i = 0; i < channelConfigurations.size(); i++) {
@@ -112,7 +112,7 @@ public class BdfHeaderData {
                         channelConfigurations.get(i).getDivider().getValue());
                 signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
                 signal.setLabel(channelConfigurations.get(i).getName());
-                headerConfig.addSignalConfig(signal);
+                recordConfig.addSignalConfig(signal);
             }
         }
 
@@ -131,7 +131,7 @@ public class BdfHeaderData {
                 int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                         adsConfiguration.getAccelerometerDivider().getValue());
                 signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-                headerConfig.addSignalConfig(signal);
+                recordConfig.addSignalConfig(signal);
             } else {
                 int accelerometerDigitalMaximum = 9610;
                 int accelerometerDigitalMinimum = 4190;
@@ -151,7 +151,7 @@ public class BdfHeaderData {
                     int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                             adsConfiguration.getAccelerometerDivider().getValue());
                     signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-                    headerConfig.addSignalConfig(signal);
+                    recordConfig.addSignalConfig(signal);
                 }
             }
         }
@@ -167,7 +167,7 @@ public class BdfHeaderData {
             signal.setPrefiltering("None");
             int nrOfSamplesInEachDataRecord = 1;
             signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-            headerConfig.addSignalConfig(signal);
+            recordConfig.addSignalConfig(signal);
         }
         if (adsConfiguration.isLoffEnabled()) {
             SignalConfig signal = new SignalConfig();
@@ -181,9 +181,9 @@ public class BdfHeaderData {
             signal.setPrefiltering("None");
             int nrOfSamplesInEachDataRecord = 1;
             signal.setNumberOfSamplesInEachDataRecord(nrOfSamplesInEachDataRecord);
-            headerConfig.addSignalConfig(signal);
+            recordConfig.addSignalConfig(signal);
         }
-        return headerConfig;
+        return recordConfig;
     }
 
 

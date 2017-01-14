@@ -106,7 +106,7 @@ abstract class FrameDecoder implements ComPortListener {
             int[] accVal = new int[3];
             int accSum = 0;
             for (int i = 0; i < 3; i++) {
-//                decodedFrame[decodedFrameOffset++] = AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
+//                decodedFrame[decodedFrameOffset++] = AdsUtils.littleEndianBytesToInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 accVal[i] =  AdsUtils.bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
             }
