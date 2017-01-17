@@ -436,7 +436,7 @@ public class TableLayout implements LayoutManager,LayoutManager2 {
                     else if (option.horizontal == TableOption.CENTRE)
                         xoff = (cellWidth - d.width) / 2;
 
-                    // System.out.println(" "+comp.getClass().getName()+" at ("+x+"+"+xoff+","+y+"+"+yoff+"), available "+d.width+","+d.height);
+                    // System.out.println(" "+comp.getClass().getFilterName()+" at ("+x+"+"+xoff+","+y+"+"+yoff+"), available "+d.width+","+d.height);
                     comp.setBounds(x+xoff,y+yoff,d.width,d.height);
                     x += columnWidth[c] + hGap;
                 }

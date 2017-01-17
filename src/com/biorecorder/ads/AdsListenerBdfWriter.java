@@ -3,7 +3,7 @@ package com.biorecorder.ads;
 import com.biorecorder.edflib.BdfWriter;
 import com.biorecorder.edflib.DataRecordsWriter;
 import com.biorecorder.edflib.filters.*;
-import com.biorecorder.edflib.filters.signal_filters.SignalAveragingFilter;
+import com.biorecorder.edflib.filters.SignalMovingAverageFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -17,41 +17,39 @@ public class AdsListenerBdfWriter implements AdsDataListener {
     private static final Log LOG = LogFactory.getLog(AdsListenerBdfWriter.class);
     private int numberOfFramesToJoin;
     private DataRecordsWriter dataRecordsWriter;
-    private RecordsFrequencyCalculator recordsFrequencyCalculator;
+    private BdfWriter bdfWriter;
 
     public AdsListenerBdfWriter(BdfHeaderData bdfHeaderData) throws IOException {
+        bdfWriter = new BdfWriter(bdfHeaderData.getFileToSave());
+        bdfWriter.setDurationOfDataRecordsComputable(true);
+
+        // join DataRecords to have data records length = 1 sec;
         numberOfFramesToJoin = bdfHeaderData.getAdsConfiguration().getSps().getValue() /
                 bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
+        DataRecordsJoiner dataRecordsJoiner = new DataRecordsJoiner(numberOfFramesToJoin, bdfWriter);
 
-        recordsFrequencyCalculator = new RecordsFrequencyCalculator(new BdfWriter(bdfHeaderData.getFileToSave()));
-        RecordsJoiner recordsJoiner =  new RecordsJoiner(numberOfFramesToJoin, recordsFrequencyCalculator);
-
-        AggregateFilter averagingFilter = new AggregateFilter(recordsJoiner);
+        // apply MovingAveragePrefilter to ads channels to reduce 50HZ
+        DataRecordsSignalsManager dataRecordsSignalsManager = new DataRecordsSignalsManager(dataRecordsJoiner);
         List<AdsChannelConfiguration> channels = bdfHeaderData.getAdsConfiguration().getAdsChannels();
         int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getDeviceType().getNumberOfAdsChannels();
         int sps = bdfHeaderData.getAdsConfiguration().getSps().getValue();
         int enableSignalsCounter = 0;
         for (int i = 0; i < numberOfAdsChannels; i++) {
             AdsChannelConfiguration channelConfiguration = channels.get(i);
-            if(channelConfiguration.isEnabled()) {
-                if(channelConfiguration.is50HzFilterEnabled()){
+            if (channelConfiguration.isEnabled()) {
+                if (channelConfiguration.is50HzFilterEnabled()) {
                     int divider = channelConfiguration.getDivider().getValue();
-                    averagingFilter.addSignalFilter(enableSignalsCounter, new SignalAveragingFilter(sps / (divider * 50)));
+                    dataRecordsSignalsManager.addSignalPrefiltering(enableSignalsCounter, new SignalMovingAverageFilter(sps / (divider * 50)));
                 }
                 enableSignalsCounter++;
             }
         }
 
-
-        if(bdfHeaderData.getAdsConfiguration().isLoffEnabled()) {
-            SignalsRemoval signalsRemoval = new SignalsRemoval(averagingFilter);
-            int numberOfAllSignals = bdfHeaderData.getHeaderConfig().getNumberOfSignals();
-            signalsRemoval.removeSignal(numberOfAllSignals - 1);
-            dataRecordsWriter = signalsRemoval;
+        // delete helper Loff channel
+        if (bdfHeaderData.getAdsConfiguration().isLoffEnabled()) {
+            dataRecordsSignalsManager.removeSignal(bdfHeaderData.getHeaderConfig().getNumberOfSignals() - 1);
         }
-        else{
-            dataRecordsWriter = averagingFilter;
-        }
+        dataRecordsWriter = dataRecordsSignalsManager;
         dataRecordsWriter.open(bdfHeaderData.getHeaderConfig());
     }
 
@@ -70,7 +68,7 @@ public class AdsListenerBdfWriter implements AdsDataListener {
         try {
             dataRecordsWriter.close();
             // information about startRecordingTime, stopRecordingTime and actual DataRecordDuration
-            LOG.info(recordsFrequencyCalculator.toString());
+            LOG.info(bdfWriter.getWritingInfo());
         } catch (IOException e) {
             LOG.error(e);
             throw new RuntimeException(e);
