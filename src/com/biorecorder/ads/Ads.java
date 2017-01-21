@@ -102,8 +102,8 @@ public class Ads {
     private void notifyAdsDataListeners(int[] dataRecord) {
         int[] filteredDataRecord = applyMovingAverageFilter(dataRecord);
         for (AdsDataListener adsDataListener : adsDataListeners) {
-            //applyMovingAverageFilter(dataRecord);
-            //adsDataListener.onAdsDataReceived(dataRecord);
+            //applyMovingAverageFilter(digitalDataRecord);
+            //adsDataListener.onAdsDataReceived(digitalDataRecord);
             adsDataListener.onAdsDataReceived(filteredDataRecord);
         }
     }
@@ -124,7 +124,7 @@ public class Ads {
                 int numberOfSamples = maxDiv/divider;
                 for (int j = 0; j < numberOfSamples; j++) {
                     if(channelConfiguration.is50HzFilterEnabled()){
-                        // filteredDataRecord[dataRecordCounter] = movingAveragePreFilters.get(i).getFilteredValue(dataRecord[dataRecordCounter]);
+                        // filteredDataRecord[dataRecordCounter] = movingAveragePreFilters.get(i).getFilteredValue(digitalDataRecord[dataRecordCounter]);
                    }
                     dataRecordCounter++;
                 }
