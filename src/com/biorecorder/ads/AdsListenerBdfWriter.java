@@ -1,7 +1,8 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.edflib.BdfWriter;
 import com.biorecorder.edflib.DataRecordsWriter;
+import com.biorecorder.edflib.EdfWriter;
+import com.biorecorder.edflib.FileType;
 import com.biorecorder.edflib.filters.*;
 import com.biorecorder.edflib.filters.SignalMovingAverageFilter;
 import org.apache.commons.logging.Log;
@@ -10,17 +11,15 @@ import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
 import java.util.List;
 
-/**
- *
- */
+
 public class AdsListenerBdfWriter implements AdsDataListener {
     private static final Log LOG = LogFactory.getLog(AdsListenerBdfWriter.class);
     private int numberOfFramesToJoin;
     private DataRecordsWriter dataRecordsWriter;
-    private BdfWriter bdfWriter;
+    private EdfWriter bdfWriter;
 
     public AdsListenerBdfWriter(BdfHeaderData bdfHeaderData) throws IOException {
-        bdfWriter = new BdfWriter(bdfHeaderData.getFileToSave());
+        bdfWriter = new EdfWriter(bdfHeaderData.getFileToSave(), FileType.BDF_24BIT);
         bdfWriter.setDurationOfDataRecordsComputable(true);
 
         // join DataRecords to have data records length = 1 sec;

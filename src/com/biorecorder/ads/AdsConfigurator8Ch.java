@@ -23,7 +23,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         result.add((byte)0x17);     //количество регистров
 
         result.add((byte) getRegister_1Value(adsConfiguration));         //register 0x01   set SPS
-        result.add((byte)testSignalEnabledBits(adsConfiguration));       //register 0x02   test signal
+        result.add((byte)testSignalEnabledBits(adsConfiguration));       //register 0x02   example signal
         result.add((byte)0xCC);                                          //register 0x03
         boolean isLoffEnabled = adsConfiguration.isLoffEnabled();
         result.add((byte)(isLoffEnabled? 0x13 : 0x00));                  //register 0x04

@@ -33,7 +33,7 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
          //reg 0x03
         result.add((byte)0x10);
          //reg 0x04
-        result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannels().get(0)));      //reg 0x04 Set Channel 1 to test
+        result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannels().get(0)));      //reg 0x04 Set Channel 1 to example
          //reg 0x05
         result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannels().get(1)));     //reg 0x05 Set Channel 2 to Input Short and disable
         //reg 0x06 Turn on Drl.
