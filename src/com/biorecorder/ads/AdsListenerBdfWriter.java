@@ -1,9 +1,8 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.edflib.DataRecordsWriter;
+import com.biorecorder.edflib.base.DataRecordsWriter;
 import com.biorecorder.edflib.EdfWriter;
 import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.filters.*;
 import com.biorecorder.edflib.filters.SignalMovingAverageFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

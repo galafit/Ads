@@ -1,8 +1,7 @@
 package com.biorecorder.ads;
 
-
-import com.biorecorder.edflib.HeaderConfig;
-import com.biorecorder.edflib.SignalConfig;
+import com.biorecorder.edflib.base.HeaderConfig;
+import com.biorecorder.edflib.base.SignalConfig;
 import com.sun.istack.internal.Nullable;
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -13,7 +12,7 @@ import java.util.List;
 /**
  *
  */
-public class BdfHeaderData {
+public class  BdfHeaderData {
 
     private String fileNameToSave;
     private AdsConfiguration adsConfiguration;
