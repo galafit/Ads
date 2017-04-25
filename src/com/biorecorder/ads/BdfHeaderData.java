@@ -85,17 +85,15 @@ public class  BdfHeaderData {
 
     public HeaderConfig getHeaderConfig() {
         HeaderConfig headerConfig = new HeaderConfig(FileType.BDF_24BIT);
-        System.out.println("header "+ headerConfig.getFileType());
         headerConfig.setPatientIdentification(getPatientIdentification());
         headerConfig.setRecordingIdentification(getRecordingIdentification());
         headerConfig.setRecordingStartTime(getStartRecordingTime());
         headerConfig.setDurationOfDataRecord(getDurationOfDataRecord());
-
-        int signalNumber = 0;
         List<AdsChannelConfiguration> channelConfigurations = adsConfiguration.getAdsChannels();
         for (int i = 0; i < channelConfigurations.size(); i++) {
             if (channelConfigurations.get(i).isEnabled) {
                 headerConfig.addSignal();
+                int signalNumber = headerConfig.getNumberOfSignals() - 1;
                 headerConfig.setTransducer(signalNumber,"Unknown");
                 headerConfig.setPhysicalDimension(signalNumber, "uV");
                 int physicalMaximum = 2400000 / channelConfigurations.get(i).getGain().getValue();
@@ -111,13 +109,12 @@ public class  BdfHeaderData {
                         channelConfigurations.get(i).getDivider().getValue());
                 headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 headerConfig.setLabel(i, channelConfigurations.get(signalNumber).getName());
-                signalNumber++;
             }
         }
 
-
         if (adsConfiguration.isAccelerometerEnabled()) {
             if (adsConfiguration.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
+                int signalNumber = headerConfig.getNumberOfSignals() - 1;
                 headerConfig.addSignal();
                 headerConfig.setLabel(signalNumber, "Accelerometer");
                 headerConfig.setTransducer(signalNumber, "None");
@@ -130,7 +127,6 @@ public class  BdfHeaderData {
                 int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                         adsConfiguration.getAccelerometerDivider().getValue());
                 headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                signalNumber++;
             } else {
                 int accelerometerDigitalMaximum = 9610;
                 int accelerometerDigitalMinimum = 4190;
@@ -139,6 +135,7 @@ public class  BdfHeaderData {
 
                 for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
                     headerConfig.addSignal();
+                    int signalNumber = headerConfig.getNumberOfSignals() - 1;
                     headerConfig.setLabel(signalNumber, getAccelerometerChannelNames().get(i));
                     headerConfig.setTransducer(signalNumber,"None");
                     headerConfig.setPhysicalDimension(signalNumber,"mg");
@@ -150,11 +147,12 @@ public class  BdfHeaderData {
                     int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                             adsConfiguration.getAccelerometerDivider().getValue());
                     headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                    signalNumber++;
                 }
             }
         }
         if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+            headerConfig.addSignal();
+            int signalNumber = headerConfig.getNumberOfSignals() - 1;
             headerConfig.setLabel(signalNumber, "Battery voltage");
             headerConfig.setTransducer(signalNumber, "None");
             headerConfig.setPhysicalDimension(signalNumber, "V");
@@ -165,9 +163,10 @@ public class  BdfHeaderData {
             headerConfig.setPrefiltering(signalNumber, "None");
             int nrOfSamplesInEachDataRecord = 1;
             headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-            signalNumber++;
         }
         if (adsConfiguration.isLoffEnabled()) {
+            headerConfig.addSignal();
+            int signalNumber = headerConfig.getNumberOfSignals() - 1;
             headerConfig.setLabel(signalNumber, "Loff Status");
             headerConfig.setTransducer(signalNumber, "None");
             headerConfig.setPhysicalDimension(signalNumber, "Bit mask");
