@@ -23,8 +23,6 @@ public class Ads {
 
     private List<Byte> pingCommand = new ArrayList<Byte>();
     private Timer pingTimer;
-    private List<MovingAveragePreFilter> movingAveragePreFilters = new ArrayList<MovingAveragePreFilter>();
-    //private MovingAveragePreFilter movingAveragePreFilter = new MovingAveragePreFilter(10);
 
     public Ads() {
         super();
@@ -42,12 +40,6 @@ public class Ads {
     }
 
     public void startRecording(AdsConfiguration adsConfiguration) {
-        movingAveragePreFilters.clear();
-        int sps = adsConfiguration.getSps().getValue();
-        for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
-            int channelDivider = adsConfiguration.getAdsChannels().get(i).getDivider().getValue();
-            movingAveragePreFilters.add(new MovingAveragePreFilter(sps/(channelDivider * 50)));
-        }
         this.adsConfiguration = adsConfiguration;
             FrameDecoder frameDecoder = new FrameDecoder(adsConfiguration) {
                 @Override
@@ -100,39 +92,10 @@ public class Ads {
     }
 
     private void notifyAdsDataListeners(int[] dataRecord) {
-        int[] filteredDataRecord = applyMovingAverageFilter(dataRecord);
         for (AdsDataListener adsDataListener : adsDataListeners) {
-            //applyMovingAverageFilter(dataRecord);
-            //adsDataListener.onAdsDataReceived(dataRecord);
-            adsDataListener.onAdsDataReceived(filteredDataRecord);
+            adsDataListener.onAdsDataReceived(dataRecord);
         }
     }
-
-    private int[] applyMovingAverageFilter(int[] dataRecord) {
-        int[] filteredDataRecord = new int[dataRecord.length];
-        for (int i = 0; i < filteredDataRecord.length; i++) {
-            filteredDataRecord[i] = dataRecord[i];
-        }
-       List<AdsChannelConfiguration> channels = adsConfiguration.getAdsChannels();
-        int numberOfAdsChannels = adsConfiguration.getDeviceType().getNumberOfAdsChannels();
-        int maxDiv = adsConfiguration.getDeviceType().getMaxDiv().getValue();
-        int dataRecordCounter = 0;
-        for (int i = 0; i < numberOfAdsChannels; i++) {
-            AdsChannelConfiguration channelConfiguration = channels.get(i);
-            if(channelConfiguration.isEnabled()) {
-                int divider = channelConfiguration.getDivider().getValue();
-                int numberOfSamples = maxDiv/divider;
-                for (int j = 0; j < numberOfSamples; j++) {
-                    if(channelConfiguration.is50HzFilterEnabled()){
-                        // filteredDataRecord[dataRecordCounter] = movingAveragePreFilters.get(i).getFilteredValue(dataRecord[dataRecordCounter]);
-                   }
-                    dataRecordCounter++;
-                }
-            }
-        }
-        return filteredDataRecord;
-    }
-
 
 
     public void removeAdsDataListener(AdsDataListener adsDataListener) {

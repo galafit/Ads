@@ -1,9 +1,12 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.edflib.base.DataRecordsWriter;
+
+import com.biorecorder.edflib.EdfFileWriter;
 import com.biorecorder.edflib.EdfWriter;
-import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.filters.SignalMovingAverageFilter;
+import com.biorecorder.edflib.filters.EdfJoiner;
+import com.biorecorder.edflib.filters.EdfSignalsFilter;
+import com.biorecorder.edflib.filters.EdfSignalsRemover;
+import com.biorecorder.edflib.filters.digital_filters.MovingAverageFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -14,20 +17,20 @@ import java.util.List;
 public class AdsListenerBdfWriter implements AdsDataListener {
     private static final Log LOG = LogFactory.getLog(AdsListenerBdfWriter.class);
     private int numberOfFramesToJoin;
-    private DataRecordsWriter dataRecordsWriter;
-    private EdfWriter bdfWriter;
+    EdfFileWriter edfFileWriter;
+    private EdfWriter edfWriter;
 
     public AdsListenerBdfWriter(BdfHeaderData bdfHeaderData) throws IOException {
-        bdfWriter = new EdfWriter(bdfHeaderData.getFileToSave(), FileType.BDF_24BIT);
-        bdfWriter.setDurationOfDataRecordsComputable(true);
+        edfFileWriter = new EdfFileWriter(bdfHeaderData.getFileToSave());
+        edfFileWriter.setDurationOfDataRecordsComputable(true);
 
         // join DataRecords to have data records length = 1 sec;
         numberOfFramesToJoin = bdfHeaderData.getAdsConfiguration().getSps().getValue() /
                 bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
-        DataRecordsJoiner dataRecordsJoiner = new DataRecordsJoiner(numberOfFramesToJoin, bdfWriter);
+        EdfJoiner dataRecordsJoiner = new EdfJoiner(numberOfFramesToJoin, edfFileWriter);
 
         // apply MovingAveragePrefilter to ads channels to reduce 50HZ
-        DataRecordsSignalsManager dataRecordsSignalsManager = new DataRecordsSignalsManager(dataRecordsJoiner);
+        EdfSignalsFilter signalsFilter = new EdfSignalsFilter(dataRecordsJoiner);
         List<AdsChannelConfiguration> channels = bdfHeaderData.getAdsConfiguration().getAdsChannels();
         int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getDeviceType().getNumberOfAdsChannels();
         int sps = bdfHeaderData.getAdsConfiguration().getSps().getValue();
@@ -37,24 +40,25 @@ public class AdsListenerBdfWriter implements AdsDataListener {
             if (channelConfiguration.isEnabled()) {
                 if (channelConfiguration.is50HzFilterEnabled()) {
                     int divider = channelConfiguration.getDivider().getValue();
-                    dataRecordsSignalsManager.addSignalPrefiltering(enableSignalsCounter, new SignalMovingAverageFilter(sps / (divider * 50)));
+                    signalsFilter.addSignalFilter(enableSignalsCounter, new MovingAverageFilter(sps / (divider * 50)));
                 }
                 enableSignalsCounter++;
             }
         }
 
         // delete helper Loff channel
+        EdfSignalsRemover signalsRemover = new EdfSignalsRemover(signalsFilter);
         if (bdfHeaderData.getAdsConfiguration().isLoffEnabled()) {
-            dataRecordsSignalsManager.removeSignal(bdfHeaderData.getHeaderConfig().getNumberOfSignals() - 1);
+            signalsRemover.removeSignal(bdfHeaderData.getHeaderConfig().getNumberOfSignals() - 1);
         }
-        dataRecordsWriter = dataRecordsSignalsManager;
-        dataRecordsWriter.open(bdfHeaderData.getHeaderConfig());
+        edfWriter = signalsRemover;
+        edfWriter.open(bdfHeaderData.getHeaderConfig());
     }
 
     @Override
     public void onAdsDataReceived(int[] dataFrame) {
         try {
-            dataRecordsWriter.writeDigitalDataRecord(dataFrame);
+            edfWriter.writeDigitalSamples(dataFrame);
         } catch (IOException e) {
             LOG.error(e);
             throw new RuntimeException(e);
@@ -64,9 +68,9 @@ public class AdsListenerBdfWriter implements AdsDataListener {
     @Override
     public void onStopRecording() {
         try {
-            dataRecordsWriter.close();
+            edfWriter.close();
             // information about startRecordingTime, stopRecordingTime and actual DataRecordDuration
-            LOG.info(bdfWriter.getWritingInfo());
+            LOG.info(edfFileWriter.getWritingInfo());
         } catch (IOException e) {
             LOG.error(e);
             throw new RuntimeException(e);
