@@ -85,6 +85,7 @@ public class  BdfHeaderData {
 
     public HeaderConfig getHeaderConfig() {
         HeaderConfig headerConfig = new HeaderConfig(FileType.BDF_24BIT);
+        System.out.println("header "+ headerConfig.getFileType());
         headerConfig.setPatientIdentification(getPatientIdentification());
         headerConfig.setRecordingIdentification(getRecordingIdentification());
         headerConfig.setRecordingStartTime(getStartRecordingTime());
