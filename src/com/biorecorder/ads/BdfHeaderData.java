@@ -1,7 +1,7 @@
 package com.biorecorder.ads;
 
 import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.HeaderConfig;
+import com.biorecorder.edflib.HeaderInfo;
 import com.sun.istack.internal.Nullable;
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -19,8 +19,6 @@ public class  BdfHeaderData {
 
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    private long startRecordingTime;
-    private int numberOfDataRecords = -1;
     List<String> accelerometerChannelNames = new ArrayList<String>();
 
     public BdfHeaderData(AdsConfiguration adsConfiguration) {
@@ -53,9 +51,6 @@ public class  BdfHeaderData {
                 adsConfiguration.getSps().getValue();
     }
 
-    public long getStartRecordingTime() {
-        return startRecordingTime;
-    }
 
     public AdsConfiguration getAdsConfiguration() {
         return adsConfiguration;
@@ -81,52 +76,45 @@ public class  BdfHeaderData {
         this.recordingIdentification = recordingIdentification;
     }
 
-
-
-    public HeaderConfig getHeaderConfig() {
-        HeaderConfig headerConfig = new HeaderConfig(FileType.BDF_24BIT);
-        headerConfig.setPatientIdentification(getPatientIdentification());
-        headerConfig.setRecordingIdentification(getRecordingIdentification());
-        headerConfig.setRecordingStartTime(getStartRecordingTime());
-        headerConfig.setDurationOfDataRecord(getDurationOfDataRecord());
+    public HeaderInfo getHeaderConfig() {
+        HeaderInfo headerInfo = new HeaderInfo(FileType.BDF_24BIT);
+        headerInfo.setPatientIdentification(getPatientIdentification());
+        headerInfo.setRecordingIdentification(getRecordingIdentification());
+        headerInfo.setDurationOfDataRecord(getDurationOfDataRecord());
         List<AdsChannelConfiguration> channelConfigurations = adsConfiguration.getAdsChannels();
         for (int i = 0; i < channelConfigurations.size(); i++) {
             if (channelConfigurations.get(i).isEnabled) {
-                headerConfig.addSignal();
-                int signalNumber = headerConfig.getNumberOfSignals() - 1;
-                headerConfig.setTransducer(signalNumber,"Unknown");
-                headerConfig.setPhysicalDimension(signalNumber, "uV");
+                headerInfo.addSignal();
+                int signalNumber = headerInfo.getNumberOfSignals() - 1;
+                headerInfo.setTransducer(signalNumber,"Unknown");
+                headerInfo.setPhysicalDimension(signalNumber, "uV");
                 int physicalMaximum = 2400000 / channelConfigurations.get(i).getGain().getValue();
-                headerConfig.setPhysicalMin(signalNumber, -physicalMaximum);
-                headerConfig.setPhysicalMax(signalNumber, physicalMaximum);
+                headerInfo.setPhysicalRange(signalNumber, -physicalMaximum, physicalMaximum);
                 int digitalMaximum = Math.round(8388607 / getAdsConfiguration().getNoiseDivider());
                 int digitalMinimum = Math.round(-8388608 / getAdsConfiguration().getNoiseDivider());
-                headerConfig.setDigitalMin(signalNumber, digitalMinimum);
-                headerConfig.setDigitalMax(signalNumber,digitalMaximum);
-                //headerConfig.setPrefiltering(signalNumber, "None");
+                headerInfo.setDigitalRange(signalNumber, digitalMinimum, digitalMaximum);
+                headerInfo.setPrefiltering(signalNumber, "None");
                 int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() *
                         adsConfiguration.getSps().getValue() /
                         channelConfigurations.get(i).getDivider().getValue());
-                headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                headerConfig.setLabel(i, channelConfigurations.get(signalNumber).getName());
+                headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                headerInfo.setLabel(i, channelConfigurations.get(signalNumber).getName());
             }
         }
 
         if (adsConfiguration.isAccelerometerEnabled()) {
             if (adsConfiguration.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
-                int signalNumber = headerConfig.getNumberOfSignals() - 1;
-                headerConfig.addSignal();
-                headerConfig.setLabel(signalNumber, "Accelerometer");
-                headerConfig.setTransducer(signalNumber, "None");
-                headerConfig.setPhysicalDimension(signalNumber, "m/sec^3");
-                headerConfig.setPhysicalMin(signalNumber,-1000);
-                headerConfig.setPhysicalMax(signalNumber,1000);
-                headerConfig.setDigitalMax(signalNumber,2000);
-                headerConfig.setDigitalMin(signalNumber,-2000);
-                headerConfig.setPrefiltering(signalNumber, "None");
+                headerInfo.addSignal();
+                int signalNumber = headerInfo.getNumberOfSignals() - 1;
+                headerInfo.setLabel(signalNumber, "Accelerometer");
+                headerInfo.setTransducer(signalNumber, "None");
+                headerInfo.setPhysicalDimension(signalNumber, "m/sec^3");
+                headerInfo.setPhysicalRange(signalNumber, -1000, 1000);
+                headerInfo.setDigitalRange(signalNumber, -2000, 2000 );
+                headerInfo.setPrefiltering(signalNumber, "None");
                 int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                         adsConfiguration.getAccelerometerDivider().getValue());
-                headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
             } else {
                 int accelerometerDigitalMaximum = 9610;
                 int accelerometerDigitalMinimum = 4190;
@@ -134,51 +122,45 @@ public class  BdfHeaderData {
                 int accelerometerPhysicalMinimum = -1000;
 
                 for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
-                    headerConfig.addSignal();
-                    int signalNumber = headerConfig.getNumberOfSignals() - 1;
-                    headerConfig.setLabel(signalNumber, getAccelerometerChannelNames().get(i));
-                    headerConfig.setTransducer(signalNumber,"None");
-                    headerConfig.setPhysicalDimension(signalNumber,"mg");
-                    headerConfig.setPhysicalMin(signalNumber, accelerometerPhysicalMinimum);
-                    headerConfig.setPhysicalMax(signalNumber, accelerometerPhysicalMaximum);
-                    headerConfig.setDigitalMax(signalNumber, accelerometerDigitalMaximum);
-                    headerConfig.setDigitalMin(signalNumber, accelerometerDigitalMinimum);
-                    headerConfig.setPrefiltering(signalNumber, "None");
+                    headerInfo.addSignal();
+                    int signalNumber = headerInfo.getNumberOfSignals() - 1;
+                    headerInfo.setLabel(signalNumber, getAccelerometerChannelNames().get(i));
+                    headerInfo.setTransducer(signalNumber,"None");
+                    headerInfo.setPhysicalDimension(signalNumber,"mg");
+                    headerInfo.setPhysicalRange(signalNumber, accelerometerPhysicalMinimum, accelerometerPhysicalMaximum);
+                    headerInfo.setDigitalRange(signalNumber, accelerometerDigitalMinimum, accelerometerDigitalMaximum);
+                    headerInfo.setPrefiltering(signalNumber, "None");
                     int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
                             adsConfiguration.getAccelerometerDivider().getValue());
-                    headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                    headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 }
             }
         }
         if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
-            headerConfig.addSignal();
-            int signalNumber = headerConfig.getNumberOfSignals() - 1;
-            headerConfig.setLabel(signalNumber, "Battery voltage");
-            headerConfig.setTransducer(signalNumber, "None");
-            headerConfig.setPhysicalDimension(signalNumber, "V");
-            headerConfig.setPhysicalMin(signalNumber, 0);
-            headerConfig.setPhysicalMax(signalNumber, 50);
-            headerConfig.setDigitalMax(signalNumber, 10240);
-            headerConfig.setDigitalMin(signalNumber, 0);
-            headerConfig.setPrefiltering(signalNumber, "None");
+            headerInfo.addSignal();
+            int signalNumber = headerInfo.getNumberOfSignals() - 1;
+            headerInfo.setLabel(signalNumber, "Battery voltage");
+            headerInfo.setTransducer(signalNumber, "None");
+            headerInfo.setPhysicalDimension(signalNumber, "V");
+            headerInfo.setPhysicalRange(signalNumber, 0, 50);
+            headerInfo.setDigitalRange(signalNumber, 0, 10240);
+            headerInfo.setPrefiltering(signalNumber, "None");
             int nrOfSamplesInEachDataRecord = 1;
-            headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+            headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
         }
         if (adsConfiguration.isLoffEnabled()) {
-            headerConfig.addSignal();
-            int signalNumber = headerConfig.getNumberOfSignals() - 1;
-            headerConfig.setLabel(signalNumber, "Loff Status");
-            headerConfig.setTransducer(signalNumber, "None");
-            headerConfig.setPhysicalDimension(signalNumber, "Bit mask");
-            headerConfig.setPhysicalMin(signalNumber, 0);
-            headerConfig.setPhysicalMax(signalNumber, 65536);
-            headerConfig.setDigitalMax(signalNumber, 65536);
-            headerConfig.setDigitalMin(signalNumber, 0);
-            headerConfig.setPrefiltering(signalNumber, "None");
+            headerInfo.addSignal();
+            int signalNumber = headerInfo.getNumberOfSignals() - 1;
+            headerInfo.setLabel(signalNumber, "Loff Status");
+            headerInfo.setTransducer(signalNumber, "None");
+            headerInfo.setPhysicalDimension(signalNumber, "Bit mask");
+            headerInfo.setPhysicalRange(signalNumber, 0, 65536);
+            headerInfo.setDigitalRange(signalNumber, 0, 65536);
+            headerInfo.setPrefiltering(signalNumber, "None");
             int nrOfSamplesInEachDataRecord = 1;
-            headerConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+            headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
         }
-        return headerConfig;
+        return headerInfo;
     }
 
 

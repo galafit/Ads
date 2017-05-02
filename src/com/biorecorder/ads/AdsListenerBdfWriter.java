@@ -1,12 +1,8 @@
 package com.biorecorder.ads;
 
 
-import com.biorecorder.edflib.EdfFileWriter;
-import com.biorecorder.edflib.EdfWriter;
-import com.biorecorder.edflib.filters.EdfJoiner;
-import com.biorecorder.edflib.filters.EdfSignalsFilter;
-import com.biorecorder.edflib.filters.EdfSignalsRemover;
-import com.biorecorder.edflib.filters.digital_filters.MovingAverageFilter;
+import com.biorecorder.edflib.*;
+import com.biorecorder.edflib.filters.MovingAverageFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -52,7 +48,7 @@ public class AdsListenerBdfWriter implements AdsDataListener {
             signalsRemover.removeSignal(bdfHeaderData.getHeaderConfig().getNumberOfSignals() - 1);
         }
         edfWriter = signalsRemover;
-        edfWriter.open(bdfHeaderData.getHeaderConfig());
+        edfWriter.setHeader(bdfHeaderData.getHeaderConfig());
     }
 
     @Override
@@ -73,7 +69,7 @@ public class AdsListenerBdfWriter implements AdsDataListener {
             LOG.info(edfFileWriter.getWritingInfo());
         } catch (IOException e) {
             LOG.error(e);
-            throw new RuntimeException(e);
+           // throw new RuntimeException(e);
         }
     }
 }

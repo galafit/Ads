@@ -9,6 +9,6 @@ import com.biorecorder.gui.comport_gui.ComportDataProvider;
 public class ComportFacade implements ComportDataProvider {
     @Override
     public String[] getAvailableComports() {
-        return ComPort.getportNames();
+        return ComPort.getPortNames();
     }
 }

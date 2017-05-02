@@ -123,7 +123,7 @@ public class ComPort implements SerialPortEventListener {
         }
     }
 
-    public static  String[] getportNames() {
+    public static  String[] getPortNames() {
         return SerialPortList.getPortNames();
     }
 }

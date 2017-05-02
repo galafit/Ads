@@ -4,8 +4,6 @@ package com.biorecorder.bdfrecorder;
 import com.biorecorder.ads.Ads;
 import com.biorecorder.ads.AdsConfigUtil;
 import com.biorecorder.ads.AdsConfiguration;
-import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.HeaderConfig;
 import com.biorecorder.gui.SettingsWindow;
 
 public class BdfRecorder {
