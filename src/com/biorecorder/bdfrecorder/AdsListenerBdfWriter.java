@@ -1,6 +1,8 @@
-package com.biorecorder.ads;
+package com.biorecorder.bdfrecorder;
 
 
+import com.biorecorder.ads.AdsChannelConfig;
+import com.biorecorder.ads.AdsDataListener;
 import com.biorecorder.edflib.*;
 import com.biorecorder.edflib.filters.MovingAverageFilter;
 import org.apache.commons.logging.Log;
@@ -21,20 +23,19 @@ public class AdsListenerBdfWriter implements AdsDataListener {
         edfFileWriter.setDurationOfDataRecordsComputable(true);
 
         // join DataRecords to have data records length = 1 sec;
-        numberOfFramesToJoin = bdfHeaderData.getAdsConfiguration().getSps().getValue() /
-                bdfHeaderData.getAdsConfiguration().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
+        numberOfFramesToJoin = bdfHeaderData.getAdsConfig().getSps().getValue() /
+                bdfHeaderData.getAdsConfig().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
         EdfJoiner dataRecordsJoiner = new EdfJoiner(numberOfFramesToJoin, edfFileWriter);
 
         // apply MovingAveragePrefilter to ads channels to reduce 50HZ
         EdfSignalsFilter signalsFilter = new EdfSignalsFilter(dataRecordsJoiner);
-        List<AdsChannelConfiguration> channels = bdfHeaderData.getAdsConfiguration().getAdsChannels();
-        int numberOfAdsChannels = bdfHeaderData.getAdsConfiguration().getDeviceType().getNumberOfAdsChannels();
-        int sps = bdfHeaderData.getAdsConfiguration().getSps().getValue();
+        int numberOfAdsChannels = bdfHeaderData.getAdsConfig().getNumberOfAdsChannels();
+        int sps = bdfHeaderData.getAdsConfig().getSps().getValue();
         int enableSignalsCounter = 0;
         for (int i = 0; i < numberOfAdsChannels; i++) {
-            AdsChannelConfiguration channelConfiguration = channels.get(i);
+            AdsChannelConfig channelConfiguration = bdfHeaderData.getAdsConfig().getAdsChannel(i);
             if (channelConfiguration.isEnabled()) {
-                if (channelConfiguration.is50HzFilterEnabled()) {
+                if (bdfHeaderData.is50HzFilterEnabled(i)) {
                     int divider = channelConfiguration.getDivider().getValue();
                     signalsFilter.addSignalFilter(enableSignalsCounter, new MovingAverageFilter(sps / (divider * 50)));
                 }
@@ -44,7 +45,7 @@ public class AdsListenerBdfWriter implements AdsDataListener {
 
         // delete helper Loff channel
         EdfSignalsRemover signalsRemover = new EdfSignalsRemover(signalsFilter);
-        if (bdfHeaderData.getAdsConfiguration().isLoffEnabled()) {
+        if (bdfHeaderData.getAdsConfig().isLoffEnabled()) {
             signalsRemover.removeSignal(bdfHeaderData.getHeaderConfig().getNumberOfSignals() - 1);
         }
         edfWriter = signalsRemover;

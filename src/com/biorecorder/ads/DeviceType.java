@@ -5,9 +5,9 @@ package com.biorecorder.ads;
 import static com.biorecorder.ads.Divider.*;
 
 public enum DeviceType {
-    ADS1298(8, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10}),
+    ADS_8channel(8, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10}),
 
-    ADS1292(2, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10});
+    ADS_2channel(2, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10});
 
     private int numberOfAdsChannels;
     private Divider[] channelsAvailableDividers;
@@ -44,6 +44,6 @@ public enum DeviceType {
         if(numberOfAdsChannels == 8) {
             return new AdsConfigurator8Ch();
         }
-        throw new IllegalStateException("Number of Ads channel shoul be 2 or 8");
+        throw new IllegalStateException("Number of Ads channel should be 2 or 8");
     }
 }

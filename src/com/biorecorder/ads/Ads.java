@@ -1,9 +1,10 @@
 package com.biorecorder.ads;
 
 
-import com.biorecorder.filter.MovingAveragePreFilter;
-import com.biorecorder.comport.ComPort;
+
+import com.biorecorder.ads.comport.ComPort;
 import jssc.SerialPortException;
+import jssc.SerialPortList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -13,52 +14,83 @@ import java.util.*;
  *
  */
 public class Ads {
-
     private static final Log log = LogFactory.getLog(Ads.class);
-
-    private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
+     private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
     private ComPort comPort;
     private boolean isRecording;
-    private AdsConfiguration adsConfiguration;
-
+    private AdsConfig adsConfig = new AdsConfig();
     private List<Byte> pingCommand = new ArrayList<Byte>();
     private Timer pingTimer;
 
     public Ads() {
-        super();
         pingCommand.add((byte)0xFB);
     }
 
-    public void comPortConnect(AdsConfiguration adsConfiguration){
+    public AdsConfig getAdsConfig() {
+        return adsConfig;
+    }
+
+    public void setAdsConfig(AdsConfig adsConfig) {
+        this.adsConfig = adsConfig;
+    }
+
+    public void comPortConnect(){
+        comPortTest();
         try{
-            comPort = new ComPort(adsConfiguration.getComPortName(), 460800);
+            comPort = new ComPort(adsConfig.getComPortName(), 460800);
         } catch (SerialPortException e) {
-            String failConnectMessage = "No connection to port " + adsConfiguration.getComPortName();
+            String failConnectMessage = "No connection to port " + adsConfig.getComPortName();
             log.error(failConnectMessage, e);
             throw new AdsException(failConnectMessage, e);
         }
     }
 
-    public void startRecording(AdsConfiguration adsConfiguration) {
-        this.adsConfiguration = adsConfiguration;
-            FrameDecoder frameDecoder = new FrameDecoder(adsConfiguration) {
+    private void comPortTest() {
+        try {
+            comPort = new ComPort(adsConfig.getComPortName(), 460800);
+        } catch (SerialPortException e) {
+            e.printStackTrace();
+        }
+        List<Byte> pingCommand1 = new ArrayList<Byte>();
+        pingCommand1.add((byte)0xFA);
+
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig) {
+            @Override
+            public void notifyListeners(int[] decodedFrame) {
+                notifyAdsDataListeners(decodedFrame);
+            }
+        };
+
+        comPort.setComPortListener(frameDecoder);
+        comPort.writeToPort(pingCommand1);
+        System.out.println("finished "+ Thread.currentThread().getName());
+        try {
+            Thread.sleep(3);
+        } catch (InterruptedException e) {
+            log.warn(e);
+        }
+        comPort.disconnect();
+    }
+
+    public void startRecording() {
+            FrameDecoder frameDecoder = new FrameDecoder(adsConfig) {
                 @Override
                 public void notifyListeners(int[] decodedFrame) {
                     notifyAdsDataListeners(decodedFrame);
                 }
             };
         if(comPort == null){
-            comPortConnect(adsConfiguration);
+            comPortConnect();
         }
         if(!comPort.isConnected()){
-            comPortConnect(adsConfiguration);
+            comPortConnect();
         }
-        if(!comPort.getComPortName().equals(adsConfiguration.getComPortName()))  {
+        if(!comPort.getComPortName().equals(adsConfig.getComPortName()))  {
             comPort.disconnect();
-            comPortConnect(adsConfiguration);
+            comPortConnect();
         }
             comPort.setComPortListener(frameDecoder);
-            comPort.writeToPort(adsConfiguration.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfiguration));
+            comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
             isRecording = true;
         //---------------------------
         TimerTask timerTask = new TimerTask() {
@@ -97,7 +129,6 @@ public class Ads {
         }
     }
 
-
     public void removeAdsDataListener(AdsDataListener adsDataListener) {
         adsDataListeners.remove(adsDataListener);
     }
@@ -107,4 +138,40 @@ public class Ads {
             comPort.disconnect();
         }
     }
+
+    public static  String[] getAvailableComPortNames() {
+        return SerialPortList.getPortNames();
+    }
+
+    /**
+     * returns dividers list for all active channels including 3 accelerometer channels
+     */
+    private static List<Integer> getDividersForActiveChannels(AdsConfig adsConfiguration) {
+        List<Integer> dividersList = new ArrayList<Integer>();
+        for (int i = 0; i < adsConfiguration.getNumberOfAdsChannels(); i++) {
+            AdsChannelConfig channelConfiguration = adsConfiguration.getAdsChannel(i);
+            if (channelConfiguration.isEnabled()) {
+                dividersList.add(channelConfiguration.getDivider().getValue());
+            }
+        }
+        int n = adsConfiguration.isAccelerometerOneChannelMode() ? 1 : 3;
+        for (int i = 0; i < n; i++) {
+            if (adsConfiguration.isAccelerometerEnabled()) {
+                dividersList.add(adsConfiguration.getAccelerometerDivider().getValue());
+            }
+        }
+        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+            dividersList.add(10);
+        }
+        return dividersList;
+    }
+
+    public static int getDecodedFrameSize(AdsConfig adsConfiguration) {
+        int frameSize = 0;
+        for (Integer divider : getDividersForActiveChannels(adsConfiguration)) {
+            frameSize += adsConfiguration.getDeviceType().getMaxDiv().getValue() / divider;
+        }
+        return frameSize + 2; // 2 values for device specific information (counter of loff status);
+    }
+
 }

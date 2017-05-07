@@ -20,6 +20,10 @@ class ComportModel extends DefaultComboBoxModel {
         else if(getSize() > 0) {
             setSelectedItem(getElementAt(0));
         }
+        String[] comPorts = comportDataProvider.getAvailableComports();
+        for (String comPort : comPorts) {
+            System.out.println("comport "+comPort);
+        }
     }
 
     public boolean isComPortAvailable(String comPort) {

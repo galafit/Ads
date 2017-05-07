@@ -13,7 +13,7 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
 
 
     @Override
-    public List<Byte> writeAdsConfiguration(AdsConfiguration adsConfiguration) {
+    public List<Byte> writeAdsConfiguration(AdsConfig adsConfiguration) {
         List<Byte> result = new ArrayList<Byte>();
         result.add((byte)32);       //длина пакета
 
@@ -33,18 +33,18 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
          //reg 0x03
         result.add((byte)0x10);
          //reg 0x04
-        result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannels().get(0)));      //reg 0x04 Set Channel 1 to example
+        result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannel(0)));      //reg 0x04 Set Channel 1 to example
          //reg 0x05
-        result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannels().get(1)));     //reg 0x05 Set Channel 2 to Input Short and disable
+        result.add((byte)getChanelRegisterValue(adsConfiguration.getAdsChannel(1)));     //reg 0x05 Set Channel 2 to Input Short and disable
         //reg 0x06 Turn on Drl.
         result.add((byte)0x20);
 
         //reg 0x07
         int loffSensRegisterValue = 0;
-         if(adsConfiguration.getAdsChannels().get(0).isLoffEnable()){
+         if(adsConfiguration.getAdsChannel(0).isLoffEnable()){
             loffSensRegisterValue += 0x03;
         }
-        if(adsConfiguration.getAdsChannels().get(1).isLoffEnable()){
+        if(adsConfiguration.getAdsChannel(1).isLoffEnable()){
             loffSensRegisterValue += 0x0C;
         }
         result.add((byte)loffSensRegisterValue);     //reg 0x07
@@ -55,7 +55,7 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
 
         result.add((byte)0xF2);     //делители частоты для 2х каналов ads1292  возможные значения 0,1,2,5,10;
         for (int i = 0; i < NUMBER_OF_ADS_CHANNELS; i++) {
-            AdsChannelConfiguration adsChannelConfiguration = adsConfiguration.getAdsChannels().get(i);
+            AdsChannelConfig adsChannelConfiguration = adsConfiguration.getAdsChannel(i);
             int divider = adsChannelConfiguration.isEnabled ? adsChannelConfiguration.getDivider().getValue() : 0;
             result.add((byte)divider);
         }
@@ -86,7 +86,7 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
         return result;
     }
 
-    private int getChanelRegisterValue(AdsChannelConfiguration channelConfiguration) {
+    private int getChanelRegisterValue(AdsChannelConfig channelConfiguration) {
         int result = 0x80;   //channel disabled
         if (channelConfiguration.isEnabled()) {
             result = 0x00;
@@ -94,9 +94,10 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
         return result + channelConfiguration.getGain().getRegisterBits() + channelConfiguration.getCommutatorState().getRegisterBits();
     }
 
-    private int loffComparatorEnabledBit(AdsConfiguration configuration) {
+    private int loffComparatorEnabledBit(AdsConfig configuration) {
         int result = 0x00;
-        for (AdsChannelConfiguration adsChannelConfiguration : configuration.getAdsChannels()) {
+        for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
+            AdsChannelConfig adsChannelConfiguration = configuration.getAdsChannel(i);
             if (adsChannelConfiguration.isLoffEnable()) {
                 result = 0x40;
             }
@@ -104,9 +105,10 @@ public class AdsConfigurator2Ch implements AdsConfigurator{
         return result;
     }
 
-    private int testSignalEnabledBits(AdsConfiguration configuration) {
+    private int testSignalEnabledBits(AdsConfig configuration) {
         int result = 0x00;
-        for (AdsChannelConfiguration adsChannelConfiguration : configuration.getAdsChannels()) {
+        for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
+            AdsChannelConfig adsChannelConfiguration = configuration.getAdsChannel(i);
             if (adsChannelConfiguration.getCommutatorState().equals(CommutatorState.TEST_SIGNAL)) {
                 result = 0x03;
             }

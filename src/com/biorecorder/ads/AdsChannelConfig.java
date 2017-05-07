@@ -3,16 +3,15 @@ package com.biorecorder.ads;
 /**
  *
  */
-public class AdsChannelConfiguration {
+public class AdsChannelConfig {
 
     protected Divider divider = Divider.D1;
     protected boolean isEnabled = true;
-    protected boolean is50HzFilterEnabled = true;
     private Gain gain = Gain.G2;
     private CommutatorState commutatorState = CommutatorState.INPUT;
     protected boolean isLoffEnable = true;
     private boolean isRldSenseEnabled = false;
-    private String name = "channel";
+    private String name = "ads channel";
 
     public String getName() {
         return name;
@@ -70,17 +69,9 @@ public class AdsChannelConfiguration {
         isEnabled = enabled;
     }
 
-    public boolean is50HzFilterEnabled() {
-        return is50HzFilterEnabled;
-    }
-
-    public void set50HzFilterEnabled(boolean is50HzFilterEnabled) {
-        this.is50HzFilterEnabled = is50HzFilterEnabled;
-    }
-
     @Override
     public String toString() {
-        return "AdsChannelConfiguration{" +
+        return "AdsChannelConfig{" +
                 "divider=" + divider +
                 ", isEnabled=" + isEnabled +
                 ", gain=" + gain +

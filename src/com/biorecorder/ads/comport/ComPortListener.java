@@ -1,4 +1,4 @@
-package com.biorecorder.comport;
+package com.biorecorder.ads.comport;
 
 public interface ComPortListener {
     public void onByteReceived(byte inByte);

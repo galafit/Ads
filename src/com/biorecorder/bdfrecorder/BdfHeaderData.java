@@ -1,5 +1,7 @@
-package com.biorecorder.ads;
+package com.biorecorder.bdfrecorder;
 
+import com.biorecorder.ads.AdsChannelConfig;
+import com.biorecorder.ads.AdsConfig;
 import com.biorecorder.edflib.FileType;
 import com.biorecorder.edflib.HeaderInfo;
 import com.sun.istack.internal.Nullable;
@@ -13,51 +15,58 @@ import java.util.List;
  *
  */
 public class  BdfHeaderData {
-
-    private String fileNameToSave;
-    private AdsConfiguration adsConfiguration;
+    private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();
+    private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
+    private AdsConfig adsConfig = new AdsConfig();
 
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    List<String> accelerometerChannelNames = new ArrayList<String>();
-
-    public BdfHeaderData(AdsConfiguration adsConfiguration) {
-        this.adsConfiguration = adsConfiguration;
-        accelerometerChannelNames.add("Accelerometer X");
-        accelerometerChannelNames.add("Accelerometer Y");
-        accelerometerChannelNames.add("Accelerometer Z");
-    }
+    private String fileNameToSave;
 
     public void setFileNameToSave(String fileNameToSave) {
         this.fileNameToSave = fileNameToSave;
     }
 
-    public void setDirectoryToSave(String directory) {
-        adsConfiguration.setDirectoryToSave(directory);
+    public void setDirectoryToSave(File directory) {
+        dirToSave = directory.getAbsolutePath();
+    }
+
+    public File getDirToSave() {
+        return new File(dirToSave);
+    }
+
+    public Boolean is50HzFilterEnabled(int adsChannelNumber) {
+        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+            filter50HzMask.add(true);
+        }
+        return filter50HzMask.get(adsChannelNumber);
+    }
+
+    public void setIs50HzFilterEnabled(int adsChannelNumber, boolean is50HzFilterEnabled) {
+        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+            filter50HzMask.add(true);
+        }
+        filter50HzMask.set(adsChannelNumber, is50HzFilterEnabled);
     }
 
     public File getFileToSave() {
-        String directory = adsConfiguration.getDirectoryToSave();
         String filename = normalizeFilename(fileNameToSave);
-        return new File(directory, filename);
+        return new File(dirToSave, filename);
     }
 
-    public List<String> getAccelerometerChannelNames() {
-        return accelerometerChannelNames;
-    }
 
     private double getDurationOfDataRecord() {
-        return 1.0 * adsConfiguration.getDeviceType().getMaxDiv().getValue()/
-                adsConfiguration.getSps().getValue();
+        return 1.0 * adsConfig.getDeviceType().getMaxDiv().getValue()/
+                adsConfig.getSps().getValue();
     }
 
 
-    public AdsConfiguration getAdsConfiguration() {
-        return adsConfiguration;
+    public AdsConfig getAdsConfig() {
+        return adsConfig;
     }
 
-    public void setAdsConfiguration(AdsConfiguration adsConfiguration) {
-        this.adsConfiguration = adsConfiguration;
+    public void setAdsConfig(AdsConfig adsConfiguration) {
+        this.adsConfig = adsConfiguration;
     }
 
     public String getPatientIdentification() {
@@ -81,29 +90,28 @@ public class  BdfHeaderData {
         headerInfo.setPatientIdentification(getPatientIdentification());
         headerInfo.setRecordingIdentification(getRecordingIdentification());
         headerInfo.setDurationOfDataRecord(getDurationOfDataRecord());
-        List<AdsChannelConfiguration> channelConfigurations = adsConfiguration.getAdsChannels();
-        for (int i = 0; i < channelConfigurations.size(); i++) {
-            if (channelConfigurations.get(i).isEnabled) {
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+            if (adsConfig.getAdsChannel(i).isEnabled()) {
                 headerInfo.addSignal();
                 int signalNumber = headerInfo.getNumberOfSignals() - 1;
                 headerInfo.setTransducer(signalNumber,"Unknown");
                 headerInfo.setPhysicalDimension(signalNumber, "uV");
-                int physicalMaximum = 2400000 / channelConfigurations.get(i).getGain().getValue();
+                int physicalMaximum = 2400000 / adsConfig.getAdsChannel(i).getGain().getValue();
                 headerInfo.setPhysicalRange(signalNumber, -physicalMaximum, physicalMaximum);
-                int digitalMaximum = Math.round(8388607 / getAdsConfiguration().getNoiseDivider());
-                int digitalMinimum = Math.round(-8388608 / getAdsConfiguration().getNoiseDivider());
+                int digitalMaximum = Math.round(8388607 / getAdsConfig().getNoiseDivider());
+                int digitalMinimum = Math.round(-8388608 / getAdsConfig().getNoiseDivider());
                 headerInfo.setDigitalRange(signalNumber, digitalMinimum, digitalMaximum);
                 headerInfo.setPrefiltering(signalNumber, "None");
                 int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() *
-                        adsConfiguration.getSps().getValue() /
-                        channelConfigurations.get(i).getDivider().getValue());
+                        adsConfig.getSps().getValue() /
+                        adsConfig.getAdsChannel(i).getDivider().getValue());
                 headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                headerInfo.setLabel(i, channelConfigurations.get(signalNumber).getName());
+                headerInfo.setLabel(i, adsConfig.getAdsChannel(i).getName());
             }
         }
 
-        if (adsConfiguration.isAccelerometerEnabled()) {
-            if (adsConfiguration.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
+        if (adsConfig.isAccelerometerEnabled()) {
+            if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
                 headerInfo.addSignal();
                 int signalNumber = headerInfo.getNumberOfSignals() - 1;
                 headerInfo.setLabel(signalNumber, "Accelerometer");
@@ -112,8 +120,8 @@ public class  BdfHeaderData {
                 headerInfo.setPhysicalRange(signalNumber, -1000, 1000);
                 headerInfo.setDigitalRange(signalNumber, -2000, 2000 );
                 headerInfo.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
-                        adsConfiguration.getAccelerometerDivider().getValue());
+                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfig.getSps().getValue() /
+                        adsConfig.getAccelerometerDivider().getValue());
                 headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
             } else {
                 int accelerometerDigitalMaximum = 9610;
@@ -121,22 +129,23 @@ public class  BdfHeaderData {
                 int accelerometerPhysicalMaximum = 1000;
                 int accelerometerPhysicalMinimum = -1000;
 
+                String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
                 for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
                     headerInfo.addSignal();
                     int signalNumber = headerInfo.getNumberOfSignals() - 1;
-                    headerInfo.setLabel(signalNumber, getAccelerometerChannelNames().get(i));
+                    headerInfo.setLabel(signalNumber, accelerometerChannelNames[i]);
                     headerInfo.setTransducer(signalNumber,"None");
                     headerInfo.setPhysicalDimension(signalNumber,"mg");
                     headerInfo.setPhysicalRange(signalNumber, accelerometerPhysicalMinimum, accelerometerPhysicalMaximum);
                     headerInfo.setDigitalRange(signalNumber, accelerometerDigitalMinimum, accelerometerDigitalMaximum);
                     headerInfo.setPrefiltering(signalNumber, "None");
-                    int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfiguration.getSps().getValue() /
-                            adsConfiguration.getAccelerometerDivider().getValue());
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfig.getSps().getValue() /
+                            adsConfig.getAccelerometerDivider().getValue());
                     headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 }
             }
         }
-        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
+        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
             headerInfo.addSignal();
             int signalNumber = headerInfo.getNumberOfSignals() - 1;
             headerInfo.setLabel(signalNumber, "Battery voltage");
@@ -148,7 +157,7 @@ public class  BdfHeaderData {
             int nrOfSamplesInEachDataRecord = 1;
             headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
         }
-        if (adsConfiguration.isLoffEnabled()) {
+        if (adsConfig.isLoffEnabled()) {
             headerInfo.addSignal();
             int signalNumber = headerInfo.getNumberOfSignals() - 1;
             headerInfo.setLabel(signalNumber, "Loff Status");

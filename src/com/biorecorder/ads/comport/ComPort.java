@@ -1,4 +1,4 @@
-package com.biorecorder.comport;
+package com.biorecorder.ads.comport;
 
 
 import com.biorecorder.ads.AdsException;
@@ -126,4 +126,9 @@ public class ComPort implements SerialPortEventListener {
     public static  String[] getPortNames() {
         return SerialPortList.getPortNames();
     }
+
+    public static void main(String[] args) {
+
+    }
+
 }

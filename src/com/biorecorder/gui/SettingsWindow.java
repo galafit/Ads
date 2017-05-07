@@ -1,8 +1,8 @@
 package com.biorecorder.gui;
 
 import com.biorecorder.ads.*;
+import com.biorecorder.bdfrecorder.BdfHeaderData;
 import com.biorecorder.bdfrecorder.Controller;
-import com.biorecorder.comport.ComportFacade;
 import com.biorecorder.gui.comport_gui.ComportUI;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 
@@ -11,7 +11,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
 
 
 /**
@@ -20,10 +19,10 @@ import java.util.List;
 public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private Controller controller;
-    private AdsConfiguration adsConfiguration;
     private int adsDataFrameSize;
     private int adsDataFrameCounter;
     private int adsDataFrameFrequency;
+
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
     private String spsLabel = "Maximum Frequency (Hz)";
@@ -70,9 +69,9 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Lead Off Detection"), new JLabel(" "),new JLabel("50 Hz Filter")};
 
 
-    public SettingsWindow(Controller controller, AdsConfiguration adsConfiguration) {
+    public SettingsWindow(Controller controller) {
         this.controller = controller;
-        this.adsConfiguration = adsConfiguration;
+
         init();
         arrangeForm();
         setActions();
@@ -81,12 +80,13 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void init() {
-        int adsChannelsNumber = adsConfiguration.getAdsChannels().size();
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        int adsChannelsNumber = adsConfig.getNumberOfAdsChannels();
 
         spsField = new JComboBox(Sps.values());
-        spsField.setSelectedItem(adsConfiguration.getSps());
+        spsField.setSelectedItem(adsConfig.getSps());
 
-        comportUI = new ComportUI(new ComportFacade(), adsConfiguration.getComPortName());
+        comportUI = new ComportUI(controller, adsConfig.getComPortName());
         fileToSaveUI = new FileToSaveUI();
 
         int textFieldLength = 30;
@@ -127,8 +127,9 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void setActions() {
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
 
-        for (int i = 0; i < adsConfiguration.getAdsChannels().size(); i++) {
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             channelEnable[i].addActionListener(new AdsChannelEnableListener(i));
         }
 
@@ -173,9 +174,9 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                         disableFields();
                         BdfHeaderData bdfHeaderData = saveDataToModel();
                         saveComPortData();
-                        adsDataFrameSize = AdsUtils.getDecodedFrameSize(adsConfiguration);
+                        adsDataFrameSize = controller.getDecodedFrameSize(adsConfig);
                         adsDataFrameCounter = 0;
-                        adsDataFrameFrequency = adsConfiguration.getSps().getValue() / adsConfiguration.getDeviceType().getMaxDiv().getValue();
+                        adsDataFrameFrequency = adsConfig.getSps().getValue() / adsConfig.getDeviceType().getMaxDiv().getValue();
                         setProcessReport("Connecting...");
                         controller.startRecording(bdfHeaderData);
                     }
@@ -238,7 +239,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             channelsPanel.add(component);
         }
 
-        for (int i = 0; i < adsConfiguration.getAdsChannels().size(); i++) {
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             channelsPanel.add(new JLabel(" " + (i + 1) + " "));
             channelsPanel.add(channelEnable[i]);
             channelsPanel.add(channelName[i]);
@@ -255,7 +257,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         }
 
         // Add line of accelerometer
-        channelsPanel.add(new JLabel(" " + (1 + adsConfiguration.getAdsChannels().size()) + " "));
+        channelsPanel.add(new JLabel(" " + (1 + adsConfig.getNumberOfAdsChannels()) + " "));
         channelsPanel.add(accelerometerEnable);
         channelsPanel.add(accelerometerName);
         channelsPanel.add(accelerometerFrequency);
@@ -340,7 +342,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
         accelerometerFrequency.setEnabled(isEnable);
         accelerometerCommutator.setEditable(isEnable);
 
-        for (int i = 0; i < adsConfiguration.getAdsChannels().size(); i++) {
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             channelEnable[i].setEnabled(isEnable);
             channel50Hz[i].setEnabled(isEnable);
             channelName[i].setEnabled(isEnable);
@@ -363,12 +366,13 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private void enableFields() {
         boolean isEnable = true;
         disableEnableFields(isEnable);
-        for (int i = 0; i < adsConfiguration.getAdsChannels().size(); i++) {
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             if (!isChannelEnable(i)) {
                 enableAdsChannel(i, false);
             }
         }
-        if (!adsConfiguration.isAccelerometerEnabled()) {
+        if (!adsConfig.isAccelerometerEnabled()) {
             enableAccelerometer(false);
         }
     }
@@ -385,48 +389,50 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void loadDataFromModel() {
-        BdfHeaderData bdfHeaderData = new BdfHeaderData(adsConfiguration);
-        spsField.setSelectedItem(adsConfiguration.getSps());
-        fileToSaveUI.setDirectory(adsConfiguration.getDirectoryToSave());
+        BdfHeaderData bdfHeaderData = controller.getBdfHeaderData();
+        AdsConfig adsConfig = bdfHeaderData.getAdsConfig();
+        spsField.setSelectedItem(adsConfig.getSps());
+        fileToSaveUI.setDirectory(bdfHeaderData.getDirToSave().getName());
 //        fileToSave.setText(FILENAME_PATTERN);
         patientIdentification.setText(bdfHeaderData.getPatientIdentification());
         recordingIdentification.setText(bdfHeaderData.getRecordingIdentification());
-        int numberOfAdsChannels = adsConfiguration.getAdsChannels().size();
+        int numberOfAdsChannels = adsConfig.getNumberOfAdsChannels();
         for (int i = 0; i < numberOfAdsChannels; i++) {
-            AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
+            AdsChannelConfig channel = adsConfig.getAdsChannel(i);
             channelName[i].setText(channel.getName());
             channelEnable[i].setSelected(channel.isEnabled());
             if (!channel.isEnabled()) {
                 enableAdsChannel(i, false);
             }
-            channel50Hz[i].setSelected(channel.is50HzFilterEnabled());
+            channel50Hz[i].setSelected(bdfHeaderData.is50HzFilterEnabled(i));
             channelLoffEnable[i].setSelected(channel.isLoffEnable());
         }
 
-        accelerometerEnable.setSelected(adsConfiguration.isAccelerometerEnabled());
-        if (!adsConfiguration.isAccelerometerEnabled()) {
+        accelerometerEnable.setSelected(adsConfig.isAccelerometerEnabled());
+        if (!adsConfig.isAccelerometerEnabled()) {
             enableAccelerometer(false);
         }
-        setChannelsFrequencies(adsConfiguration.getSps());
+        setChannelsFrequencies(adsConfig.getSps());
         setChannelsGain();
         setChannelsCommutatorState();
         setAccelerometerCommutator();
     }
 
     public void updateLoffStatus(int[] dataFrame) {
-        if(adsConfiguration.getDeviceType() == DeviceType.ADS1298){
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        if(adsConfig.getDeviceType() == DeviceType.ADS_8channel){
             updateLoffStatus8ch(dataFrame);
         }
-        if(adsConfiguration.getDeviceType() == DeviceType.ADS1292){
+        if(adsConfig.getDeviceType() == DeviceType.ADS_2channel){
             updateLoffStatus2ch(dataFrame);
         }
     }
 
     private void updateLoffStatus2ch(int[] dataFrame) {
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
         int loffStatusRegisterValue = dataFrame[dataFrame.length - 1];
-        List<AdsChannelConfiguration> channelsList = adsConfiguration.getAdsChannels();
-        for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
-            AdsChannelConfiguration channelConfiguration = channelsList.get(i);
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+            AdsChannelConfig channelConfiguration = adsConfig.getAdsChannel(i);
             if (channelConfiguration.isEnabled() && channelConfiguration.getCommutatorState() == CommutatorState.INPUT &&
                     channelConfiguration.isLoffEnable()) {
                 if ((loffStatusRegisterValue & (int) Math.pow(2, i*2)) == 0) {
@@ -447,9 +453,9 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void updateLoffStatus8ch(int[] dataFrame) {
-        List<AdsChannelConfiguration> channelsList = adsConfiguration.getAdsChannels();
-        for (int i = 0; i < adsConfiguration.getDeviceType().getNumberOfAdsChannels(); i++) {
-            AdsChannelConfiguration channelConfiguration = channelsList.get(i);
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+            AdsChannelConfig channelConfiguration = adsConfig.getAdsChannel(i);
             if (channelConfiguration.isEnabled() && channelConfiguration.getCommutatorState() == CommutatorState.INPUT &&
                     channelConfiguration.isLoffEnable()) {
                 if ((dataFrame[dataFrame.length - 2] & (int) Math.pow(2, i)) == 0) {
@@ -470,25 +476,26 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private BdfHeaderData saveDataToModel() {
-        BdfHeaderData bdfHeaderData = new BdfHeaderData(adsConfiguration);
-        adsConfiguration.setSps(getSps());
+        BdfHeaderData bdfHeaderData = controller.getBdfHeaderData();
+        AdsConfig adsConfig = bdfHeaderData.getAdsConfig();
+        adsConfig.setSps(getSps());
         bdfHeaderData.setPatientIdentification(getPatientIdentification());
         bdfHeaderData.setRecordingIdentification(getRecordingIdentification());
-        for (int i = 0; i < adsConfiguration.getAdsChannels().size(); i++) {
-            AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+            AdsChannelConfig channel = adsConfig.getAdsChannel(i);
             channel.setName(getChannelName(i));
             channel.setDivider(getChannelDivider(i));
             channel.setEnabled(isChannelEnable(i));
-            channel.set50HzFilterEnabled(is50HzFilterEnable(i));
+            bdfHeaderData.setIs50HzFilterEnabled(i, is50HzFilterEnable(i));
             channel.setGain(getChannelGain(i));
             channel.setCommutatorState(getChannelCommutatorState(i));
             channel.setLoffEnable(channelLoffEnable[i].isSelected());
         }
-        adsConfiguration.setAccelerometerEnabled(isAccelerometerEnable());
-        adsConfiguration.setAccelerometerDivider(getAccelerometerDivider());
-        adsConfiguration.setAccelerometerOneChannelMode(getAccelerometerCommutator());
+        adsConfig.setAccelerometerEnabled(isAccelerometerEnable());
+        adsConfig.setAccelerometerDivider(getAccelerometerDivider());
+        adsConfig.setAccelerometerOneChannelMode(getAccelerometerCommutator());
         bdfHeaderData.setFileNameToSave(getFilename());
-        bdfHeaderData.setDirectoryToSave(getDirectory());
+        bdfHeaderData.setDirectoryToSave(new File(getDirectory()));
         return bdfHeaderData;
     }
 
@@ -500,7 +507,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void saveComPortData(){
-            adsConfiguration.setComPortName(getComPortName());
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        adsConfig.setComPortName(getComPortName());
     }
 
     private boolean isComportAvailable() {
@@ -508,8 +516,9 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void setChannelsFrequencies(Sps sps) {
-        int numberOfAdsChannels = adsConfiguration.getAdsChannels().size();
-        Divider[] adsChannelsDividers = adsConfiguration.getDeviceType().getChannelsAvailableDividers();
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        int numberOfAdsChannels = adsConfig.getNumberOfAdsChannels();
+        Divider[] adsChannelsDividers = adsConfig.getDeviceType().getChannelsAvailableDividers();
         // set available frequencies
         for (int i = 0; i < numberOfAdsChannels; i++) {
             channelFrequency[i].removeAllItems();
@@ -517,17 +526,17 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                 channelFrequency[i].addItem(sps.getValue()/divider.getValue());
             }
             // select channel frequency
-            AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
+            AdsChannelConfig channel = adsConfig.getAdsChannel(i);
             Integer frequency = sps.getValue() / channel.getDivider().getValue();
             channelFrequency[i].setSelectedItem(frequency);
         }
-        Divider[] accelerometerAvailableDividers = adsConfiguration.getDeviceType().getGetAccelerometerAvailableDividers();
+        Divider[] accelerometerAvailableDividers = adsConfig.getDeviceType().getGetAccelerometerAvailableDividers();
         accelerometerFrequency.removeAllItems();
         for (Divider divider : accelerometerAvailableDividers) {
             accelerometerFrequency.addItem(sps.getValue()/divider.getValue());
         }
         // select channel frequency
-        Integer frequency = sps.getValue() / adsConfiguration.getAccelerometerDivider().getValue();
+        Integer frequency = sps.getValue() / adsConfig.getAccelerometerDivider().getValue();
         accelerometerFrequency.setSelectedItem(frequency);
         if (numberOfAdsChannels > 0) {
             // put the size if field   accelerometerFrequency equal to the size of fields  channelFrequency
@@ -536,33 +545,36 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void setChannelsGain(){
-        int numberOfAdsChannels = adsConfiguration.getAdsChannels().size();
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        int numberOfAdsChannels = adsConfig.getNumberOfAdsChannels();
         for (int i = 0; i < numberOfAdsChannels; i++) {
             channelGain[i].removeAllItems();
             for (Gain gain : Gain.values()) {
                 channelGain[i].addItem(gain.getValue());
             }
-            AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
+            AdsChannelConfig channel = adsConfig.getAdsChannel(i);
             channelGain[i].setSelectedItem(channel.getGain().getValue());
         }
     }
 
     private void setChannelsCommutatorState(){
-        int numberOfAdsChannels = adsConfiguration.getAdsChannels().size();
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        int numberOfAdsChannels = adsConfig.getNumberOfAdsChannels();
         for (int i = 0; i < numberOfAdsChannels; i++) {
             channelCommutatorState[i].removeAllItems();
             for (CommutatorState commutatorState : CommutatorState.values()) {
                 channelCommutatorState[i].addItem(commutatorState.toString());
             }
-            AdsChannelConfiguration channel = adsConfiguration.getAdsChannels().get(i);
+            AdsChannelConfig channel = adsConfig.getAdsChannel(i);
             channelCommutatorState[i].setSelectedItem(channel.getCommutatorState().toString());
         }
     }
 
     private void setAccelerometerCommutator(){
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
         accelerometerCommutator.addItem("1 Channel");
         accelerometerCommutator.addItem("3 Channels");
-        if(adsConfiguration.isAccelerometerOneChannelMode()){
+        if(adsConfig.isAccelerometerOneChannelMode()){
             accelerometerCommutator.setSelectedIndex(0);
         }else {
             accelerometerCommutator.setSelectedIndex(1);
@@ -588,12 +600,14 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private Divider getChannelDivider(int channelNumber) {
-        int divider = adsConfiguration.getSps().getValue() / getChannelFrequency(channelNumber);
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        int divider = adsConfig.getSps().getValue() / getChannelFrequency(channelNumber);
         return Divider.valueOf(divider);
     }
 
     private Divider getAccelerometerDivider() {
-        int divider = adsConfiguration.getSps().getValue() / getAccelerometerFrequency();
+        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        int divider = adsConfig.getSps().getValue() / getAccelerometerFrequency();
         return Divider.valueOf(divider);
     }
 
