@@ -24,7 +24,7 @@ public class AdsListenerBdfWriter implements AdsDataListener {
 
         // join DataRecords to have data records length = 1 sec;
         numberOfFramesToJoin = bdfHeaderData.getAdsConfig().getSps().getValue() /
-                bdfHeaderData.getAdsConfig().getDeviceType().getMaxDiv().getValue(); // 1 second duration of a data record in bdf file
+                bdfHeaderData.getAdsConfig().getMaxDiv(); // 1 second duration of a data record in bdf file
         EdfJoiner dataRecordsJoiner = new EdfJoiner(numberOfFramesToJoin, edfFileWriter);
 
         // apply MovingAveragePrefilter to ads channels to reduce 50HZ

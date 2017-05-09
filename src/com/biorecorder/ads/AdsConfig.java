@@ -11,7 +11,6 @@ public class AdsConfig {
     private boolean isAccelerometerEnabled = true;
     private boolean isAccelerometerOneChannelMode = true;
     private boolean isBatteryVoltageMeasureEnabled = false;
-    private boolean isHighResolutionMode = true;
     private int noiseDivider = 2;
 
     private ArrayList<AdsChannelConfig> adsChannels = new ArrayList<AdsChannelConfig>();
@@ -22,6 +21,19 @@ public class AdsConfig {
         }
         return adsChannels.get(adsChannelNumber);
     }
+
+    public int getMaxDiv(){
+        return deviceType.getMaxDiv().getValue();
+    }
+
+    public Divider[] getChannelsAvailableDividers() {
+        return deviceType.getChannelsAvailableDividers();
+    }
+
+    public Divider[] getGetAccelerometerAvailableDividers() {
+        return deviceType.getGetAccelerometerAvailableDividers();
+    }
+
 
     public boolean isLoffEnabled() {
         for (int i = 0; i < getNumberOfAdsChannels(); i++) {
@@ -75,14 +87,6 @@ public class AdsConfig {
 
     public void setComPortName(String comPortName) {
         this.comPortName = comPortName;
-    }
-
-    public boolean isHighResolutionMode() {
-        return isHighResolutionMode;
-    }
-
-    public void setHighResolutionMode(boolean highResolutionMode) {
-        isHighResolutionMode = highResolutionMode;
     }
 
     public DeviceType getDeviceType() {

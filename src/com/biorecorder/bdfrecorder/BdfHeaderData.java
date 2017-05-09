@@ -1,9 +1,9 @@
 package com.biorecorder.bdfrecorder;
 
-import com.biorecorder.ads.AdsChannelConfig;
 import com.biorecorder.ads.AdsConfig;
 import com.biorecorder.edflib.FileType;
 import com.biorecorder.edflib.HeaderInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.sun.istack.internal.Nullable;
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -15,12 +15,12 @@ import java.util.List;
  *
  */
 public class  BdfHeaderData {
-    private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();
-    private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
     private AdsConfig adsConfig = new AdsConfig();
-
+    private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
+    private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
+    @JsonIgnore
     private String fileNameToSave;
 
     public void setFileNameToSave(String fileNameToSave) {
@@ -56,9 +56,10 @@ public class  BdfHeaderData {
 
 
     private double getDurationOfDataRecord() {
-        return 1.0 * adsConfig.getDeviceType().getMaxDiv().getValue()/
+        return 1.0 * adsConfig.getMaxDiv()/
                 adsConfig.getSps().getValue();
     }
+
 
 
     public AdsConfig getAdsConfig() {

@@ -149,7 +149,7 @@ abstract class FrameDecoder implements ComPortListener {
         }
 
         if (adsConfig.isLoffEnabled()) {
-            if (adsConfig.getDeviceType().getNumberOfAdsChannels() == 8) {
+            if (adsConfig.getNumberOfAdsChannels() == 8) {
                 decodedFrame[decodedFrameOffset++] = bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
             }
@@ -177,7 +177,7 @@ abstract class FrameDecoder implements ComPortListener {
             result += 2;
         }
         if (adsConfig.isLoffEnabled()) {
-            if (adsConfig.getDeviceType().getNumberOfAdsChannels() == 8) {
+            if (adsConfig.getNumberOfAdsChannels() == 8) {
                 result += 2;
             } else {
                 result += 1;
@@ -197,7 +197,7 @@ abstract class FrameDecoder implements ComPortListener {
             result += 1;
         }
         if(adsConfig.isLoffEnabled()) {
-            if (adsConfig.getDeviceType().getNumberOfAdsChannels() == 8) {
+            if (adsConfig.getNumberOfAdsChannels() == 8) {
                 result += 2;
             } else {
                 result += 1;
@@ -213,7 +213,7 @@ abstract class FrameDecoder implements ComPortListener {
             AdsChannelConfig adsChannelConfig = adsConfig.getAdsChannel(i);
             if (adsChannelConfig.isEnabled) {
                 int divider = adsChannelConfig.getDivider().getValue();
-                int maxDiv = adsConfig.getDeviceType().getMaxDiv().getValue();
+                int maxDiv = adsConfig.getMaxDiv();
                 result += (maxDiv / divider);
             }
         }

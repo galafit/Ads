@@ -19,7 +19,6 @@ import java.util.ArrayList;
 public class SettingsWindow extends JFrame implements AdsDataListener {
 
     private Controller controller;
-    private int adsDataFrameSize;
     private int adsDataFrameCounter;
     private int adsDataFrameFrequency;
 
@@ -174,9 +173,8 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
                         disableFields();
                         BdfHeaderData bdfHeaderData = saveDataToModel();
                         saveComPortData();
-                        adsDataFrameSize = controller.getDecodedFrameSize(adsConfig);
                         adsDataFrameCounter = 0;
-                        adsDataFrameFrequency = adsConfig.getSps().getValue() / adsConfig.getDeviceType().getMaxDiv().getValue();
+                        adsDataFrameFrequency = adsConfig.getSps().getValue() / adsConfig.getMaxDiv();
                         setProcessReport("Connecting...");
                         controller.startRecording(bdfHeaderData);
                     }
@@ -518,7 +516,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     private void setChannelsFrequencies(Sps sps) {
         AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
         int numberOfAdsChannels = adsConfig.getNumberOfAdsChannels();
-        Divider[] adsChannelsDividers = adsConfig.getDeviceType().getChannelsAvailableDividers();
+        Divider[] adsChannelsDividers = adsConfig.getChannelsAvailableDividers();
         // set available frequencies
         for (int i = 0; i < numberOfAdsChannels; i++) {
             channelFrequency[i].removeAllItems();
@@ -530,7 +528,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
             Integer frequency = sps.getValue() / channel.getDivider().getValue();
             channelFrequency[i].setSelectedItem(frequency);
         }
-        Divider[] accelerometerAvailableDividers = adsConfig.getDeviceType().getGetAccelerometerAvailableDividers();
+        Divider[] accelerometerAvailableDividers = adsConfig.getGetAccelerometerAvailableDividers();
         accelerometerFrequency.removeAllItems();
         for (Divider divider : accelerometerAvailableDividers) {
             accelerometerFrequency.addItem(sps.getValue()/divider.getValue());

@@ -21,23 +21,23 @@ public enum DeviceType {
         this.getAccelerometerAvailableDividers = getAccelerometerAvailableDividers;
     }
 
-    public Divider getMaxDiv(){
+    Divider getMaxDiv(){
         return maxDiv;
     }
 
-    public int getNumberOfAdsChannels() {
+    int getNumberOfAdsChannels() {
         return numberOfAdsChannels;
     }
 
-    public Divider[] getChannelsAvailableDividers() {
+    Divider[] getChannelsAvailableDividers() {
         return channelsAvailableDividers;
     }
 
-    public Divider[] getGetAccelerometerAvailableDividers() {
+    Divider[] getGetAccelerometerAvailableDividers() {
         return getAccelerometerAvailableDividers;
     }
 
-    public AdsConfigurator getAdsConfigurator(){
+    AdsConfigurator getAdsConfigurator(){
         if(numberOfAdsChannels == 2){
             return new AdsConfigurator2Ch();
         }
