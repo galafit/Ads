@@ -126,7 +126,7 @@ public class SettingsWindow extends JFrame implements AdsDataListener {
     }
 
     private void setActions() {
-        AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
+        final AdsConfig adsConfig = controller.getBdfHeaderData().getAdsConfig();
 
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             channelEnable[i].addActionListener(new AdsChannelEnableListener(i));
