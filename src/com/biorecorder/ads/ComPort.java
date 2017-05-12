@@ -1,7 +1,6 @@
-package com.biorecorder.ads.comport;
+package com.biorecorder.ads;
 
 
-import com.biorecorder.ads.AdsException;
 import jssc.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,14 +14,14 @@ import java.util.List;
  * https://code.google.com/p/java-simple-serial-connector/
  * http://www.quizful.net/post/java-serial-ports
  */
-public class ComPort implements SerialPortEventListener {
+class ComPort implements SerialPortEventListener {
 
     private static Log log = LogFactory.getLog(ComPort.class);
     SerialPort comPort;
     private ComPortListener comPortListener;
     private String comPortName;
 
-    public ComPort(String comPortName, int speed) throws SerialPortException {
+    ComPort(String comPortName, int speed) throws SerialPortException {
         boolean isComPortExist = false;
         this.comPortName = comPortName;
         comPortName.trim();
@@ -61,15 +60,15 @@ public class ComPort implements SerialPortEventListener {
         }
     }
 
-    public String getComPortName(){
+    String getComPortName(){
         return comPortName;
     }
 
-    public boolean isConnected(){
+    boolean isConnected(){
         return comPort.isOpened();
     }
 
-    public void disconnect() {
+    void disconnect() {
         if (comPort.isOpened()) {
             try {
                 comPort.closePort();
@@ -80,7 +79,7 @@ public class ComPort implements SerialPortEventListener {
         }
     }
 
-    public void writeToPort(List<Byte> bytes) {
+    void writeToPort(List<Byte> bytes) {
         if (comPort.isOpened()) {
                 final byte[] bytesArray = new byte[bytes.size()];
                 for (int i = 0; i < bytes.size(); i++) {
@@ -103,7 +102,7 @@ public class ComPort implements SerialPortEventListener {
         }
     }
 
-    public void setComPortListener(ComPortListener comPortListener) {
+    void setComPortListener(ComPortListener comPortListener) {
         this.comPortListener = comPortListener;
     }
 
@@ -122,13 +121,4 @@ public class ComPort implements SerialPortEventListener {
             }
         }
     }
-
-    public static  String[] getPortNames() {
-        return SerialPortList.getPortNames();
-    }
-
-    public static void main(String[] args) {
-
-    }
-
 }

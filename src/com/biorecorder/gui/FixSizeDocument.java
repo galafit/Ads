@@ -8,7 +8,7 @@ import java.awt.*;
 /**
  * To limit JTextField possible input to given «size» of characters
  */
-class FixSizeDocument extends PlainDocument
+public class FixSizeDocument extends PlainDocument
 {
     private int size;
 

@@ -2,7 +2,6 @@ package com.biorecorder.ads;
 
 
 
-import com.biorecorder.ads.comport.ComPort;
 import jssc.SerialPortException;
 import jssc.SerialPortList;
 import org.apache.commons.logging.Log;
@@ -15,7 +14,7 @@ import java.util.*;
  */
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);
-     private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
+    private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
     private ComPort comPort;
     private boolean isRecording;
     private AdsConfig adsConfig = new AdsConfig();
@@ -34,15 +33,18 @@ public class Ads {
         this.adsConfig = adsConfig;
     }
 
-    public void comPortConnect(){
-        comPortTest();
-        try{
-            comPort = new ComPort(adsConfig.getComPortName(), 460800);
-        } catch (SerialPortException e) {
-            String failConnectMessage = "No connection to port " + adsConfig.getComPortName();
-            log.error(failConnectMessage, e);
-            throw new AdsException(failConnectMessage, e);
+    public void connect(){
+        String comportName = adsConfig.getComPortName();
+        if(comportName != null && !comportName.isEmpty()) {
+            try{
+                comPort = new ComPort(adsConfig.getComPortName(), 460800);
+            } catch (SerialPortException e) {
+                String failConnectMessage = "No connection to port " + adsConfig.getComPortName();
+                log.error(failConnectMessage, e);
+                throw new AdsException(failConnectMessage, e);
+            }
         }
+      //  comPortTest();
     }
 
     private void comPortTest() {
@@ -54,18 +56,18 @@ public class Ads {
         List<Byte> pingCommand1 = new ArrayList<Byte>();
         pingCommand1.add((byte)0xFA);
 
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig) {
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
+        frameDecoder.addDataFrameListener(new DataFrameListener() {
             @Override
-            public void notifyListeners(int[] decodedFrame) {
-                notifyAdsDataListeners(decodedFrame);
+            public void onDataFrameReceived(int[] dataFrame) {
+                notifyAdsDataListeners(dataFrame);
             }
-        };
-
+        });
         comPort.setComPortListener(frameDecoder);
         comPort.writeToPort(pingCommand1);
         System.out.println("finished "+ Thread.currentThread().getName());
         try {
-            Thread.sleep(3);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             log.warn(e);
         }
@@ -73,21 +75,22 @@ public class Ads {
     }
 
     public void startRecording() {
-            FrameDecoder frameDecoder = new FrameDecoder(adsConfig) {
-                @Override
-                public void notifyListeners(int[] decodedFrame) {
-                    notifyAdsDataListeners(decodedFrame);
-                }
-            };
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
+        frameDecoder.addDataFrameListener(new DataFrameListener() {
+            @Override
+            public void onDataFrameReceived(int[] dataFrame) {
+                notifyAdsDataListeners(dataFrame);
+            }
+        });
         if(comPort == null){
-            comPortConnect();
+            connect();
         }
         if(!comPort.isConnected()){
-            comPortConnect();
+            connect();
         }
         if(!comPort.getComPortName().equals(adsConfig.getComPortName()))  {
             comPort.disconnect();
-            comPortConnect();
+            connect();
         }
             comPort.setComPortListener(frameDecoder);
             comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
@@ -133,7 +136,7 @@ public class Ads {
         adsDataListeners.remove(adsDataListener);
     }
 
-    public void comPortDisconnect() {
+    public void disconnect() {
         if(comPort!=null) {
             comPort.disconnect();
         }
@@ -142,36 +145,4 @@ public class Ads {
     public static  String[] getAvailableComPortNames() {
         return SerialPortList.getPortNames();
     }
-
-    /**
-     * returns dividers list for all active channels including 3 accelerometer channels
-     */
-    private static List<Integer> getDividersForActiveChannels(AdsConfig adsConfiguration) {
-        List<Integer> dividersList = new ArrayList<Integer>();
-        for (int i = 0; i < adsConfiguration.getNumberOfAdsChannels(); i++) {
-            AdsChannelConfig channelConfiguration = adsConfiguration.getAdsChannel(i);
-            if (channelConfiguration.isEnabled()) {
-                dividersList.add(channelConfiguration.getDivider().getValue());
-            }
-        }
-        int n = adsConfiguration.isAccelerometerOneChannelMode() ? 1 : 3;
-        for (int i = 0; i < n; i++) {
-            if (adsConfiguration.isAccelerometerEnabled()) {
-                dividersList.add(adsConfiguration.getAccelerometerDivider().getValue());
-            }
-        }
-        if (adsConfiguration.isBatteryVoltageMeasureEnabled()) {
-            dividersList.add(10);
-        }
-        return dividersList;
-    }
-
-    public static int getDecodedFrameSize(AdsConfig adsConfiguration) {
-        int frameSize = 0;
-        for (Integer divider : getDividersForActiveChannels(adsConfiguration)) {
-            frameSize += adsConfiguration.getMaxDiv() / divider;
-        }
-        return frameSize + 2; // 2 values for device specific information (counter of loff status);
-    }
-
 }

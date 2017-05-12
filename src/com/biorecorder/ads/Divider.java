@@ -7,9 +7,7 @@ public enum Divider {
     D1(1),
     D2(2),
     D5(5),
-    D10(10),
-    D25(25),
-    D50(50);
+    D10(10);
 
     private int value;
 

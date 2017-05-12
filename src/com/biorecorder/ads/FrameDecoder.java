@@ -1,16 +1,18 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.ads.comport.ComPortListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-abstract class FrameDecoder implements ComPortListener {
-    public static final byte START_FRAME_MARKER = (byte) (0xAA & 0xFF);
-    public static final byte MESSAGE_MARKER = (byte) (0xA5 & 0xFF);
-    public static final byte HARDWARE_CONFIG_MARKER = (byte) (0xA4 & 0xFF);
-    public static final byte CH2_MARKER = (byte) (0x02  & 0xFF);
-    public static final byte CH8_MARKER = (byte) (0x02  & 0xFF);
-    public static final byte STOP_FRAME_MARKER = (byte) (0x55 & 0xFF);
+import java.util.ArrayList;
+import java.util.List;
+
+class FrameDecoder implements ComPortListener {
+    private static final byte START_FRAME_MARKER = (byte) (0xAA & 0xFF);
+    private static final byte MESSAGE_MARKER = (byte) (0xA5 & 0xFF);
+    private static final byte HARDWARE_CONFIG_MARKER = (byte) (0xA4 & 0xFF);
+    private static final byte CH2_MARKER = (byte) (0x02  & 0xFF);
+    private static final byte CH8_MARKER = (byte) (0x02  & 0xFF);
+    private static final byte STOP_FRAME_MARKER = (byte) (0x55 & 0xFF);
 
 
     private int frameIndex;
@@ -23,8 +25,9 @@ abstract class FrameDecoder implements ComPortListener {
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
     private int[] accPrev = new int[3];
+    List<DataFrameListener> dataFrameListeners = new ArrayList<DataFrameListener>(1);
 
-    public FrameDecoder(AdsConfig configuration) {
+    FrameDecoder(AdsConfig configuration) {
         adsConfig = configuration;
         numberOf3ByteSamples = getNumberOf3ByteSamples();
         dataRecordSize = getRawFrameSize();
@@ -33,6 +36,9 @@ abstract class FrameDecoder implements ComPortListener {
         log.info("Com port frame size: " + dataRecordSize + " bytes");
     }
 
+    public void addDataFrameListener(DataFrameListener l) {
+        dataFrameListeners.add(l);
+    }
 
 
     @Override
@@ -161,9 +167,9 @@ abstract class FrameDecoder implements ComPortListener {
 
         int numberOfLostFrames = getNumberOfLostFrames(counter);
         for (int i = 0; i < numberOfLostFrames; i++) {
-            notifyListeners(decodedFrame);
+            notifyDataFrameListeners(decodedFrame);
         }
-        notifyListeners(decodedFrame);
+        notifyDataFrameListeners(decodedFrame);
     }
 
     private int getRawFrameSize() {
@@ -231,10 +237,14 @@ abstract class FrameDecoder implements ComPortListener {
         return result - 1;
     }
 
-    public abstract void notifyListeners(int[] decodedFrame);
+    private void notifyDataFrameListeners(int[] decodedFrame) {
+        for (DataFrameListener dataFrameListener : dataFrameListeners) {
+            dataFrameListener.onDataFrameReceived(decodedFrame);
+        }
+    }
 
     /* Java int BIG_ENDIAN, Byte order: LITTLE_ENDIAN  */
-    public static int bytesToSignedInt(byte... b) {
+    private static int bytesToSignedInt(byte... b) {
         switch (b.length) {
             case 1:
                 return b[0];

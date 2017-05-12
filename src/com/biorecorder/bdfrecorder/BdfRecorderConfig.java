@@ -14,7 +14,7 @@ import java.util.List;
 /**
  *
  */
-public class  BdfHeaderData {
+public class BdfRecorderConfig {
     private AdsConfig adsConfig = new AdsConfig();
     private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
     private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();

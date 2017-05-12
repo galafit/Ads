@@ -60,7 +60,7 @@ public class JsonProperties {
         File jsonFile = new File(System.getProperty("user.dir"), "config.json");
         JsonProperties jsonProperties = new JsonProperties(jsonFile);
 
-        // save BdfHeaderData object to JSON file
+        // save BdfRecorderConfig object to JSON file
         try {
             AdsConfig adsConfig = new AdsConfig();
             adsConfig.setSps(Sps.S1000);
@@ -71,17 +71,17 @@ public class JsonProperties {
             adsChannelConfig2.setName("Channel_Name_2");
             adsChannelConfig2.setDivider(Divider.D5);
 
-            BdfHeaderData bdfHeaderData = new BdfHeaderData();
-            bdfHeaderData.setAdsConfig(adsConfig);
+            BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
+            bdfRecorderConfig.setAdsConfig(adsConfig);
 
-            jsonProperties.saveCongfig(bdfHeaderData);
+            jsonProperties.saveCongfig(bdfRecorderConfig);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // get BdfHeaderData object from JSON file
+        // get BdfRecorderConfig object from JSON file
         try {
-            BdfHeaderData bdfHeaderData = (BdfHeaderData) jsonProperties.getConfig(BdfHeaderData.class);
-            AdsConfig adsConfig = bdfHeaderData.getAdsConfig();
+            BdfRecorderConfig bdfRecorderConfig = (BdfRecorderConfig) jsonProperties.getConfig(BdfRecorderConfig.class);
+            AdsConfig adsConfig = bdfRecorderConfig.getAdsConfig();
 
             // print some info from resultant AdsConfig object
             System.out.println("Ads Config from file: ");
