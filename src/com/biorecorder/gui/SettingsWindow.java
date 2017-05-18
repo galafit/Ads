@@ -1,6 +1,7 @@
 package com.biorecorder.gui;
 
 import com.biorecorder.ads.*;
+import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
 import com.biorecorder.bdfrecorder.BdfRecorder;
 import com.biorecorder.bdfrecorder.BdfRecorderConfig;
 import com.biorecorder.bdfrecorder.NotificationListener;
@@ -71,6 +72,7 @@ public class SettingsWindow extends JFrame implements NotificationListener {
 
     public SettingsWindow(BdfRecorder bdfRecorder) {
         this.bdfRecorder = bdfRecorder;
+        stopButton.setVisible(false);
         init();
         arrangeForm();
         setActions();
@@ -170,21 +172,31 @@ public class SettingsWindow extends JFrame implements NotificationListener {
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                if (bdfRecorder.isRecording()) {
-                    bdfRecorder.stopRecording();
-                    startButton.setText(start);
-                    enableFields();
-                    setProcessReport("Saved to file: " + bdfRecorder.getSavedFile());
-                } else {
-                    startButton.setText(stop);
-                    disableFields();
-                    BdfRecorderConfig bdfRecorderConfig = saveDataToModel();
-                    setProcessReport("Connecting...");
-                    bdfRecorder.setBdfRecorderConfig(bdfRecorderConfig);
+                BdfRecorderConfig bdfRecorderConfig = saveDataToModel();
+                bdfRecorder.setBdfRecorderConfig(bdfRecorderConfig);
+                try {
                     bdfRecorder.startRecording();
+                    stopButton.setVisible(true);
+                    startButton.setVisible(false);
+                    setProcessReport("Connecting...");
+                    disableFields();
+                } catch (AdsConnectionRuntimeException e) {
+                    JOptionPane.showMessageDialog(SettingsWindow.this, e.getMessage());
                 }
             }
         });
+
+        stopButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                bdfRecorder.stopRecording();
+                stopButton.setVisible(false);
+                startButton.setVisible(true);
+                enableFields();
+                setProcessReport("Saved to file: " + bdfRecorder.getSavedFile());
+            }
+        });
+
 
         patientIdentification.addFocusListener(new FocusAdapter() {
             @Override
@@ -224,6 +236,8 @@ public class SettingsWindow extends JFrame implements NotificationListener {
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(startButton);
+        stopButton.setPreferredSize(startButton.getPreferredSize());
+        buttonPanel.add(stopButton);
 
         int hgap = 5;
         int vgap = 0;
@@ -356,7 +370,7 @@ public class SettingsWindow extends JFrame implements NotificationListener {
         comport.setEnabled(isEnable);
         accelerometerEnable.setEnabled(isEnable);
         accelerometerFrequency.setEnabled(isEnable);
-        accelerometerCommutator.setEditable(isEnable);
+        accelerometerCommutator.setEnabled(isEnable);
 
         AdsConfig adsConfig = bdfRecorder.getBdfRecorderConfig().getAdsConfig();
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {

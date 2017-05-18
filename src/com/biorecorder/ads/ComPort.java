@@ -1,6 +1,5 @@
 package com.biorecorder.ads;
 
-
 import jssc.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -22,20 +21,7 @@ class ComPort implements SerialPortEventListener {
     private String comPortName;
 
     ComPort(String comPortName, int speed) throws SerialPortException {
-        boolean isComPortExist = false;
         this.comPortName = comPortName;
-        comPortName.trim();
-        String[] portNames = SerialPortList.getPortNames();
-        for (int i = 0; i < portNames.length; i++) {
-            if (comPortName != null && comPortName.equalsIgnoreCase(portNames[i])) {
-                isComPortExist = true;
-            }
-        }
-
-        if (!isComPortExist) {
-            String msg = "No port with the name " + comPortName;
-            throw new AdsException(msg);
-        }
         comPort = new SerialPort(comPortName);
         if (!comPort.isOpened()) {
             comPort.openPort();//Open serial port
@@ -55,10 +41,29 @@ class ComPort implements SerialPortEventListener {
                 comPort.setDTR(false);
                 Thread.sleep(500);
             } catch (InterruptedException e) {
-                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                log.error(e); //To change body of catch statement use File | Settings | File Templates.
+                e.printStackTrace();
             }
         }
     }
+
+    static String[] getAvailableComPortNames() {
+        return SerialPortList.getPortNames();
+    }
+
+
+    static boolean isComPortAvailable(String comPortName) {
+        if(comPortName != null) {
+            comPortName = comPortName.trim();
+            for(String name : getAvailableComPortNames()) {
+                if(comPortName.equalsIgnoreCase(name)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
 
     String getComPortName(){
         return comPortName;
@@ -68,14 +73,10 @@ class ComPort implements SerialPortEventListener {
         return comPort.isOpened();
     }
 
-    void disconnect() {
-        if (comPort.isOpened()) {
-            try {
-                comPort.closePort();
 
-            } catch (SerialPortException e) {
-                log.error(e);
-            }
+    void disconnect() throws SerialPortException {
+        if (comPort.isOpened()) {
+            comPort.closePort();
         }
     }
 
@@ -106,8 +107,9 @@ class ComPort implements SerialPortEventListener {
         this.comPortListener = comPortListener;
     }
 
+
     @Override
-    public void serialEvent(SerialPortEvent event) {
+    public void serialEvent(SerialPortEvent event)  {
         if (event.isRXCHAR() && event.getEventValue() > 0) {
             try {
                 byte[] buffer = comPort.readBytes();

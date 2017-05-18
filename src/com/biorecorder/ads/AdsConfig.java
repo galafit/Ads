@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 
 public class AdsConfig {
-    private DeviceType deviceType = DeviceType.ADS_2channel;
+    private DeviceType deviceType = DeviceType.ADS_8channel;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
     private String comPortName = "";
     private Divider accelerometerDivider = Divider.D10;
@@ -16,13 +16,19 @@ public class AdsConfig {
     private ArrayList<AdsChannelConfig> adsChannels = new ArrayList<AdsChannelConfig>();
 
     public AdsChannelConfig getAdsChannel(int adsChannelNumber) {
-        while(adsChannels.size() < getNumberOfAdsChannels()) {
-           adsChannels.add(new AdsChannelConfig());
+        if (adsChannelNumber >= getNumberOfAdsChannels()) {
+            throw new IndexOutOfBoundsException("ChannelIndex = " + adsChannelNumber + "; Number of channels = " + getNumberOfAdsChannels());
+        }
+        while (adsChannels.size() < getNumberOfAdsChannels()) {
+            // add new channel
+            adsChannels.add(new AdsChannelConfig());
+            // set its name with the numbering
+            adsChannels.get(adsChannels.size() - 1).setName("Channel "+adsChannels.size());
         }
         return adsChannels.get(adsChannelNumber);
     }
 
-    public int getMaxDiv(){
+    public int getMaxDiv() {
         return deviceType.getMaxDiv().getValue();
     }
 
@@ -38,7 +44,7 @@ public class AdsConfig {
     public boolean isLoffEnabled() {
         for (int i = 0; i < getNumberOfAdsChannels(); i++) {
             AdsChannelConfig adsChannel = getAdsChannel(i);
-            if(adsChannel.isEnabled && adsChannel.isLoffEnable()){
+            if (adsChannel.isEnabled && adsChannel.isLoffEnable()) {
                 return true;
             }
         }
@@ -86,7 +92,9 @@ public class AdsConfig {
     }
 
     public void setComPortName(String comPortName) {
-        this.comPortName = comPortName;
+        if(comPortName!=null){
+            this.comPortName = comPortName.trim();
+        }
     }
 
     public DeviceType getDeviceType() {

@@ -20,7 +20,7 @@ class AdsListenerBdfWriter implements AdsDataListener {
     private EdfWriter edfWriter;
     private boolean isStoped = false;
 
-    AdsListenerBdfWriter(BdfRecorderConfig bdfRecorderConfig) throws IOException {
+    AdsListenerBdfWriter(BdfRecorderConfig bdfRecorderConfig)  {
         edfFile = bdfRecorderConfig.getFileToSave();
         edfFileWriter = new EdfFileWriter(edfFile);
         edfFileWriter.setDurationOfDataRecordsComputable(true);
@@ -66,25 +66,15 @@ class AdsListenerBdfWriter implements AdsDataListener {
     @Override
     public void onAdsDataReceived(int[] dataFrame)  {
         if(!isStoped) {
-            try {
-                edfWriter.writeDigitalSamples(dataFrame);
-            } catch (IOException e) {
-                LOG.error(e);
-                throw new RuntimeException(e);
-            }
+            edfWriter.writeDigitalSamples(dataFrame);
         }
     }
 
     @Override
     public void onStopRecording() {
-        try {
-            isStoped = true;
-            edfWriter.close();
-            // information about startRecordingTime, stopRecordingTime and actual DataRecordDuration
-            LOG.info(edfFileWriter.getWritingInfo());
-        } catch (IOException e) {
-            LOG.error(e);
-           // throw new RuntimeException(e);
-        }
+        isStoped = true;
+        edfWriter.close();
+        // information about startRecordingTime, stopRecordingTime and actual DataRecordDuration
+        LOG.info(edfFileWriter.getWritingInfo());
     }
 }

@@ -1,15 +1,15 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
+import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
+import com.biorecorder.ads.exceptions.ComPortNotFoundRuntimeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.swing.*;
 import javax.swing.Timer;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 
@@ -51,8 +51,8 @@ public class BdfRecorder {
     public void connect() {
         try {
             ads.connect();
-        } catch (AdsException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
+        } catch (Exception e) {
+            // do nothing !
         }
     }
 
@@ -99,26 +99,17 @@ public class BdfRecorder {
         return ports;
     }
 
-    public void startRecording() {
+    public void startRecording() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
         isRecording = true;
         if (bdfWriter != null) {
             ads.removeAdsDataListener(bdfWriter);
         }
 
-        //TODO exeptions handling and messages
-        try {
-            bdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
-        }
+        bdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig);
         ads.addAdsDataListener(bdfWriter);
         notificationTimer.start();
-        try {
-            ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
-            ads.startRecording();
-        } catch (AdsException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
-        }
+        ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
+        ads.startRecording();
     }
 
     public void stopRecording() {

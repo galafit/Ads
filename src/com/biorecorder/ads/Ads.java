@@ -1,12 +1,13 @@
 package com.biorecorder.ads;
 
 
-
+import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
+import com.biorecorder.ads.exceptions.ComPortNotFoundRuntimeException;
 import jssc.SerialPortException;
-import jssc.SerialPortList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.text.MessageFormat;
 import java.util.*;
 
 /**
@@ -14,6 +15,7 @@ import java.util.*;
  */
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);
+    private static final int COMPORT_SPEED = 460800;
     private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
     private ComPort comPort;
     private boolean isRecording;
@@ -22,7 +24,7 @@ public class Ads {
     private Timer pingTimer;
 
     public Ads() {
-        pingCommand.add((byte)0xFB);
+        pingCommand.add((byte) 0xFB);
     }
 
     public AdsConfig getAdsConfig() {
@@ -33,28 +35,25 @@ public class Ads {
         this.adsConfig = adsConfig;
     }
 
-    public void connect(){
-        String comportName = adsConfig.getComPortName();
-        if(comportName != null && !comportName.isEmpty()) {
-            try{
-                comPort = new ComPort(adsConfig.getComPortName(), 460800);
-            } catch (SerialPortException e) {
-                String failConnectMessage = "No connection to port " + adsConfig.getComPortName();
-                log.error(failConnectMessage, e);
-                throw new AdsException(failConnectMessage, e);
-            }
+
+    public void connect() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
+        if (!isComPortAvailable(adsConfig.getComPortName())) {
+            String msg = MessageFormat.format("No serial port with the name: \"{0}\"", adsConfig.getComPortName());
+            throw new ComPortNotFoundRuntimeException(msg);
         }
-      //  comPortTest();
+
+        try {
+            comPort = new ComPort(adsConfig.getComPortName(), COMPORT_SPEED);
+        } catch (SerialPortException e) {
+            String msg = MessageFormat.format("Error while connecting to serial port: \"{0}\"", adsConfig.getComPortName());
+            throw new AdsConnectionRuntimeException(msg, e);
+        }
     }
 
-    private void comPortTest() {
-        try {
-            comPort = new ComPort(adsConfig.getComPortName(), 460800);
-        } catch (SerialPortException e) {
-            e.printStackTrace();
-        }
+    private void comPortTest() throws SerialPortException {
+        comPort = new ComPort(adsConfig.getComPortName(), COMPORT_SPEED);
         List<Byte> pingCommand1 = new ArrayList<Byte>();
-        pingCommand1.add((byte)0xFA);
+        pingCommand1.add((byte) 0xFA);
 
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataFrameListener(new DataFrameListener() {
@@ -65,7 +64,7 @@ public class Ads {
         });
         comPort.setComPortListener(frameDecoder);
         comPort.writeToPort(pingCommand1);
-        System.out.println("finished "+ Thread.currentThread().getName());
+        System.out.println("finished " + Thread.currentThread().getName());
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
@@ -74,7 +73,22 @@ public class Ads {
         comPort.disconnect();
     }
 
-    public void startRecording() {
+    public void startRecording() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException  {
+        if (comPort == null) {
+            connect();
+        }
+        if (!comPort.isConnected()) {
+            connect();
+        }
+        if (!comPort.getComPortName().equals(adsConfig.getComPortName())) {
+            try {
+                comPort.disconnect();
+            } catch (SerialPortException e) {
+                String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comPort.getComPortName());
+                throw new AdsConnectionRuntimeException(msg, e);
+            }
+            connect();
+        }
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataFrameListener(new DataFrameListener() {
             @Override
@@ -82,19 +96,9 @@ public class Ads {
                 notifyAdsDataListeners(dataFrame);
             }
         });
-        if(comPort == null){
-            connect();
-        }
-        if(!comPort.isConnected()){
-            connect();
-        }
-        if(!comPort.getComPortName().equals(adsConfig.getComPortName()))  {
-            comPort.disconnect();
-            connect();
-        }
-            comPort.setComPortListener(frameDecoder);
-            comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
-            isRecording = true;
+        comPort.setComPortListener(frameDecoder);
+        comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
+        isRecording = true;
         //---------------------------
         TimerTask timerTask = new TimerTask() {
             @Override
@@ -112,9 +116,9 @@ public class Ads {
         }
         if (!isRecording) return;
         List<Byte> stopCmd = new ArrayList<Byte>();
-        stopCmd.add((byte)0xFF);
+        stopCmd.add((byte) 0xFF);
         comPort.writeToPort(stopCmd);
-       try {
+        try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             log.warn(e);
@@ -126,23 +130,33 @@ public class Ads {
         adsDataListeners.add(adsDataListener);
     }
 
+    public void removeAdsDataListener(AdsDataListener adsDataListener) {
+        adsDataListeners.remove(adsDataListener);
+    }
+
+    public void disconnect() {
+        if (comPort != null) {
+            try {
+                comPort.disconnect();
+            } catch (SerialPortException e) {
+                String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comPort.getComPortName());
+                throw new AdsConnectionRuntimeException(msg, e);
+            }
+        }
+    }
+
+    public static boolean isComPortAvailable(String comPortName) {
+       return ComPort.isComPortAvailable(comPortName);
+    }
+
+    public static String[] getAvailableComPortNames() {
+        return ComPort.getAvailableComPortNames();
+    }
+
     private void notifyAdsDataListeners(int[] dataRecord) {
         for (AdsDataListener adsDataListener : adsDataListeners) {
             adsDataListener.onAdsDataReceived(dataRecord);
         }
     }
 
-    public void removeAdsDataListener(AdsDataListener adsDataListener) {
-        adsDataListeners.remove(adsDataListener);
-    }
-
-    public void disconnect() {
-        if(comPort!=null) {
-            comPort.disconnect();
-        }
-    }
-
-    public static  String[] getAvailableComPortNames() {
-        return SerialPortList.getPortNames();
-    }
 }

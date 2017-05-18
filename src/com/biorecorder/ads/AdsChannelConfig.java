@@ -11,7 +11,7 @@ public class AdsChannelConfig {
     private CommutatorState commutatorState = CommutatorState.INPUT;
     protected boolean isLoffEnable = true;
     private boolean isRldSenseEnabled = false;
-    private String name = "ads channel";
+    private String name = "Channel";
 
     public String getName() {
         return name;
