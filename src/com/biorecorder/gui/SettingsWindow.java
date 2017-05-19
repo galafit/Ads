@@ -5,6 +5,7 @@ import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
 import com.biorecorder.bdfrecorder.BdfRecorder;
 import com.biorecorder.bdfrecorder.BdfRecorderConfig;
 import com.biorecorder.bdfrecorder.NotificationListener;
+import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 
 import javax.swing.*;
@@ -46,8 +47,11 @@ public class SettingsWindow extends JFrame  {
     private JButton startButton = new JButton(start);
     private JButton stopButton = new JButton(stop);
 
-    private String comPortLabel = "ComPort:  ";
+    private String comPortLabel = "ComPort:";
     private ButtonComboBox comport;
+
+    private String deviceTypeLabel = "Device:";
+    private JComboBox deviceTypeField;
 
     private FileToSaveUI fileToSaveUI;
 
@@ -74,21 +78,24 @@ public class SettingsWindow extends JFrame  {
         this.bdfRecorder = bdfRecorder;
         stopButton.setVisible(false);
         init();
-        arrangeForm();
-        setActions();
-        loadDataFromModel();
         setVisible(true);
     }
 
+
     private void init() {
+        createFields();
+        arrangeForm();
+        loadDataFromModel();
+        setActions();
+    }
+
+    private void createFields() {
         AdsConfig adsConfig = bdfRecorder.getBdfRecorderConfig().getAdsConfig();
         int adsChannelsNumber = adsConfig.getNumberOfAdsChannels();
 
         spsField = new JComboBox(Sps.values());
-        spsField.setSelectedItem(adsConfig.getSps());
-
         comport = new ButtonComboBox(bdfRecorder.getComportNames());
-
+        deviceTypeField = new JComboBox(DeviceType.values());
         fileToSaveUI = new FileToSaveUI();
 
         int textFieldLength = 30;
@@ -132,6 +139,14 @@ public class SettingsWindow extends JFrame  {
     private void setActions() {
         final AdsConfig adsConfig = bdfRecorder.getBdfRecorderConfig().getAdsConfig();
 
+        deviceTypeField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                adsConfig.setDeviceType(getDeviceType());
+                init();
+            }
+        });
+
         bdfRecorder.addNotificationListener(new NotificationListener() {
             @Override
             public void update() {
@@ -141,7 +156,7 @@ public class SettingsWindow extends JFrame  {
                 }
             }
         });
-        // update available comport list every time we "open" JComboBox (mouse over «arrow button»)
+        // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
         JButton comportButton = comport.getButton();
         comportButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -189,7 +204,7 @@ public class SettingsWindow extends JFrame  {
                     startButton.setVisible(false);
                     setProcessReport("Connecting...");
                     disableFields();
-                } catch (AdsConnectionRuntimeException e) {
+                } catch (UserInfoRuntimeException e) {
                     JOptionPane.showMessageDialog(SettingsWindow.this, e.getMessage());
                 }
             }
@@ -235,7 +250,7 @@ public class SettingsWindow extends JFrame  {
 
     private void arrangeForm() {
         setTitle(title);
-
+        getContentPane().removeAll();
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(startButton);
         stopButton.setPreferredSize(startButton.getPreferredSize());
@@ -254,10 +269,15 @@ public class SettingsWindow extends JFrame  {
         comportPanel.add(new JLabel(comPortLabel));
         comportPanel.add(comport);
 
+        JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        devicePanel.add(new JLabel(deviceTypeLabel));
+        devicePanel.add(deviceTypeField);
 
-        hgap = 80;
+
+        hgap = 20;
         vgap = 5;
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        topPanel.add(devicePanel);
         topPanel.add(comportPanel);
         topPanel.add(spsPanel);
         topPanel.add(buttonPanel);
@@ -424,6 +444,8 @@ public class SettingsWindow extends JFrame  {
         BdfRecorderConfig bdfRecorderConfig = bdfRecorder.getBdfRecorderConfig();
         AdsConfig adsConfig = bdfRecorderConfig.getAdsConfig();
         spsField.setSelectedItem(adsConfig.getSps());
+        System.out.println("data");
+        deviceTypeField.setSelectedItem(adsConfig.getDeviceType());
         fileToSaveUI.setDirectory(bdfRecorderConfig.getDirToSave().getName());
 //        fileToSave.setText(FILENAME_PATTERN);
         patientIdentification.setText(bdfRecorderConfig.getPatientIdentification());
@@ -455,6 +477,7 @@ public class SettingsWindow extends JFrame  {
         BdfRecorderConfig bdfRecorderConfig = bdfRecorder.getBdfRecorderConfig();
         AdsConfig adsConfig = bdfRecorderConfig.getAdsConfig();
         adsConfig.setSps(getSps());
+        adsConfig.setDeviceType(getDeviceType());
         adsConfig.setComPortName(getComPortName());
         bdfRecorderConfig.setPatientIdentification(getPatientIdentification());
         bdfRecorderConfig.setRecordingIdentification(getRecordingIdentification());
@@ -476,6 +499,9 @@ public class SettingsWindow extends JFrame  {
         return bdfRecorderConfig;
     }
 
+   private DeviceType getDeviceType() {
+        return (DeviceType) deviceTypeField.getSelectedItem();
+   }
 
     private String getDirectory() {
        return fileToSaveUI.getDirectory();

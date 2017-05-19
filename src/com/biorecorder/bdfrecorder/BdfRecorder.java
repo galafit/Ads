@@ -3,6 +3,7 @@ package com.biorecorder.bdfrecorder;
 import com.biorecorder.ads.*;
 import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
 import com.biorecorder.ads.exceptions.ComPortNotFoundRuntimeException;
+import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -14,6 +15,9 @@ import java.util.*;
 
 
 public class BdfRecorder {
+    private static final Log log = LogFactory.getLog(BdfRecorder.class);
+    private static final int SUCCESS_STATUS = 0;
+    private static final int ERROR_STATUS = 1;
     private boolean isRecording;
     private Ads ads =  new Ads();
     private AdsListenerBdfWriter bdfWriter;
@@ -22,8 +26,6 @@ public class BdfRecorder {
     private int notificationDelayMs = 1000;
     Timer notificationTimer;
     private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
-
-    private static final Log log = LogFactory.getLog(BdfRecorder.class);
 
     public BdfRecorder(Preferences preferences) {
         this.preferences = preferences;
@@ -39,14 +41,11 @@ public class BdfRecorder {
             }
         });
 
-    /*    java.util.Timer timer = new java.util.Timer();
-
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                formPortNames();
-            }
-        }, 1000, 1000); */
+        try {
+            ads.connect();
+        } catch (Exception e) {
+            // do nothing !
+        }
     }
 
     public void setBdfRecorderConfig(BdfRecorderConfig bdfRecorderConfig) {
@@ -56,14 +55,6 @@ public class BdfRecorder {
 
     public BdfRecorderConfig getBdfRecorderConfig() {
         return bdfRecorderConfig;
-    }
-
-    public void connect() {
-        try {
-            ads.connect();
-        } catch (Exception e) {
-            // do nothing !
-        }
     }
 
     public boolean isRecording() {
@@ -83,7 +74,14 @@ public class BdfRecorder {
 
     public int getNumberOfWrittenDataRecords() {
         if (bdfWriter != null) {
-            return bdfWriter.getNumberOfWrittenDataRecords();
+            try {
+                return bdfWriter.getNumberOfWrittenDataRecords();
+            } catch (Exception e) {
+                String errMsg = "Error during getting number of written datarecords";
+                log.error(errMsg, e);
+                System.exit(ERROR_STATUS);
+            }
+
         }
         return 0;
     }
@@ -110,53 +108,56 @@ public class BdfRecorder {
         return ports;
     }
 
-    public String[] getComportNames_() {
-        String[] availablePorts = Ads.getAvailableComPortNames();
-        String selectedPort = bdfRecorderConfig.getAdsConfig().getComPortName();
-        String[] ports = availablePorts;
-        if (selectedPort != null && !selectedPort.isEmpty()) {
-            boolean containSelectedPort = false;
-            for (String port : availablePorts) {
-                if (port.equalsIgnoreCase(selectedPort)) {
-                    containSelectedPort = true;
-                    break;
-                }
-            }
-            if (!containSelectedPort) {
-                String[] newPorts = new String[ports.length + 1];
-                newPorts[0] = selectedPort;
-                System.arraycopy(availablePorts, 0, newPorts, 1, availablePorts.length);
-                ports = newPorts;
-            }
-        }
-        return ports;
-    }
 
-    public void startRecording() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
-        isRecording = true;
-        if (bdfWriter != null) {
-            ads.removeAdsDataListener(bdfWriter);
+    public void startRecording() throws UserInfoRuntimeException {
+        try {
+            isRecording = true;
+            if (bdfWriter != null) {
+                ads.removeAdsDataListener(bdfWriter);
+            }
+
+            bdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig);
+            ads.addAdsDataListener(bdfWriter);
+            notificationTimer.start();
+            ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
+            ads.startRecording();
+        } catch (ComPortNotFoundRuntimeException e) {
+            throw new UserInfoRuntimeException(e.getMessage());
+        } catch (AdsConnectionRuntimeException e) {
+            // TODO handle this exception apart
+            throw new UserInfoRuntimeException(e.getMessage());
+        } catch (Exception e) {
+            String errMsg = "Error during start recording";
+            log.error(errMsg, e);
+            System.exit(ERROR_STATUS);
         }
 
-        bdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig);
-        ads.addAdsDataListener(bdfWriter);
-      //  notificationTimer.start();
-        ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
-        ads.startRecording();
+
     }
 
     public void stopRecording() {
         if (!isRecording) return;
-        ads.stopRecording();
-      //  notificationTimer.stop();
-        isRecording = false;
+        try {
+            ads.stopRecording();
+            notificationTimer.stop();
+            isRecording = false;
+        } catch (Exception e) {
+            String errMsg = "Error during stop recording";
+            log.error(errMsg, e);
+            System.exit(ERROR_STATUS);
+        }
     }
 
     public void closeApplication(BdfRecorderConfig bdfRecorderConfig) {
-        notificationTimer.stop();
-        stopRecording();
-        ads.disconnect();
-        preferences.saveConfig(bdfRecorderConfig);
-        System.exit(0);
+        try {
+            stopRecording();
+            ads.disconnect();
+            preferences.saveConfig(bdfRecorderConfig);
+            System.exit(SUCCESS_STATUS);
+        } catch (Exception e) {
+            String errMsg = "Error during close application";
+            log.error(errMsg, e);
+            System.exit(ERROR_STATUS);
+        }
     }
 }

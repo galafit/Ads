@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 
 public class AdsConfig {
-    private DeviceType deviceType = DeviceType.ADS_8channel;
+    private DeviceType deviceType = DeviceType.ADS_8;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
     private String comPortName = "";
     private Divider accelerometerDivider = Divider.D10;
@@ -101,7 +101,7 @@ public class AdsConfig {
         return deviceType;
     }
 
-    void setDeviceType(DeviceType deviceType) {
+    public void setDeviceType(DeviceType deviceType) {
         this.deviceType = deviceType;
     }
 
