@@ -15,10 +15,9 @@ public class ButtonComboBox<E> extends JComboBox<E> {
         arrButton = getButtonSubComponent(this);
     }
 
-    public void addButtonActionListener (ActionListener actionListener) {
-        if(arrButton != null) {
-            arrButton.addActionListener(actionListener);
-        }
+
+    public JButton getButton() {
+        return arrButton;
     }
 
     /**

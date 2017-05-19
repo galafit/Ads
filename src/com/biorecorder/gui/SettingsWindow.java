@@ -17,7 +17,7 @@ import java.util.ArrayList;
 /**
  *
  */
-public class SettingsWindow extends JFrame implements NotificationListener {
+public class SettingsWindow extends JFrame  {
 
     private BdfRecorder bdfRecorder;
 
@@ -128,19 +128,28 @@ public class SettingsWindow extends JFrame implements NotificationListener {
 
 
 
+
     private void setActions() {
         final AdsConfig adsConfig = bdfRecorder.getBdfRecorderConfig().getAdsConfig();
 
-        // update available comport list every time we "open" JComboBox (press «arrow button»)
-        comport.addButtonActionListener(new ActionListener() {
+        bdfRecorder.addNotificationListener(new NotificationListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
-                SettingsWindow.this.pack();
+            public void update() {
+                int recordsNumber = bdfRecorder.getNumberOfWrittenDataRecords();
+                if(recordsNumber > 0) {
+                    setProcessReport("Recording... " + recordsNumber + " data records");
+                }
             }
         });
-
-
+        // update available comport list every time we "open" JComboBox (mouse over «arrow button»)
+        JButton comportButton = comport.getButton();
+        comportButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
+                SettingsWindow.this.pack();
+              }
+        });
 
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             channelEnable[i].addActionListener(new AdsChannelEnableListener(i));
@@ -223,13 +232,6 @@ public class SettingsWindow extends JFrame implements NotificationListener {
         });
     }
 
-    @Override
-    public void update() {
-        int recordsNumber = bdfRecorder.getNumberOfWrittenDataRecords();
-        if(recordsNumber > 0) {
-            setProcessReport("Recording... " + recordsNumber + " data records");
-        }
-    }
 
     private void arrangeForm() {
         setTitle(title);

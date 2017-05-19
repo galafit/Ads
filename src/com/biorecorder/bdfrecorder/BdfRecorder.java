@@ -19,9 +19,9 @@ public class BdfRecorder {
     private AdsListenerBdfWriter bdfWriter;
     private BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
     private Preferences preferences;
-    private int notificationDelayMs = 500;
+    private int notificationDelayMs = 1000;
     Timer notificationTimer;
-    private List<NotificationListener> recordsNumberListeners = new ArrayList<NotificationListener>(1);
+    private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
 
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
 
@@ -32,11 +32,21 @@ public class BdfRecorder {
         notificationTimer = new Timer(notificationDelayMs, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                for (NotificationListener recordsNumberListener : recordsNumberListeners) {
+
+                for (NotificationListener recordsNumberListener : notificationListeners) {
                     recordsNumberListener.update();
                 }
             }
         });
+
+    /*    java.util.Timer timer = new java.util.Timer();
+
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                formPortNames();
+            }
+        }, 1000, 1000); */
     }
 
     public void setBdfRecorderConfig(BdfRecorderConfig bdfRecorderConfig) {
@@ -68,7 +78,7 @@ public class BdfRecorder {
     }
 
     public void addNotificationListener(NotificationListener l) {
-        recordsNumberListeners.add(l);
+        notificationListeners.add(l);
     }
 
     public int getNumberOfWrittenDataRecords() {
@@ -78,21 +88,44 @@ public class BdfRecorder {
         return 0;
     }
 
-
     public String[] getComportNames() {
+        String[] availablePorts = Ads.getAvailableComPortNames();
         String selectedPort = bdfRecorderConfig.getAdsConfig().getComPortName();
-        String[] ports = Ads.getAvailableComPortNames();
+        String[] ports = availablePorts;
         if (selectedPort != null && !selectedPort.isEmpty()) {
             boolean containSelectedPort = false;
-            for (String port : ports) {
+            for (String port : availablePorts) {
                 if (port.equalsIgnoreCase(selectedPort)) {
                     containSelectedPort = true;
+                    break;
                 }
             }
             if (!containSelectedPort) {
                 String[] newPorts = new String[ports.length + 1];
                 newPorts[0] = selectedPort;
-                System.arraycopy(ports, 0, newPorts, 1, ports.length);
+                System.arraycopy(availablePorts, 0, newPorts, 1, availablePorts.length);
+                ports = newPorts;
+            }
+        }
+        return ports;
+    }
+
+    public String[] getComportNames_() {
+        String[] availablePorts = Ads.getAvailableComPortNames();
+        String selectedPort = bdfRecorderConfig.getAdsConfig().getComPortName();
+        String[] ports = availablePorts;
+        if (selectedPort != null && !selectedPort.isEmpty()) {
+            boolean containSelectedPort = false;
+            for (String port : availablePorts) {
+                if (port.equalsIgnoreCase(selectedPort)) {
+                    containSelectedPort = true;
+                    break;
+                }
+            }
+            if (!containSelectedPort) {
+                String[] newPorts = new String[ports.length + 1];
+                newPorts[0] = selectedPort;
+                System.arraycopy(availablePorts, 0, newPorts, 1, availablePorts.length);
                 ports = newPorts;
             }
         }
@@ -107,7 +140,7 @@ public class BdfRecorder {
 
         bdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig);
         ads.addAdsDataListener(bdfWriter);
-        notificationTimer.start();
+      //  notificationTimer.start();
         ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
         ads.startRecording();
     }
@@ -115,11 +148,12 @@ public class BdfRecorder {
     public void stopRecording() {
         if (!isRecording) return;
         ads.stopRecording();
-        notificationTimer.stop();
+      //  notificationTimer.stop();
         isRecording = false;
     }
 
     public void closeApplication(BdfRecorderConfig bdfRecorderConfig) {
+        notificationTimer.stop();
         stopRecording();
         ads.disconnect();
         preferences.saveConfig(bdfRecorderConfig);

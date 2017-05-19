@@ -13,7 +13,6 @@ public class Start {
         Preferences preferences = new JsonPreferences();
         BdfRecorder bdfRecorder = new BdfRecorder(preferences);
         SettingsWindow settingsWindow = new SettingsWindow(bdfRecorder);
-        bdfRecorder.addNotificationListener(settingsWindow);
         bdfRecorder.connect();
     }
 }
