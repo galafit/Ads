@@ -2,7 +2,7 @@ package com.biorecorder.bdfrecorder;
 
 
 import com.biorecorder.ads.AdsChannelConfig;
-import com.biorecorder.ads.AdsDataListener;
+import com.biorecorder.ads.AdsListener;
 import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import com.biorecorder.edflib.*;
 import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
@@ -14,7 +14,7 @@ import java.io.File;
 
 
 
-class AdsListenerBdfWriter implements AdsDataListener {
+class AdsListenerBdfWriter implements AdsListener {
     private static final Log log = LogFactory.getLog(AdsListenerBdfWriter.class);
     private int numberOfFramesToJoin;
     private EdfFileWriter edfFileWriter;

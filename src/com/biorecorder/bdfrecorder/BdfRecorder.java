@@ -19,7 +19,7 @@ public class BdfRecorder {
     private static final int SUCCESS_STATUS = 0;
     private static final int ERROR_STATUS = 1;
     private boolean isRecording;
-    private Ads ads =  new Ads();
+    private Ads ads = new Ads();
     private AdsListenerBdfWriter bdfWriter;
     private BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
     private Preferences preferences;
@@ -40,12 +40,6 @@ public class BdfRecorder {
                 }
             }
         });
-
-        try {
-            ads.connect();
-        } catch (Exception e) {
-            // do nothing !
-        }
     }
 
     public void setBdfRecorderConfig(BdfRecorderConfig bdfRecorderConfig) {
@@ -62,10 +56,10 @@ public class BdfRecorder {
     }
 
     public File getSavedFile() {
-      if(bdfWriter != null) {
-          return bdfWriter.getEdfFile();
-      }
-      return null;
+        if (bdfWriter != null) {
+            return bdfWriter.getEdfFile();
+        }
+        return null;
     }
 
     public void addNotificationListener(NotificationListener l) {
@@ -108,6 +102,17 @@ public class BdfRecorder {
         return ports;
     }
 
+    public void connect() {
+        try {
+            ads.connect();
+        } catch (ComPortNotFoundRuntimeException e) {
+            throw new UserInfoRuntimeException(e.getMessage());
+        } catch (Exception e) {
+            String errMsg = "Error during start recording";
+            log.error(errMsg, e);
+            System.exit(ERROR_STATUS);
+        }
+    }
 
     public void startRecording() throws UserInfoRuntimeException {
         try {
@@ -123,20 +128,19 @@ public class BdfRecorder {
             ads.startRecording();
         } catch (ComPortNotFoundRuntimeException e) {
             throw new UserInfoRuntimeException(e.getMessage());
-        } catch (AdsConnectionRuntimeException e) {
-            // TODO handle this exception apart
-            throw new UserInfoRuntimeException(e.getMessage());
         } catch (Exception e) {
             String errMsg = "Error during start recording";
             log.error(errMsg, e);
             System.exit(ERROR_STATUS);
         }
+    }
 
-
+    public boolean isComPortActive() {
+        return ads.isComPortActive();
     }
 
     public void stopRecording() {
-        if (!isRecording) return;
+       // if (!isRecording) return;
         try {
             ads.stopRecording();
             notificationTimer.stop();

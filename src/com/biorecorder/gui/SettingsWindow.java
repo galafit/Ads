@@ -9,6 +9,8 @@ import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 
 import javax.swing.*;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -79,6 +81,17 @@ public class SettingsWindow extends JFrame  {
         stopButton.setVisible(false);
         init();
         setVisible(true);
+        try {
+            String comportName = bdfRecorder.getBdfRecorderConfig().getAdsConfig().getComPortName();
+            if(comportName != null && !comportName.isEmpty()) {
+                bdfRecorder.connect();
+            } else {
+                String msg = "Insert usb-dongle and choose the corresponding comport!";
+                JOptionPane.showMessageDialog(SettingsWindow.this, msg);
+            }
+        } catch (UserInfoRuntimeException e) {
+            JOptionPane.showMessageDialog(SettingsWindow.this, e.getMessage());
+        }
     }
 
 
@@ -157,14 +170,33 @@ public class SettingsWindow extends JFrame  {
             }
         });
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
-        JButton comportButton = comport.getButton();
+       comport.addPopupMenuListener(new PopupMenuListener() {
+           @Override
+           public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+               comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
+               SettingsWindow.this.pack();
+           }
+
+           @Override
+           public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+
+           }
+
+           @Override
+           public void popupMenuCanceled(PopupMenuEvent e) {
+
+           }
+       });
+       // another way to do the same
+        /*JButton comportButton = comport.getButton();
         comportButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
                 SettingsWindow.this.pack();
               }
-        });
+        });*/
+
 
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             channelEnable[i].addActionListener(new AdsChannelEnableListener(i));
@@ -255,6 +287,15 @@ public class SettingsWindow extends JFrame  {
         buttonPanel.add(startButton);
         stopButton.setPreferredSize(startButton.getPreferredSize());
         buttonPanel.add(stopButton);
+
+        JButton testButton = new JButton("test");
+        buttonPanel.add(testButton);
+        testButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+               bdfRecorder.stopRecording();
+            }
+        });
 
         int hgap = 5;
         int vgap = 0;

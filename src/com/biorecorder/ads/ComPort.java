@@ -74,6 +74,16 @@ class ComPort implements SerialPortEventListener {
     }
 
 
+
+    /**
+     * work only with new comports adapters
+     * @return true if ads device is connected and false if not
+     * @throws SerialPortException
+     */
+    boolean isActive() throws SerialPortException {
+        return comPort.isCTS();
+    }
+
     void disconnect() throws SerialPortException {
         if (comPort.isOpened()) {
             comPort.closePort();
@@ -113,11 +123,14 @@ class ComPort implements SerialPortEventListener {
         if (event.isRXCHAR() && event.getEventValue() > 0) {
             try {
                 byte[] buffer = comPort.readBytes();
-                for (int i = 0; i < buffer.length; i++) {
-                    if (comPortListener != null) {
-                        comPortListener.onByteReceived((buffer[i]));
+                if(buffer != null) {
+                    for (int i = 0; i < buffer.length; i++) {
+                        if (comPortListener != null) {
+                            comPortListener.onByteReceived((buffer[i]));
+                        }
                     }
                 }
+
             } catch (SerialPortException ex) {
                 log.error(ex);
             }
