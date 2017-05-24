@@ -1,7 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
 import com.biorecorder.ads.exceptions.ComPortNotFoundRuntimeException;
 import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import org.apache.commons.logging.Log;
@@ -14,13 +13,13 @@ import java.io.File;
 import java.util.*;
 
 
-public class BdfRecorder {
+public class BdfRecorder implements AdsEventsListener {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
     private static final int SUCCESS_STATUS = 0;
     private static final int ERROR_STATUS = 1;
     private boolean isRecording;
     private Ads ads = new Ads();
-    private AdsListenerBdfWriter bdfWriter;
+    private AdsAdsDataListenerBdfWriter bdfWriter;
     private BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
     private Preferences preferences;
     private int notificationDelayMs = 1000;
@@ -30,6 +29,7 @@ public class BdfRecorder {
     public BdfRecorder(Preferences preferences) {
         this.preferences = preferences;
         bdfRecorderConfig = preferences.getConfig();
+        ads.addAdsEventsListener(this);
         ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
         notificationTimer = new Timer(notificationDelayMs, new ActionListener() {
             @Override
@@ -80,6 +80,11 @@ public class BdfRecorder {
         return 0;
     }
 
+    @Override
+    public void handleAdsLowButtery() {
+
+    }
+
     public String[] getComportNames() {
         String[] availablePorts = Ads.getAvailableComPortNames();
         String selectedPort = bdfRecorderConfig.getAdsConfig().getComPortName();
@@ -121,7 +126,7 @@ public class BdfRecorder {
                 ads.removeAdsDataListener(bdfWriter);
             }
 
-            bdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig);
+            bdfWriter = new AdsAdsDataListenerBdfWriter(bdfRecorderConfig);
             ads.addAdsDataListener(bdfWriter);
             notificationTimer.start();
             ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
@@ -135,13 +140,12 @@ public class BdfRecorder {
         }
     }
 
-    public boolean isComPortActive() {
-        return ads.isComPortActive();
-    }
-
     public void stopRecording() {
-       // if (!isRecording) return;
+        if (!isRecording) return;
         try {
+            if (bdfWriter != null) {
+                bdfWriter.stop();
+            }
             ads.stopRecording();
             notificationTimer.stop();
             isRecording = false;

@@ -2,7 +2,7 @@ package com.biorecorder.bdfrecorder;
 
 
 import com.biorecorder.ads.AdsChannelConfig;
-import com.biorecorder.ads.AdsListener;
+import com.biorecorder.ads.AdsDataListener;
 import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import com.biorecorder.edflib.*;
 import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
@@ -14,15 +14,15 @@ import java.io.File;
 
 
 
-class AdsListenerBdfWriter implements AdsListener {
-    private static final Log log = LogFactory.getLog(AdsListenerBdfWriter.class);
+class AdsAdsDataListenerBdfWriter implements AdsDataListener {
+    private static final Log log = LogFactory.getLog(AdsAdsDataListenerBdfWriter.class);
     private int numberOfFramesToJoin;
     private EdfFileWriter edfFileWriter;
     private File edfFile;
     private EdfWriter edfWriter;
     private boolean isStoped = false;
 
-    AdsListenerBdfWriter(BdfRecorderConfig bdfRecorderConfig) throws UserInfoRuntimeException {
+    AdsAdsDataListenerBdfWriter(BdfRecorderConfig bdfRecorderConfig) throws UserInfoRuntimeException {
         try {
             edfFile = bdfRecorderConfig.getFileToSave();
             edfFileWriter = new EdfFileWriter(edfFile);
@@ -70,7 +70,7 @@ class AdsListenerBdfWriter implements AdsListener {
     }
 
     @Override
-    public void onAdsDataReceived(int[] dataFrame)  {
+    public void onDataReceived(int[] dataFrame)  {
         if(!isStoped) {
             try {
                 edfWriter.writeDigitalSamples(dataFrame);
@@ -81,8 +81,7 @@ class AdsListenerBdfWriter implements AdsListener {
         }
     }
 
-    @Override
-    public void onStopRecording() {
+    public void stop() {
         isStoped = true;
         edfWriter.close();
         // information about startRecordingTime, stopRecordingTime and actual DataRecordDuration

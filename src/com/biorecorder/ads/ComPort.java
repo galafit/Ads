@@ -34,16 +34,7 @@ class ComPort implements SerialPortEventListener {
             // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
             comPort.setEventsMask(SerialPort.MASK_RXCHAR);
             comPort.addEventListener(this);
-            comPort.setRTS(true);
-            comPort.setDTR(true);
-            try {
-                Thread.sleep(100);
-                comPort.setDTR(false);
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                log.error(e); //To change body of catch statement use File | Settings | File Templates.
-                e.printStackTrace();
-            }
+
         }
     }
 

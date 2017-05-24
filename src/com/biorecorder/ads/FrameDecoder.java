@@ -3,7 +3,6 @@ package com.biorecorder.ads;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.File;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,13 +30,15 @@ class FrameDecoder implements ComPortListener {
     private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
     private int[] accPrev = new int[3];
-    List<DataListener> dataListeners = new ArrayList<DataListener>();
-    List<MessageListener> msgListeners = new ArrayList<MessageListener>();
+    List<AdsDataListener> dataListeners = new ArrayList<AdsDataListener>();
+    List<MessageListener> messageListeners = new ArrayList<MessageListener>();
     private int MAX_MESSAGE_SIZE = 7;
 
-    byte prevByte;
-    PrintWriter out;
+    // just for debugging and testing purpose
+    private byte prevByte;
+    private PrintWriter out;
 
+    // just for debugging and testing purpose
     FrameDecoder(AdsConfig configuration, PrintWriter out) {
         this.out = out;
         adsConfig = configuration;
@@ -57,22 +58,25 @@ class FrameDecoder implements ComPortListener {
         log.info("Com port frame size: " + dataRecordSize + " bytes");
     }
 
-    public void addDataFrameListener(DataListener l) {
+    public void addDataListener(AdsDataListener l) {
         dataListeners.add(l);
     }
 
     public void addMessageListener(MessageListener l) {
-        msgListeners.add(l);
+        messageListeners.add(l);
     }
 
 
     @Override
     public void onByteReceived(byte inByte) {
-        if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
-           out.write("\n");
+        // write data to the file for debugging and testing
+        if(out != null) {
+            if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
+                out.write("\n");
+            }
+            out.write("\n"+frameIndex + "  "+ byteToHexString(inByte));
         }
-        out.write("\n"+frameIndex + "  "+ byteToHexString(inByte));
-
+/******************************************************/
 
         if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
             rawFrame[frameIndex] = inByte;
@@ -94,7 +98,9 @@ class FrameDecoder implements ComPortListener {
                     frameSize = msg_size;
                 } else {
                     log.warn("Message broken. Frame index = " + frameIndex + " inByte = " + inByte);
-                    out.write("  Message broken.");
+                    if(out != null) {
+                        out.write("  Message broken.");
+                    }
                     frameIndex = 0;
                 }
             }
@@ -108,12 +114,16 @@ class FrameDecoder implements ComPortListener {
                 onFrameReceived();
             }else {
                 log.warn("No stop frame marker. Frame index = " + frameIndex + " inByte = " + inByte);
-                out.write("No stop frame marker");
+                if(out != null) {
+                    out.write("No stop frame marker");
+                }
             }
             frameIndex = 0;
         } else {
             log.warn("Lost Frame. Frame index = " + frameIndex + " inByte = " + inByte);
-            out.write("Lost Frame.");
+            if(out != null) {
+                out.write("Lost Frame.");
+            }
             frameIndex = 0;
         }
     }
@@ -291,13 +301,13 @@ class FrameDecoder implements ComPortListener {
     }
 
     private void notifyDataListeners(int[] decodedFrame) {
-        for (DataListener l : dataListeners) {
+        for (AdsDataListener l : dataListeners) {
             l.onDataReceived(decodedFrame);
         }
     }
 
     private void notifyMessageListeners(AdsMessage adsMessage) {
-        for (MessageListener l : msgListeners) {
+        for (MessageListener l : messageListeners) {
             l.onMessageReceived(adsMessage);
         }
     }
