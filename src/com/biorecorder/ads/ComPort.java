@@ -23,19 +23,16 @@ class ComPort implements SerialPortEventListener {
     ComPort(String comPortName, int speed) throws SerialPortException {
         this.comPortName = comPortName;
         comPort = new SerialPort(comPortName);
-        if (!comPort.isOpened()) {
-            comPort.openPort();//Open serial port
-            comPort.setParams(speed,
-                    SerialPort.DATABITS_8,
-                    SerialPort.STOPBITS_1,
-                    SerialPort.PARITY_NONE);
-            // Строка serialPort.setEventsMask(SerialPort.MASK_RXCHAR) устанавливает маску ивентов для com порта,
-            // фактически это список событий, на которые мы хотим реагировать.
-            // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
-            comPort.setEventsMask(SerialPort.MASK_RXCHAR);
-            comPort.addEventListener(this);
-
-        }
+        comPort.openPort();//Open serial port
+        comPort.setParams(speed,
+                SerialPort.DATABITS_8,
+                SerialPort.STOPBITS_1,
+                SerialPort.PARITY_NONE);
+        // Строка serialPort.setEventsMask(SerialPort.MASK_RXCHAR) устанавливает маску ивентов для com порта,
+        // фактически это список событий, на которые мы хотим реагировать.
+        // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
+        comPort.setEventsMask(SerialPort.MASK_RXCHAR);
+        comPort.addEventListener(this);
     }
 
     static String[] getAvailableComPortNames() {
@@ -120,6 +117,9 @@ class ComPort implements SerialPortEventListener {
                             comPortListener.onByteReceived((buffer[i]));
                         }
                     }
+                }
+                else {
+                    System.out.println("ComPort error " + buffer);
                 }
 
             } catch (SerialPortException ex) {

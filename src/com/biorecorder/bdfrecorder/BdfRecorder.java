@@ -85,6 +85,10 @@ public class BdfRecorder implements AdsEventsListener {
 
     }
 
+    public void test() {
+        ads.test();
+    }
+
     public String[] getComportNames() {
         String[] availablePorts = Ads.getAvailableComPortNames();
         String selectedPort = bdfRecorderConfig.getAdsConfig().getComPortName();
@@ -113,7 +117,7 @@ public class BdfRecorder implements AdsEventsListener {
         } catch (ComPortNotFoundRuntimeException e) {
             throw new UserInfoRuntimeException(e.getMessage());
         } catch (Exception e) {
-            String errMsg = "Error during start recording";
+            String errMsg = "Error during connecting";
             log.error(errMsg, e);
             System.exit(ERROR_STATUS);
         }
@@ -141,7 +145,7 @@ public class BdfRecorder implements AdsEventsListener {
     }
 
     public void stopRecording() {
-        if (!isRecording) return;
+       // if (!isRecording) return;
         try {
             if (bdfWriter != null) {
                 bdfWriter.stop();

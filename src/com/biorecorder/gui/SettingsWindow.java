@@ -293,7 +293,8 @@ public class SettingsWindow extends JFrame  {
         testButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-               bdfRecorder.stopRecording();
+                saveDataToModel();
+               bdfRecorder.test();
             }
         });
 

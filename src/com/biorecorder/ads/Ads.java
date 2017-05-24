@@ -31,6 +31,7 @@ public class Ads {
     private static final int PING_TIMER_DELAY_MS = 1000;
     private static final int HELLO_TIMER_DELAY_MS = 1000;
     int MAX_START_TIMEOUT_SEC = 60;
+    int i;
 
     private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
     private List<AdsEventsListener> adsEventsListeners = new ArrayList<AdsEventsListener>();
@@ -44,7 +45,6 @@ public class Ads {
     private Timer pingTimer;
     private Timer helloTimer;
     private AdsState adsState = new AdsState();
-    private boolean is
 
     // just for testing and debugging
     private PrintWriter out;
@@ -154,7 +154,7 @@ public class Ads {
 
 
     public void stopRecording() {
-        if (!isRecording) return;
+        //if (!isRecording) return;
         comPort.writeToPort(stopRequest);
         try {
             Thread.sleep(1000);
@@ -193,6 +193,7 @@ public class Ads {
                 comPort.disconnect();
             } catch (SerialPortException e) {
                 String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comPort.getComPortName());
+                System.out.println("comport disconnecting failed");
                 throw new AdsConnectionRuntimeException(msg, e);
             }
         }
@@ -204,6 +205,70 @@ public class Ads {
 
     public static String[] getAvailableComPortNames() {
         return ComPort.getAvailableComPortNames();
+    }
+
+
+    public Future test() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
+        connect();
+
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig, out);
+        frameDecoder.addDataListener(new AdsDataListener() {
+            @Override
+            public void onDataReceived(int[] dataFrame) {
+                for (AdsDataListener l : adsDataListeners) {
+                    l.onDataReceived(dataFrame);
+                }
+            }
+        });
+        frameDecoder.addMessageListener(new MessageListener() {
+            @Override
+            public void onMessageReceived(AdsMessage adsMessage) {
+                if(adsMessage == AdsMessage.LOW_BATTERY) {
+                    for (AdsEventsListener l : adsEventsListeners) {
+                        l.handleAdsLowButtery();
+                    }
+                }
+                if (adsMessage == AdsMessage.HELLO) {
+                    adsState.setActive(true);
+                    i++;
+                    System.out.println("hello recived "+i);
+
+                }
+                if (adsMessage == AdsMessage.STOP_RECORDING) {
+                    adsState.setStoped(true);
+                }
+                if (adsMessage == AdsMessage.ADS_2_CHANNELS) {
+                    adsState.setDeviceType(DeviceType.ADS_2);
+                }
+                if (adsMessage == AdsMessage.ADS_8_CHANNELS) {
+                    adsState.setDeviceType(DeviceType.ADS_8);
+                }
+            }
+        });
+        comPort.setComPortListener(frameDecoder);
+
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        final Future future = executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                int delay = 1000;
+                int i = 0;
+                while (i < 10) {
+                    i++;
+                    comPort.writeToPort(helloRequest);
+                    System.out.println("hello request "+i);
+                    try {
+                        Thread.sleep(delay);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+
+        });
+
+        return future;
     }
 
 
