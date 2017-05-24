@@ -75,7 +75,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         result.add((byte)0x55);     //footer1
         result.add((byte)0x55);     //footer1
         for (int i = 0; i < result.size(); i++) {
-             System.out.printf("i=%d; val=%x \n",i, result.get(i));
+            // System.out.printf("i=%d; val=%x \n",i, result.get(i));
         }
         return result;
     }

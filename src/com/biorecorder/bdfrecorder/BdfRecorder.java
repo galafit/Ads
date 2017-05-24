@@ -86,6 +86,7 @@ public class BdfRecorder implements AdsEventsListener {
     }
 
     public void test() {
+        ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
         ads.test();
     }
 

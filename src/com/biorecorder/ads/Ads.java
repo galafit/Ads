@@ -152,7 +152,6 @@ public class Ads {
         pingTimer.schedule(timerTask, PING_TIMER_DELAY_MS, PING_TIMER_DELAY_MS);
     }
 
-
     public void stopRecording() {
         //if (!isRecording) return;
         comPort.writeToPort(stopRequest);
@@ -208,7 +207,7 @@ public class Ads {
     }
 
 
-    public Future test() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
+    public void test() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
         connect();
 
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig, out);
@@ -218,6 +217,7 @@ public class Ads {
                 for (AdsDataListener l : adsDataListeners) {
                     l.onDataReceived(dataFrame);
                 }
+                System.out.println("data recived ");
             }
         });
         frameDecoder.addMessageListener(new MessageListener() {
@@ -247,28 +247,22 @@ public class Ads {
         });
         comPort.setComPortListener(frameDecoder);
 
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        final Future future = executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                int delay = 1000;
-                int i = 0;
-                while (i < 10) {
-                    i++;
-                    comPort.writeToPort(helloRequest);
-                    System.out.println("hello request "+i);
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
-                }
+        int delay = 100;
+        int i = 0;
+        while (i > 10) {
+            i++;
+            comPort.writeToPort(helloRequest);
+            System.out.println("hello request "+i);
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
 
-        });
-
-        return future;
+        }
+        comPort.writeToPort(helloRequest);
+        System.out.println("hello request ");
+       // comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
     }
 
 
