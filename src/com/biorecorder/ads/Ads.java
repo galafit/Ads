@@ -38,32 +38,10 @@ public class Ads {
     private ComPort comPort;
     private boolean isRecording;
     private AdsConfig adsConfig = new AdsConfig();
-    private List<Byte> pingCommand = new ArrayList<Byte>();
-    private List<Byte> helloRequest = new ArrayList<Byte>();
-    private List<Byte> hardwareRequest = new ArrayList<Byte>();
-    private List<Byte> stopRequest = new ArrayList<Byte>();
     private Timer pingTimer;
     private Timer helloTimer;
     private AdsState adsState = new AdsState();
 
-    // just for testing and debugging
-    private PrintWriter out;
-
-
-    public Ads() {
-        pingCommand.add(PING_COMMAND);
-        helloRequest.add(HELLO_REQUEST);
-        hardwareRequest.add(HARDWARE_REQUEST);
-        stopRequest.add(STOP_REQUEST);
-
-        // just for testing and debugging
-        File file = new File(System.getProperty("user.dir"), "frames.txt");
-        try {
-            out = new PrintWriter(file);
-        } catch (FileNotFoundException e) {
-           // e.printStackTrace();
-        }
-    }
 
     public AdsConfig getAdsConfig() {
         return adsConfig;
@@ -83,6 +61,7 @@ public class Ads {
             comPort = new ComPort(adsConfig.getComPortName(), COMPORT_SPEED);
         } catch (SerialPortException e) {
             String msg = MessageFormat.format("Error while connecting to serial port: \"{0}\"", adsConfig.getComPortName());
+            System.out.println(msg);
             throw new AdsConnectionRuntimeException(msg, e);
         }
     }
@@ -99,9 +78,9 @@ public class Ads {
                 comPort.disconnect();
             } catch (SerialPortException e) {
                 String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comPort.getComPortName());
+                System.out.println(msg);
                 throw new AdsConnectionRuntimeException(msg, e);
             }
-            simpleConnect();
         }
     }
 
@@ -139,13 +118,13 @@ public class Ads {
             }
         });
         comPort.setComPortListener(frameDecoder);
-        comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
+        comPort.writeBytes(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
         isRecording = true;
         //---------------------------
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                comPort.writeToPort(pingCommand);
+                comPort.writeByte(PING_COMMAND);
             }
         };
         pingTimer = new Timer();
@@ -153,20 +132,16 @@ public class Ads {
     }
 
     public void stopRecording() {
-        //if (!isRecording) return;
-        comPort.writeToPort(stopRequest);
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            log.warn(e);
+        if(comPort != null) {
+            comPort.writeByte(STOP_REQUEST);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                log.warn(e);
+            }
         }
         if(pingTimer != null) {
             pingTimer.cancel();
-        }
-
-        // just for debugging
-        if (out != null) {
-            out.close();
         }
     }
 
@@ -210,7 +185,7 @@ public class Ads {
     public void test() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
         connect();
 
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig, out);
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
             public void onDataReceived(int[] dataFrame) {
@@ -220,6 +195,7 @@ public class Ads {
                 System.out.println("data recived ");
             }
         });
+
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(AdsMessage adsMessage) {
@@ -236,6 +212,8 @@ public class Ads {
                 }
                 if (adsMessage == AdsMessage.STOP_RECORDING) {
                     adsState.setStoped(true);
+                    i++;
+                    System.out.println("stop recived "+i);
                 }
                 if (adsMessage == AdsMessage.ADS_2_CHANNELS) {
                     adsState.setDeviceType(DeviceType.ADS_2);
@@ -249,10 +227,10 @@ public class Ads {
 
         int delay = 100;
         int i = 0;
-        while (i > 10) {
+        while (i < 10) {
             i++;
-            comPort.writeToPort(helloRequest);
-            System.out.println("hello request "+i);
+            boolean isSucces = comPort.writeByte(STOP_REQUEST);
+            System.out.println(i + " stop request "+isSucces);
             try {
                 Thread.sleep(delay);
             } catch (InterruptedException e) {
@@ -260,9 +238,19 @@ public class Ads {
             }
 
         }
-        comPort.writeToPort(helloRequest);
-        System.out.println("hello request ");
-       // comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
+
+        comPort.writeBytes(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
+        try {
+            Thread.sleep(delay);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        comPort.writeByte(STOP_REQUEST);
+        try {
+            System.out.println(" stop request "+comPort.getOutputBufferBytesCount());
+        } catch (SerialPortException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -270,7 +258,7 @@ public class Ads {
     public Future testRecording() throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
         connect();
 
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig, out);
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
             public void onDataReceived(int[] dataFrame) {
@@ -309,7 +297,7 @@ public class Ads {
             public void run() {
                 int delay = 500;
                 while (adsState.getDeviceType() == null) {
-                    comPort.writeToPort(hardwareRequest);
+                    comPort.writeByte(HARDWARE_REQUEST);
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException e) {
@@ -325,7 +313,7 @@ public class Ads {
                 }
 
                 while (!adsState.isStoped()) {
-                    comPort.writeToPort(stopRequest);
+                    comPort.writeByte(STOP_REQUEST);
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException e) {
@@ -336,14 +324,14 @@ public class Ads {
 
                 System.out.println("ads stopped: "+ adsState.isStoped());
 
-                comPort.writeToPort(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
+                comPort.writeBytes(adsConfig.getDeviceType().getAdsConfigurator().writeAdsConfiguration(adsConfig));
                 adsState.setStoped(false);
                 System.out.println("ads config sended. ");
                 //---------------------------
                 TimerTask timerTask = new TimerTask() {
                     @Override
                     public void run() {
-                        comPort.writeToPort(pingCommand);
+                        comPort.writeByte(PING_COMMAND);
                     }
                 };
                 pingTimer = new Timer();
@@ -366,13 +354,23 @@ public class Ads {
 
     private void startHelloTimer() {
         helloTimer = new Timer();
-        HelloTimerTask helloTask = new HelloTimerTask(adsState, comPort, hardwareRequest);
+        HelloTimerTask helloTask = new HelloTimerTask(adsState, comPort, HARDWARE_REQUEST);
 
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addMessageListener(helloTask);
         comPort.setComPortListener(frameDecoder);
 
         helloTimer.schedule(helloTask, HELLO_TIMER_DELAY_MS, HELLO_TIMER_DELAY_MS);
+    }
+
+    private void printThreads() {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        Thread[] threadArray = threadSet.toArray(new Thread[threadSet.size()]);
+        int j=0;
+        for(Thread t : threadArray) {
+            j++;
+            System.out.println(j+" Thread  "+ t.getName());
+        }
     }
 
 

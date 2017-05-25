@@ -10,7 +10,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
     public static final int NUMBER_OF_ADS_CHANNELS = 8;
 
     @Override
-    public List<Byte> writeAdsConfiguration(AdsConfig adsConfiguration) {
+    public byte[] writeAdsConfiguration(AdsConfig adsConfiguration) {
         //-----------------------------------------
         List<Byte> result = new ArrayList<Byte>();
         result.add((byte)51);       //длина пакета
@@ -77,7 +77,11 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         for (int i = 0; i < result.size(); i++) {
             // System.out.printf("i=%d; val=%x \n",i, result.get(i));
         }
-        return result;
+        byte[] resultArr = new byte[result.size()];
+        for(int i = 0; i < resultArr.length; i++) {
+            resultArr[i] = result.get(i);
+        }
+        return resultArr;
     }
 
     private int getRegister_1Value(AdsConfig adsConfiguration) {

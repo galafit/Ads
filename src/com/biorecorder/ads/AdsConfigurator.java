@@ -4,6 +4,6 @@ import java.util.List;
 
 interface AdsConfigurator {
 
-    public List<Byte> writeAdsConfiguration(AdsConfig adsConfig);
+    public byte[] writeAdsConfiguration(AdsConfig adsConfig);
 
 }

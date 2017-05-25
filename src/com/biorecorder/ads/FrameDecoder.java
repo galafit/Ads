@@ -34,20 +34,6 @@ class FrameDecoder implements ComPortListener {
     List<MessageListener> messageListeners = new ArrayList<MessageListener>();
     private int MAX_MESSAGE_SIZE = 7;
 
-    // just for debugging and testing purpose
-    private byte prevByte;
-    private PrintWriter out;
-
-    // just for debugging and testing purpose
-    FrameDecoder(AdsConfig configuration, PrintWriter out) {
-        this.out = out;
-        adsConfig = configuration;
-        numberOf3ByteSamples = getNumberOf3ByteSamples();
-        dataRecordSize = getRawFrameSize();
-        decodedFrameSize = getDecodedFrameSize();
-        rawFrame = new byte[Math.max(dataRecordSize, MAX_MESSAGE_SIZE)];
-        log.info("Com port frame size: " + dataRecordSize + " bytes");
-    }
 
     FrameDecoder(AdsConfig configuration) {
         adsConfig = configuration;
@@ -69,15 +55,6 @@ class FrameDecoder implements ComPortListener {
 
     @Override
     public void onByteReceived(byte inByte) {
-        // write data to the file for debugging and testing
-        if(out != null) {
-            if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
-                out.write("\n");
-            }
-            out.write("\n"+frameIndex + "  "+ byteToHexString(inByte));
-        }
-/******************************************************/
-
         if (frameIndex == 0 && inByte == START_FRAME_MARKER) {
             rawFrame[frameIndex] = inByte;
             frameIndex++;
@@ -98,9 +75,6 @@ class FrameDecoder implements ComPortListener {
                     frameSize = msg_size;
                 } else {
                     log.warn("Message broken. Frame index = " + frameIndex + " inByte = " + inByte);
-                    if(out != null) {
-                        out.write("  Message broken.");
-                    }
                     frameIndex = 0;
                 }
             }
@@ -114,16 +88,10 @@ class FrameDecoder implements ComPortListener {
                 onFrameReceived();
             }else {
                 log.warn("No stop frame marker. Frame index = " + frameIndex + " inByte = " + inByte);
-                if(out != null) {
-                    out.write("No stop frame marker");
-                }
             }
             frameIndex = 0;
         } else {
             log.warn("Lost Frame. Frame index = " + frameIndex + " inByte = " + inByte);
-            if(out != null) {
-                out.write("Lost Frame.");
-            }
             frameIndex = 0;
         }
     }

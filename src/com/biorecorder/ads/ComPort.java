@@ -3,6 +3,7 @@ package com.biorecorder.ads;
 import jssc.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import java.util.List;
 
 /**
@@ -16,23 +17,24 @@ import java.util.List;
 class ComPort implements SerialPortEventListener {
 
     private static Log log = LogFactory.getLog(ComPort.class);
-    SerialPort comPort;
+    SerialPort serialPort;
     private ComPortListener comPortListener;
     private String comPortName;
 
     ComPort(String comPortName, int speed) throws SerialPortException {
         this.comPortName = comPortName;
-        comPort = new SerialPort(comPortName);
-        comPort.openPort();//Open serial port
-        comPort.setParams(speed,
+        serialPort = new SerialPort(comPortName);
+        serialPort.openPort();//Open serial port
+        serialPort.setParams(speed,
                 SerialPort.DATABITS_8,
                 SerialPort.STOPBITS_1,
                 SerialPort.PARITY_NONE);
         // Строка serialPort.setEventsMask(SerialPort.MASK_RXCHAR) устанавливает маску ивентов для com порта,
         // фактически это список событий, на которые мы хотим реагировать.
         // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
-        comPort.setEventsMask(SerialPort.MASK_RXCHAR);
-        comPort.addEventListener(this);
+        serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT);
+        serialPort.setEventsMask(SerialPort.MASK_RXCHAR);
+        serialPort.addEventListener(this);
     }
 
     static String[] getAvailableComPortNames() {
@@ -41,10 +43,10 @@ class ComPort implements SerialPortEventListener {
 
 
     static boolean isComPortAvailable(String comPortName) {
-        if(comPortName != null) {
+        if (comPortName != null) {
             comPortName = comPortName.trim();
-            for(String name : getAvailableComPortNames()) {
-                if(comPortName.equalsIgnoreCase(name)) {
+            for (String name : getAvailableComPortNames()) {
+                if (comPortName.equalsIgnoreCase(name)) {
                     return true;
                 }
             }
@@ -52,53 +54,54 @@ class ComPort implements SerialPortEventListener {
         return false;
     }
 
+    int getOutputBufferBytesCount() throws SerialPortException {
+        return serialPort.getOutputBufferBytesCount();
+    }
 
-    String getComPortName(){
+    String getComPortName() {
         return comPortName;
     }
 
-    boolean isConnected(){
-        return comPort.isOpened();
+    boolean isConnected() {
+        return serialPort.isOpened();
     }
-
 
 
     /**
      * work only with new comports adapters
+     *
      * @return true if ads device is connected and false if not
      * @throws SerialPortException
      */
     boolean isActive() throws SerialPortException {
-        return comPort.isCTS();
+        return serialPort.isCTS();
     }
 
     void disconnect() throws SerialPortException {
-        if (comPort.isOpened()) {
-            comPort.closePort();
+        serialPort.purgePort(SerialPort.PURGE_RXCLEAR);
+        serialPort.purgePort(SerialPort.PURGE_TXCLEAR);
+        serialPort.closePort();
+        System.out.println("disconnect");
+    }
+
+    void writeBytes(byte[] bytes) {
+        try {
+            serialPort.writeBytes(bytes);
+        } catch (SerialPortException ex) {
+            log.error(ex);
         }
     }
 
-    void writeToPort(List<Byte> bytes) {
-        if (comPort.isOpened()) {
-                final byte[] bytesArray = new byte[bytes.size()];
-                for (int i = 0; i < bytes.size(); i++) {
-                    bytesArray[i] = bytes.get(i);
-                }
-            Runnable rnbl = new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        comPort.writeBytes(bytesArray);
-                    } catch (SerialPortException ex) {
-                        log.error(ex);
-                    }
-                }
-            };
-            Thread thrd = new Thread(rnbl);
-            thrd.start();
-        } else {
-            log.warn("Com port disconnected. Can't write to port.");
+
+    boolean writeByte(byte b) {
+        try {
+            return serialPort.writeByte(b);
+        } catch (SerialPortException e) {
+            log.error(e);
+            System.out.println("Error while writing to port");
+            e.printStackTrace();
         }
+        return false;
     }
 
     void setComPortListener(ComPortListener comPortListener) {
@@ -107,21 +110,17 @@ class ComPort implements SerialPortEventListener {
 
 
     @Override
-    public void serialEvent(SerialPortEvent event)  {
+    public void serialEvent(SerialPortEvent event) {
         if (event.isRXCHAR() && event.getEventValue() > 0) {
             try {
-                byte[] buffer = comPort.readBytes();
-                if(buffer != null) {
+                byte[] buffer = serialPort.readBytes();
+                if (buffer != null) {
                     for (int i = 0; i < buffer.length; i++) {
                         if (comPortListener != null) {
                             comPortListener.onByteReceived((buffer[i]));
                         }
                     }
                 }
-                else {
-                    System.out.println("ComPort error " + buffer);
-                }
-
             } catch (SerialPortException ex) {
                 log.error(ex);
             }

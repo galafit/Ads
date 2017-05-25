@@ -84,10 +84,7 @@ public class SettingsWindow extends JFrame  {
         try {
             String comportName = bdfRecorder.getBdfRecorderConfig().getAdsConfig().getComPortName();
             if(comportName != null && !comportName.isEmpty()) {
-                bdfRecorder.connect();
-            } else {
-                String msg = "Insert usb-dongle and choose the corresponding comport!";
-                JOptionPane.showMessageDialog(SettingsWindow.this, msg);
+               // bdfRecorder.connect();
             }
         } catch (UserInfoRuntimeException e) {
             JOptionPane.showMessageDialog(SettingsWindow.this, e.getMessage());

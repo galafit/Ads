@@ -1,6 +1,9 @@
 package com.biorecorder.ads;
 
-import java.util.List;
+import jssc.SerialPortException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.TimerTask;
 
 /**
@@ -8,12 +11,13 @@ import java.util.TimerTask;
  * Or send hardware-request and set 1)whether devise is active 2) device-type
  */
 class HelloTimerTask extends TimerTask  implements MessageListener {
+    private static final Log log = LogFactory.getLog(HelloTimerTask.class);
     private boolean isMsgRecived = false;
     private AdsState adsState;
     private ComPort comPort;
-    private List<Byte> command;
+    private byte command;
 
-    public HelloTimerTask(AdsState adsState, ComPort comPort, List<Byte> command) {
+    public HelloTimerTask(AdsState adsState, ComPort comPort, byte command) {
         this.adsState = adsState;
         this.comPort = comPort;
         this.command = command;
@@ -45,7 +49,7 @@ class HelloTimerTask extends TimerTask  implements MessageListener {
 
         }
         isMsgRecived = false;
-        comPort.writeToPort(command);
+        comPort.writeByte(command);
     }
 }
 

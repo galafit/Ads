@@ -13,7 +13,7 @@ class AdsConfigurator2Ch implements AdsConfigurator{
 
 
     @Override
-    public List<Byte> writeAdsConfiguration(AdsConfig adsConfiguration) {
+    public byte[] writeAdsConfiguration(AdsConfig adsConfiguration) {
         List<Byte> result = new ArrayList<Byte>();
         result.add((byte)32);       //длина пакета
 
@@ -83,7 +83,11 @@ class AdsConfigurator2Ch implements AdsConfigurator{
         result.add((byte)0x55);     //footer1
         result.add((byte)0x55);     //footer1
 
-        return result;
+        byte[] resultArr = new byte[result.size()];
+        for(int i = 0; i < resultArr.length; i++) {
+            resultArr[i] = result.get(i);
+        }
+        return resultArr;
     }
 
     private int getChanelRegisterValue(AdsChannelConfig channelConfiguration) {
