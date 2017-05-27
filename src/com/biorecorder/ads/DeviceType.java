@@ -13,12 +13,21 @@ public enum DeviceType {
     private Divider[] channelsAvailableDividers;
     private Divider[] getAccelerometerAvailableDividers;
     private Divider maxDiv;
+    private AdsConfigurator adsConfigurator;
 
     DeviceType(int numberOfAdsChannels, Divider maxDiv, Divider[] channelsAvailableDividers, Divider[] getAccelerometerAvailableDividers) {
         this.maxDiv = maxDiv;
         this.numberOfAdsChannels = numberOfAdsChannels;
         this.channelsAvailableDividers = channelsAvailableDividers;
         this.getAccelerometerAvailableDividers = getAccelerometerAvailableDividers;
+
+        if(numberOfAdsChannels == 2){
+            adsConfigurator = new AdsConfigurator2Ch();
+        } else if(numberOfAdsChannels == 8) {
+            adsConfigurator =  new AdsConfigurator8Ch();
+        } else {
+            throw new IllegalStateException("Number of Ads channel should be 2 or 8");
+        }
     }
 
     Divider getMaxDiv(){
@@ -37,13 +46,7 @@ public enum DeviceType {
         return getAccelerometerAvailableDividers;
     }
 
-    AdsConfigurator getAdsConfigurator(){
-        if(numberOfAdsChannels == 2){
-            return new AdsConfigurator2Ch();
-        }
-        if(numberOfAdsChannels == 8) {
-            return new AdsConfigurator8Ch();
-        }
-        throw new IllegalStateException("Number of Ads channel should be 2 or 8");
+    byte[] getAdsConfigurationCommand(AdsConfig adsConfig){
+       return  adsConfigurator.getAdsConfigurationCommand(adsConfig);
     }
 }

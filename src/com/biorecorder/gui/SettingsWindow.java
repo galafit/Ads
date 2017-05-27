@@ -82,9 +82,14 @@ public class SettingsWindow extends JFrame  {
         init();
         setVisible(true);
         try {
-            String comportName = bdfRecorder.getBdfRecorderConfig().getAdsConfig().getComPortName();
+            String comportName = bdfRecorder.getBdfRecorderConfig().getComPortName();
             if(comportName != null && !comportName.isEmpty()) {
-               // bdfRecorder.connect();
+                SwingUtilities.invokeLater(new Runnable(){
+                    public void run(){
+                        bdfRecorder.connect();
+                    }
+                });
+
             }
         } catch (UserInfoRuntimeException e) {
             JOptionPane.showMessageDialog(SettingsWindow.this, e.getMessage());
@@ -160,10 +165,35 @@ public class SettingsWindow extends JFrame  {
         bdfRecorder.addNotificationListener(new NotificationListener() {
             @Override
             public void update() {
-                int recordsNumber = bdfRecorder.getNumberOfWrittenDataRecords();
-                if(recordsNumber > 0) {
-                    setProcessReport("Recording... " + recordsNumber + " data records");
+                Color activeColor = Color.GREEN;
+                Color nonActiveColor = Color.GRAY;
+                Color stateColor = nonActiveColor;
+                String stateString = "Disconnected";
+                if(bdfRecorder.isAdsActive()) {
+                    stateColor = activeColor;
+                    stateString = "Connected";
                 }
+
+                int recordsNumber = bdfRecorder.getNumberOfWrittenDataRecords();
+                if(bdfRecorder.isRecording()) {
+                    if(recordsNumber == 0) {
+                        stateColor = activeColor;
+                        stateString = "Starting...";
+                    } else {
+                        stateString = "Recording... " + recordsNumber + " data records";
+                    }
+                    stopButton.setVisible(true);
+                    startButton.setVisible(false);
+                    disableFields();
+                } else {
+                    stopButton.setVisible(false);
+                    startButton.setVisible(true);
+                    enableFields();
+                   if(recordsNumber > 0) {
+                       stateString = "Saved to file: " + bdfRecorder.getSavedFile();
+                   }
+                }
+                setReport(stateString, stateColor);
             }
         });
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
@@ -229,10 +259,6 @@ public class SettingsWindow extends JFrame  {
                 bdfRecorder.setBdfRecorderConfig(bdfRecorderConfig);
                 try {
                     bdfRecorder.startRecording();
-                    stopButton.setVisible(true);
-                    startButton.setVisible(false);
-                    setProcessReport("Connecting...");
-                    disableFields();
                 } catch (UserInfoRuntimeException e) {
                     JOptionPane.showMessageDialog(SettingsWindow.this, e.getMessage());
                 }
@@ -243,10 +269,6 @@ public class SettingsWindow extends JFrame  {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 bdfRecorder.stopRecording();
-                stopButton.setVisible(false);
-                startButton.setVisible(true);
-                enableFields();
-                setProcessReport("Saved to file: " + bdfRecorder.getSavedFile());
             }
         });
 
@@ -285,15 +307,6 @@ public class SettingsWindow extends JFrame  {
         stopButton.setPreferredSize(startButton.getPreferredSize());
         buttonPanel.add(stopButton);
 
-        JButton testButton = new JButton("test");
-        buttonPanel.add(testButton);
-        testButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveDataToModel();
-               bdfRecorder.test();
-            }
-        });
 
         int hgap = 5;
         int vgap = 0;
@@ -479,6 +492,7 @@ public class SettingsWindow extends JFrame  {
         setReport(report, colorProcess);
     }
 
+
     private void loadDataFromModel() {
         BdfRecorderConfig bdfRecorderConfig = bdfRecorder.getBdfRecorderConfig();
         AdsConfig adsConfig = bdfRecorderConfig.getAdsConfig();
@@ -517,7 +531,7 @@ public class SettingsWindow extends JFrame  {
         AdsConfig adsConfig = bdfRecorderConfig.getAdsConfig();
         adsConfig.setSps(getSps());
         adsConfig.setDeviceType(getDeviceType());
-        adsConfig.setComPortName(getComPortName());
+        bdfRecorderConfig.setComPortName(getComPortName());
         bdfRecorderConfig.setPatientIdentification(getPatientIdentification());
         bdfRecorderConfig.setRecordingIdentification(getRecordingIdentification());
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {

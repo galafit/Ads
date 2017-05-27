@@ -17,20 +17,23 @@ public class BdfRecorder implements AdsEventsListener {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
     private static final int SUCCESS_STATUS = 0;
     private static final int ERROR_STATUS = 1;
-    private boolean isRecording;
     private Ads ads = new Ads();
     private AdsAdsDataListenerBdfWriter bdfWriter;
     private BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
     private Preferences preferences;
+
+    private boolean isRecording = false;
+
     private int notificationDelayMs = 1000;
     Timer notificationTimer;
     private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
 
-    public BdfRecorder(Preferences preferences) {
+    public BdfRecorder(Preferences preferences)  {
         this.preferences = preferences;
         bdfRecorderConfig = preferences.getConfig();
         ads.addAdsEventsListener(this);
         ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
+        ads.addAdsEventsListener(this);
         notificationTimer = new Timer(notificationDelayMs, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -40,6 +43,7 @@ public class BdfRecorder implements AdsEventsListener {
                 }
             }
         });
+        notificationTimer.start();
     }
 
     public void setBdfRecorderConfig(BdfRecorderConfig bdfRecorderConfig) {
@@ -51,9 +55,7 @@ public class BdfRecorder implements AdsEventsListener {
         return bdfRecorderConfig;
     }
 
-    public boolean isRecording() {
-        return isRecording;
-    }
+
 
     public File getSavedFile() {
         if (bdfWriter != null) {
@@ -71,7 +73,7 @@ public class BdfRecorder implements AdsEventsListener {
             try {
                 return bdfWriter.getNumberOfWrittenDataRecords();
             } catch (Exception e) {
-                String errMsg = "Error during getting number of written datarecords";
+                String errMsg = "Error during getting number of written data records";
                 log.error(errMsg, e);
                 System.exit(ERROR_STATUS);
             }
@@ -80,19 +82,27 @@ public class BdfRecorder implements AdsEventsListener {
         return 0;
     }
 
+    public boolean isRecording() {
+        return isRecording;
+    }
+
+    public boolean isAdsActive() {
+        return ads.isActive();
+    }
+
     @Override
     public void handleAdsLowButtery() {
 
     }
 
-    public void test() {
-        ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
-        ads.test();
+    @Override
+    public void handleAdsFrameBroken(String eventAdditionalInfo) {
+        log.info(eventAdditionalInfo);
     }
 
     public String[] getComportNames() {
         String[] availablePorts = Ads.getAvailableComPortNames();
-        String selectedPort = bdfRecorderConfig.getAdsConfig().getComPortName();
+        String selectedPort = bdfRecorderConfig.getComPortName();
         String[] ports = availablePorts;
         if (selectedPort != null && !selectedPort.isEmpty()) {
             boolean containSelectedPort = false;
@@ -114,7 +124,7 @@ public class BdfRecorder implements AdsEventsListener {
 
     public void connect() {
         try {
-            ads.connect();
+            ads.connect(bdfRecorderConfig.getComPortName());
         } catch (ComPortNotFoundRuntimeException e) {
             throw new UserInfoRuntimeException(e.getMessage());
         } catch (Exception e) {
@@ -126,33 +136,30 @@ public class BdfRecorder implements AdsEventsListener {
 
     public void startRecording() throws UserInfoRuntimeException {
         try {
-            isRecording = true;
             if (bdfWriter != null) {
                 ads.removeAdsDataListener(bdfWriter);
             }
-
             bdfWriter = new AdsAdsDataListenerBdfWriter(bdfRecorderConfig);
             ads.addAdsDataListener(bdfWriter);
-            notificationTimer.start();
             ads.setAdsConfig(bdfRecorderConfig.getAdsConfig());
-            ads.startRecording();
+            ads.startRecording(bdfRecorderConfig.getComPortName());
+            isRecording = true;
         } catch (ComPortNotFoundRuntimeException e) {
             throw new UserInfoRuntimeException(e.getMessage());
         } catch (Exception e) {
-            String errMsg = "Error during start recording";
+            String errMsg = "Error during connect recording";
             log.error(errMsg, e);
             System.exit(ERROR_STATUS);
         }
     }
 
     public void stopRecording() {
-       // if (!isRecording) return;
+       // if (!isSendingData) return;
         try {
             if (bdfWriter != null) {
                 bdfWriter.stop();
             }
             ads.stopRecording();
-            notificationTimer.stop();
             isRecording = false;
         } catch (Exception e) {
             String errMsg = "Error during stop recording";
@@ -164,6 +171,7 @@ public class BdfRecorder implements AdsEventsListener {
     public void closeApplication(BdfRecorderConfig bdfRecorderConfig) {
         try {
             stopRecording();
+            notificationTimer.stop();
             ads.disconnect();
             preferences.saveConfig(bdfRecorderConfig);
             System.exit(SUCCESS_STATUS);

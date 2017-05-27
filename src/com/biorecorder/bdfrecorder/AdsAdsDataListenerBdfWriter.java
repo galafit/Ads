@@ -5,7 +5,7 @@ import com.biorecorder.ads.AdsChannelConfig;
 import com.biorecorder.ads.AdsDataListener;
 import com.biorecorder.bdfrecorder.exceptions.UserInfoRuntimeException;
 import com.biorecorder.edflib.*;
-import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
+import com.biorecorder.edflib.exceptions.EdfRepositoryNotFoundRuntimeException;
 import com.biorecorder.edflib.filters.MovingAverageFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,7 +55,7 @@ class AdsAdsDataListenerBdfWriter implements AdsDataListener {
             }
             edfWriter = signalsRemover;
             edfWriter.setHeader(bdfRecorderConfig.getHeaderConfig());
-        } catch (FileNotFoundRuntimeException e) {
+        } catch (EdfRepositoryNotFoundRuntimeException e) {
             throw new UserInfoRuntimeException(e);
         }
 

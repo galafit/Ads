@@ -1,9 +1,10 @@
 package com.biorecorder.ads;
 
-import java.util.List;
-
+/**
+ * Create AdsConfigurationCommand (to send to Ads-device) depending on the ads-type:
+ * 2 channels or 8 channels
+ */
 interface AdsConfigurator {
-
-    public byte[] writeAdsConfiguration(AdsConfig adsConfig);
+    public byte[] getAdsConfigurationCommand(AdsConfig adsConfig);
 
 }

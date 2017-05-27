@@ -10,7 +10,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
     public static final int NUMBER_OF_ADS_CHANNELS = 8;
 
     @Override
-    public byte[] writeAdsConfiguration(AdsConfig adsConfiguration) {
+    public byte[] getAdsConfigurationCommand(AdsConfig adsConfiguration) {
         //-----------------------------------------
         List<Byte> result = new ArrayList<Byte>();
         result.add((byte)51);       //длина пакета
@@ -68,9 +68,9 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         result.add((byte)20);
 
         result.add((byte)0xF0);     //ads1292 command
-        result.add((byte)0x10);     //ads1292 start continuous
+        result.add((byte)0x10);     //ads1292 connect continuous
 
-        result.add((byte)0xFE);     //start recording
+        result.add((byte)0xFE);     //connect recording
 
         result.add((byte)0x55);     //footer1
         result.add((byte)0x55);     //footer1

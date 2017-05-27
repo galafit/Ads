@@ -15,6 +15,7 @@ import java.util.List;
  *
  */
 public class BdfRecorderConfig {
+    private String comPortName = "";
     private AdsConfig adsConfig = new AdsConfig();
     private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
     private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();
@@ -47,6 +48,14 @@ public class BdfRecorderConfig {
             filter50HzMask.add(true);
         }
         filter50HzMask.set(adsChannelNumber, is50HzFilterEnabled);
+    }
+
+    public String getComPortName() {
+        return comPortName;
+    }
+
+    public void setComPortName(String comPortName) {
+        this.comPortName = comPortName;
     }
 
     public File getFileToSave() {

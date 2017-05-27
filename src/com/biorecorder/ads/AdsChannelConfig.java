@@ -1,7 +1,7 @@
 package com.biorecorder.ads;
 
 /**
- *
+ * Class-structure to store info about Ads-channels
  */
 public class AdsChannelConfig {
 

@@ -4,9 +4,18 @@ package com.biorecorder.ads;
  * Serves to send and share data between threads
  */
 public class AdsState {
-    private  boolean isActive;
-    private  DeviceType deviceType;
-    private boolean isStoped;
+    private  volatile boolean isActive;
+    private  volatile DeviceType deviceType;
+    private volatile boolean isStoped;
+    private volatile boolean isDataComing;
+
+    public boolean isDataComing() {
+        return isDataComing;
+    }
+
+    public void setDataComing(boolean dataComing) {
+        isDataComing = dataComing;
+    }
 
     public synchronized boolean isStoped() {
         return isStoped;

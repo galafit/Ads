@@ -2,11 +2,12 @@ package com.biorecorder.ads;
 
 import java.util.ArrayList;
 
-
+/**
+ * Class-structure to store info about Ads configuration
+ */
 public class AdsConfig {
     private DeviceType deviceType = DeviceType.ADS_8;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
-    private String comPortName = "";
     private Divider accelerometerDivider = Divider.D10;
     private boolean isAccelerometerEnabled = true;
     private boolean isAccelerometerOneChannelMode = true;
@@ -85,16 +86,6 @@ public class AdsConfig {
 
     public void setAccelerometerDivider(Divider accelerometerDivider) {
         this.accelerometerDivider = accelerometerDivider;
-    }
-
-    public String getComPortName() {
-        return comPortName;
-    }
-
-    public void setComPortName(String comPortName) {
-        if(comPortName!=null){
-            this.comPortName = comPortName.trim();
-        }
     }
 
     public DeviceType getDeviceType() {

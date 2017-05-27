@@ -1,8 +1,9 @@
 package com.biorecorder.ads;
 
 /**
- * Created by gala on 24/05/17.
+ * Listener of Ads events such as LOW_BATTERY, FRAME_BROKEN and so on
  */
 public interface AdsEventsListener {
     public void handleAdsLowButtery();
+    public void handleAdsFrameBroken(String eventAdditionalInfo);
 }

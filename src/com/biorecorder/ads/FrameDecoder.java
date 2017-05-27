@@ -1,9 +1,6 @@
 package com.biorecorder.ads;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +24,6 @@ class FrameDecoder implements ComPortListener {
     private int decodedFrameSize;
     private byte[] rawFrame;
     AdsConfig adsConfig;
-    private static final Log log = LogFactory.getLog(FrameDecoder.class);
     private int previousFrameCounter = -1;
     private int[] accPrev = new int[3];
     List<AdsDataListener> dataListeners = new ArrayList<AdsDataListener>();
@@ -41,7 +37,11 @@ class FrameDecoder implements ComPortListener {
         dataRecordSize = getRawFrameSize();
         decodedFrameSize = getDecodedFrameSize();
         rawFrame = new byte[Math.max(dataRecordSize, MAX_MESSAGE_SIZE)];
-        log.info("Com port frame size: " + dataRecordSize + " bytes");
+       // log.info("Com port frame size: " + dataRecordSize + " bytes");
+    }
+
+    public int getDataRecordSize() {
+        return dataRecordSize;
     }
 
     public void addDataListener(AdsDataListener l) {
@@ -74,7 +74,8 @@ class FrameDecoder implements ComPortListener {
                 if(msg_size <= MAX_MESSAGE_SIZE) {
                     frameSize = msg_size;
                 } else {
-                    log.warn("Message broken. Frame index = " + frameIndex + " inByte = " + inByte);
+                    String infoMsg = "Message broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                    notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
                     frameIndex = 0;
                 }
             }
@@ -87,11 +88,13 @@ class FrameDecoder implements ComPortListener {
             if (inByte == STOP_FRAME_MARKER) {
                 onFrameReceived();
             }else {
-                log.warn("No stop frame marker. Frame index = " + frameIndex + " inByte = " + inByte);
+                String infoMsg = "No stop frame marker. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
             }
             frameIndex = 0;
         } else {
-            log.warn("Lost Frame. Frame index = " + frameIndex + " inByte = " + inByte);
+            String infoMsg = "Lost Frame. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+            notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
             frameIndex = 0;
         }
     }
@@ -115,37 +118,37 @@ class FrameDecoder implements ComPortListener {
      // stop recording message: \xAA\xA5\x05\xA5\x55
      // hello message: \xAA\xA5\x05\xA0\x55
         AdsMessage adsMessage = null;
+        String info = "";
         if(rawFrame[3] == MESSAGE_HELLO_MARKER) {
             adsMessage = AdsMessage.HELLO;
-            log.info("Hello message received");
+            info = "Hello message received";
         } else if (rawFrame[3] == MESSAGE_STOP_RECORDING_MARKER) {
             adsMessage = AdsMessage.STOP_RECORDING;
-            log.info("Stop recording message received");
+            info = "Stop recording message received";
         } else if (rawFrame[3] == MESSAGE_FIRMWARE_MARKER) {
             adsMessage = AdsMessage.FIRMWARE;
-            log.info("Firmware version message received");
+            info = "Firmware version message received";
         } else if(rawFrame[3] == MESSAGE_HARDWARE_CONFIG_MARKER && rawFrame[4] == MESSAGE_2CH_MARKER) {
             adsMessage = AdsMessage.ADS_2_CHANNELS;
-            log.info("Ads_2channel message received");
+            info = "Ads_2channel message received";
         } else if(rawFrame[3] == MESSAGE_HARDWARE_CONFIG_MARKER && rawFrame[4] == MESSAGE_8CH_MARKER) {
             adsMessage = AdsMessage.ADS_8_CHANNELS;
-            log.info("Ads_8channel message received");
+            info = "Ads_8channel message received";
         } else if (((rawFrame[3] & 0xFF) == 0xA3) && ((rawFrame[5] & 0xFF) == 0x01)) {
             adsMessage = AdsMessage.LOW_BATTERY;
-            log.info("Low battery message received");
+            info = "Low battery message received";
         }  else if (((rawFrame[3] & 0xFF) == 0xA2) && ((rawFrame[5] & 0xFF) == 0x04)) {
-            log.info("TX fail message received");
+            info = "TX fail message received";
             adsMessage = AdsMessage.TX_FAIL;
         } else {
-            System.out.println("Unknown message received: ");
+            adsMessage = AdsMessage.UNKNOWN;
+            StringBuilder sb = new StringBuilder("Unknown message received: ");
             for (int i = 0; i < rawFrame[2]; i++) {
-                int val = rawFrame[i] & 0xFF;
-                System.out.printf("i=%d; val=%x \n", i, val);
+                sb.append(byteToHexString(rawFrame[i]));
             }
+            info = sb.toString();
         }
-        if(adsMessage != null) {
-            notifyMessageListeners(adsMessage);
-        }
+        notifyMessageListeners(adsMessage, info);
     }
 
     private void onDataRecordReceived() {
@@ -274,9 +277,9 @@ class FrameDecoder implements ComPortListener {
         }
     }
 
-    private void notifyMessageListeners(AdsMessage adsMessage) {
+    private void notifyMessageListeners(AdsMessage adsMessage, String additionalInfo) {
         for (MessageListener l : messageListeners) {
-            l.onMessageReceived(adsMessage);
+            l.onMessageReceived(adsMessage, additionalInfo);
         }
     }
 

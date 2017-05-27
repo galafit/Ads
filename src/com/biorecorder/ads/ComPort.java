@@ -32,7 +32,6 @@ class ComPort implements SerialPortEventListener {
         // Строка serialPort.setEventsMask(SerialPort.MASK_RXCHAR) устанавливает маску ивентов для com порта,
         // фактически это список событий, на которые мы хотим реагировать.
         // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
-        serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT);
         serialPort.setEventsMask(SerialPort.MASK_RXCHAR);
         serialPort.addEventListener(this);
     }
@@ -62,26 +61,13 @@ class ComPort implements SerialPortEventListener {
         return comPortName;
     }
 
-    boolean isConnected() {
+    boolean isOpened() {
         return serialPort.isOpened();
     }
 
 
-    /**
-     * work only with new comports adapters
-     *
-     * @return true if ads device is connected and false if not
-     * @throws SerialPortException
-     */
-    boolean isActive() throws SerialPortException {
-        return serialPort.isCTS();
-    }
-
-    void disconnect() throws SerialPortException {
-        serialPort.purgePort(SerialPort.PURGE_RXCLEAR);
-        serialPort.purgePort(SerialPort.PURGE_TXCLEAR);
+    void close() throws SerialPortException {
         serialPort.closePort();
-        System.out.println("disconnect");
     }
 
     void writeBytes(byte[] bytes) {
@@ -114,11 +100,9 @@ class ComPort implements SerialPortEventListener {
         if (event.isRXCHAR() && event.getEventValue() > 0) {
             try {
                 byte[] buffer = serialPort.readBytes();
-                if (buffer != null) {
-                    for (int i = 0; i < buffer.length; i++) {
-                        if (comPortListener != null) {
-                            comPortListener.onByteReceived((buffer[i]));
-                        }
+                for (int i = 0; i < buffer.length; i++) {
+                    if (comPortListener != null) {
+                        comPortListener.onByteReceived((buffer[i]));
                     }
                 }
             } catch (SerialPortException ex) {
