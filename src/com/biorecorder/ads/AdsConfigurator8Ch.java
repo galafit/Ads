@@ -28,7 +28,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         boolean isLoffEnabled = adsConfiguration.isLoffEnabled();
         result.add((byte)(isLoffEnabled? 0x13 : 0x00));                  //register 0x04
         for (int i = 0; i < 8; i++) {
-            result.add((byte) getChanelRegisterValue(adsConfiguration.getAdsChannel(i)));//registers 0x05 - 0x0C
+            result.add((byte) getChanelRegisterValue(adsConfiguration, i));//registers 0x05 - 0x0C
         }
          int rlsSensBits = getRLDSensBits(adsConfiguration);
         result.add((byte)rlsSensBits);  //RLD sens positive              register 0x0D
@@ -48,8 +48,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
 
         result.add((byte)0xF2);     //делители частоты для 8 каналов ads1298  возможные значения 0,1,2,5,10;
         for (int i = 0; i < NUMBER_OF_ADS_CHANNELS; i++) {
-            AdsChannelConfig adsChannelConfiguration = adsConfiguration.getAdsChannel(i);
-            int divider = adsChannelConfiguration.isEnabled ? adsChannelConfiguration.getDivider().getValue() : 0;
+            int divider = adsConfiguration.isAdsChannelEnabled(i) ? adsConfiguration.getAdsChannelDivider(i) : 0;
             result.add((byte)divider);
         }
 
@@ -87,7 +86,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
     private int getRegister_1Value(AdsConfig adsConfiguration) {
         int registerValue = 0;
         //if (adsConfig.isHighResolutionMode()) {
-            switch (adsConfiguration.getSps()) {
+            switch (adsConfiguration.getSampleRate()) {
                 /*case S250:
                     registerValue = 0x06;//switch to low power mode
                     break;*/
@@ -102,7 +101,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
                     break;
           //  }
         } /*else {
-            switch (adsConfig.getSps()) {
+            switch (adsConfig.getSampleRate()) {
                 case S250:
                     registerValue = 0x06;
                     break;
@@ -121,9 +120,9 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
     }
     //--------------------------------
 
-    private int getChanelRegisterValue(AdsChannelConfig channelConfiguration) {
-        if (channelConfiguration.isEnabled()) {
-            return channelConfiguration.getGain().getRegisterBits() + channelConfiguration.getCommutatorState().getRegisterBits();
+    private int getChanelRegisterValue(AdsConfig config, int adsChannelNumber) {
+        if (config.isAdsChannelEnabled(adsChannelNumber)) {
+            return config.getAdsChannelGain(adsChannelNumber).getRegisterBits() + config.getAdsChannelCommutatorState(adsChannelNumber).getRegisterBits();
         }
         return 0x81;   //channel disabled
     }
@@ -131,28 +130,26 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
     private int testSignalEnabledBits(AdsConfig configuration) {
         int result = 0x00;
         for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
-            AdsChannelConfig adsChannelConfiguration = configuration.getAdsChannel(i);
-            if (adsChannelConfiguration.isEnabled() && adsChannelConfiguration.getCommutatorState().equals(CommutatorState.TEST_SIGNAL)) {
+
+            if (configuration.isAdsChannelEnabled(i) && configuration.getAdsChannelCommutatorState(i).equals(CommutatorState.TEST_SIGNAL)) {
                 result = 0x10;
             }
         }
         return result;
     }
 
-    private int getLoffSensRegisterValue(AdsConfig adsConfiguration){
+    private int getLoffSensRegisterValue(AdsConfig configuration){
         int result = 0;
-        for (int i = 0; i < adsConfiguration.getNumberOfAdsChannels(); i++) {
-            AdsChannelConfig adsChannelConfiguration = adsConfiguration.getAdsChannel(i);
-            result += (adsChannelConfiguration.isEnabled && adsChannelConfiguration.isLoffEnable()) ? Math.pow(2, i) : 0;
+        for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
+            result += (configuration.isAdsChannelEnabled(i) && configuration.isAdsChannelLoffEnable(i)) ? Math.pow(2, i) : 0;
         }
         return result;
     }
 
-    private int getRLDSensBits(AdsConfig adsConfiguration) {
+    private int getRLDSensBits(AdsConfig configuration) {
         int result = 0;
-        for (int i = 0; i < adsConfiguration.getNumberOfAdsChannels(); i++) {
-            AdsChannelConfig adsChannelConfiguration = adsConfiguration.getAdsChannel(i);
-            result += adsChannelConfiguration.isRldSenseEnabled() ? Math.pow(2, i) : 0;
+        for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
+            result += configuration.isAdsChannelRldSenseEnabled(i) ? Math.pow(2, i) : 0;
         }
         return result;
     }

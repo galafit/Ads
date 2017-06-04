@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -12,25 +12,25 @@ public class JsonPreferences implements Preferences {
 
 
     @Override
-    public BdfRecorderConfig getConfig() {
+    public AppConfig getConfig() {
         if (propertyFile.exists() && propertyFile.isFile()) {
             JsonProperties properties = new JsonProperties(propertyFile);
             try {
-                BdfRecorderConfig bdfRecorderConfig = (BdfRecorderConfig) properties.getConfig(BdfRecorderConfig.class);
-                return bdfRecorderConfig;
+                AppConfig appConfig = (AppConfig) properties.getConfig(AppConfig.class);
+                return appConfig;
             } catch (IOException e) {
                 e.printStackTrace();
-                log.error("Problem with property file reading: " + propertyFile + "! " + e.getMessage());
+                log.error("Error during property file reading: " + propertyFile + "! " + e.getMessage());
             }
         }
-        return new BdfRecorderConfig();
+        return new AppConfig();
     }
 
     @Override
-    public void saveConfig(BdfRecorderConfig bdfRecorderConfig) {
+    public void saveConfig(AppConfig appConfig) {
         try {
             JsonProperties properties = new JsonProperties(propertyFile);
-            properties.saveCongfig(bdfRecorderConfig);
+            properties.saveCongfig(appConfig);
 
         } catch (IOException e) {
             e.printStackTrace();

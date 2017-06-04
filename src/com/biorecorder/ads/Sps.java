@@ -1,7 +1,7 @@
 package com.biorecorder.ads;
 
 /**
- *
+ * Sample rate. Samples per seconds
  */
 public enum Sps {
 

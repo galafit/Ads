@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder;
 
 /**
  * Created by gala on 10/05/17.

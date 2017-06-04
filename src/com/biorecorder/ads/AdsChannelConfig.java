@@ -3,7 +3,7 @@ package com.biorecorder.ads;
 /**
  * Class-structure to store info about Ads-channels
  */
-public class AdsChannelConfig {
+class AdsChannelConfig {
 
     protected Divider divider = Divider.D1;
     protected boolean isEnabled = true;

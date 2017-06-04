@@ -74,7 +74,7 @@ class FrameDecoder implements ComPortListener {
                 if(msg_size <= MAX_MESSAGE_SIZE) {
                     frameSize = msg_size;
                 } else {
-                    String infoMsg = "Message broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                    String infoMsg = "Message frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
                     notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
                     frameIndex = 0;
                 }
@@ -88,12 +88,12 @@ class FrameDecoder implements ComPortListener {
             if (inByte == STOP_FRAME_MARKER) {
                 onFrameReceived();
             }else {
-                String infoMsg = "No stop frame marker. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                String infoMsg = "Frame broken. No stop frame marker. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
                 notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
             }
             frameIndex = 0;
         } else {
-            String infoMsg = "Lost Frame. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+            String infoMsg = "Frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
             notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
             frameIndex = 0;
         }
@@ -250,9 +250,8 @@ class FrameDecoder implements ComPortListener {
     private int getNumberOf3ByteSamples() {
         int result = 0;
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
-            AdsChannelConfig adsChannelConfig = adsConfig.getAdsChannel(i);
-            if (adsChannelConfig.isEnabled) {
-                int divider = adsChannelConfig.getDivider().getValue();
+            if (adsConfig.isAdsChannelEnabled(i)) {
+                int divider = adsConfig.getAdsChannelDivider(i);
                 int maxDiv = adsConfig.getMaxDiv();
                 result += (maxDiv / divider);
             }

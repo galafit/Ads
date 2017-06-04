@@ -1,39 +1,26 @@
 package com.biorecorder.bdfrecorder;
 
-import com.biorecorder.ads.AdsConfig;
-import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.HeaderInfo;
+import com.biorecorder.ads.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.sun.istack.internal.Nullable;
-import java.io.File;
-import java.text.SimpleDateFormat;
+
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
  *
  */
 public class BdfRecorderConfig {
-    private String comPortName = "";
-    private AdsConfig adsConfig = new AdsConfig();
-    private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
-    private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    @JsonIgnore
-    private String fileNameToSave;
+    private AdsConfig adsConfig = new AdsConfig();
+    private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
 
-    public void setFileNameToSave(String fileNameToSave) {
-        this.fileNameToSave = fileNameToSave;
+    AdsConfig getAdsConfig() {
+        return adsConfig;
     }
 
-    public void setDirectoryToSave(File directory) {
-        dirToSave = directory.getAbsolutePath();
-    }
-
-    public File getDirToSave() {
-        return new File(dirToSave);
+    void setAdsConfig(AdsConfig adsConfig) {
+        this.adsConfig = adsConfig;
     }
 
     public Boolean is50HzFilterEnabled(int adsChannelNumber) {
@@ -50,34 +37,6 @@ public class BdfRecorderConfig {
         filter50HzMask.set(adsChannelNumber, is50HzFilterEnabled);
     }
 
-    public String getComPortName() {
-        return comPortName;
-    }
-
-    public void setComPortName(String comPortName) {
-        this.comPortName = comPortName;
-    }
-
-    public File getFileToSave() {
-        String filename = normalizeFilename(fileNameToSave);
-        return new File(dirToSave, filename);
-    }
-
-
-    private double getDurationOfDataRecord() {
-        return 1.0 * adsConfig.getMaxDiv()/
-                adsConfig.getSps().getValue();
-    }
-
-
-
-    public AdsConfig getAdsConfig() {
-        return adsConfig;
-    }
-
-    public void setAdsConfig(AdsConfig adsConfiguration) {
-        this.adsConfig = adsConfiguration;
-    }
 
     public String getPatientIdentification() {
         return patientIdentification;
@@ -95,119 +54,131 @@ public class BdfRecorderConfig {
         this.recordingIdentification = recordingIdentification;
     }
 
-    public HeaderInfo getHeaderConfig() {
-        HeaderInfo headerInfo = new HeaderInfo(FileType.BDF_24BIT);
-        headerInfo.setPatientIdentification(getPatientIdentification());
-        headerInfo.setRecordingIdentification(getRecordingIdentification());
-        headerInfo.setDurationOfDataRecord(getDurationOfDataRecord());
-        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
-            if (adsConfig.getAdsChannel(i).isEnabled()) {
-                headerInfo.addSignal();
-                int signalNumber = headerInfo.getNumberOfSignals() - 1;
-                headerInfo.setTransducer(signalNumber,"Unknown");
-                headerInfo.setPhysicalDimension(signalNumber, "uV");
-                int physicalMaximum = 2400000 / adsConfig.getAdsChannel(i).getGain().getValue();
-                headerInfo.setPhysicalRange(signalNumber, -physicalMaximum, physicalMaximum);
-                int digitalMaximum = Math.round(8388607 / getAdsConfig().getNoiseDivider());
-                int digitalMinimum = Math.round(-8388608 / getAdsConfig().getNoiseDivider());
-                headerInfo.setDigitalRange(signalNumber, digitalMinimum, digitalMaximum);
-                headerInfo.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() *
-                        adsConfig.getSps().getValue() /
-                        adsConfig.getAdsChannel(i).getDivider().getValue());
-                headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                headerInfo.setLabel(i, adsConfig.getAdsChannel(i).getName());
-            }
-        }
-
-        if (adsConfig.isAccelerometerEnabled()) {
-            if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
-                headerInfo.addSignal();
-                int signalNumber = headerInfo.getNumberOfSignals() - 1;
-                headerInfo.setLabel(signalNumber, "Accelerometer");
-                headerInfo.setTransducer(signalNumber, "None");
-                headerInfo.setPhysicalDimension(signalNumber, "m/sec^3");
-                headerInfo.setPhysicalRange(signalNumber, -1000, 1000);
-                headerInfo.setDigitalRange(signalNumber, -2000, 2000 );
-                headerInfo.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfig.getSps().getValue() /
-                        adsConfig.getAccelerometerDivider().getValue());
-                headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-            } else {
-                int accelerometerDigitalMaximum = 9610;
-                int accelerometerDigitalMinimum = 4190;
-                int accelerometerPhysicalMaximum = 1000;
-                int accelerometerPhysicalMinimum = -1000;
-
-                String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
-                for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
-                    headerInfo.addSignal();
-                    int signalNumber = headerInfo.getNumberOfSignals() - 1;
-                    headerInfo.setLabel(signalNumber, accelerometerChannelNames[i]);
-                    headerInfo.setTransducer(signalNumber,"None");
-                    headerInfo.setPhysicalDimension(signalNumber,"mg");
-                    headerInfo.setPhysicalRange(signalNumber, accelerometerPhysicalMinimum, accelerometerPhysicalMaximum);
-                    headerInfo.setDigitalRange(signalNumber, accelerometerDigitalMinimum, accelerometerDigitalMaximum);
-                    headerInfo.setPrefiltering(signalNumber, "None");
-                    int nrOfSamplesInEachDataRecord = (int) Math.round(getDurationOfDataRecord() * adsConfig.getSps().getValue() /
-                            adsConfig.getAccelerometerDivider().getValue());
-                    headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                }
-            }
-        }
-        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-            headerInfo.addSignal();
-            int signalNumber = headerInfo.getNumberOfSignals() - 1;
-            headerInfo.setLabel(signalNumber, "Battery voltage");
-            headerInfo.setTransducer(signalNumber, "None");
-            headerInfo.setPhysicalDimension(signalNumber, "V");
-            headerInfo.setPhysicalRange(signalNumber, 0, 50);
-            headerInfo.setDigitalRange(signalNumber, 0, 10240);
-            headerInfo.setPrefiltering(signalNumber, "None");
-            int nrOfSamplesInEachDataRecord = 1;
-            headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-        }
-        if (adsConfig.isLoffEnabled()) {
-            headerInfo.addSignal();
-            int signalNumber = headerInfo.getNumberOfSignals() - 1;
-            headerInfo.setLabel(signalNumber, "Loff Status");
-            headerInfo.setTransducer(signalNumber, "None");
-            headerInfo.setPhysicalDimension(signalNumber, "Bit mask");
-            headerInfo.setPhysicalRange(signalNumber, 0, 65536);
-            headerInfo.setDigitalRange(signalNumber, 0, 65536);
-            headerInfo.setPrefiltering(signalNumber, "None");
-            int nrOfSamplesInEachDataRecord = 1;
-            headerInfo.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-        }
-        return headerInfo;
+    public int getMaxDiv() {
+        return adsConfig.getMaxDiv();
     }
 
 
-
-
-    public static String normalizeFilename(@Nullable String filename) {
-        String FILE_EXTENSION = "bdf";
-        String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
-
-        if (filename == null || filename.isEmpty()) {
-            return defaultFilename.concat(".").concat(FILE_EXTENSION);
-        }
-        filename = filename.trim();
-
-        // if filename has no extension
-        if (filename.lastIndexOf('.') == -1) {
-            filename = filename.concat(".").concat(FILE_EXTENSION);
-            return defaultFilename + filename;
-        }
-        // if  extension  match with given FILE_EXTENSIONS
-        // (?i) makes it case insensitive (catch BDF as well as bdf)
-        if (filename.matches("(?i).*\\." + FILE_EXTENSION)) {
-            return defaultFilename +filename;
-        }
-        // If the extension do not match with  FILE_EXTENSION We need to replace it
-        filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);
-        return defaultFilename + "_" + filename;
+    public int[] getChannelsAvailableDividers() {
+        return adsConfig.getChannelsAvailableDividers();
     }
 
+    public int[] getAccelerometerAvailableDividers() {
+        return adsConfig.getAccelerometerAvailableDividers();
+    }
+
+    public int getAdsChannelFrequency(int adsChannelNumber){
+        return adsConfig.getAdsChannelSampleRate(adsChannelNumber);
+    }
+
+    public int getAccelerometerFrequency(){
+        return adsConfig.getAccelerometerSampleRate();
+    }
+
+    public void setAdsChannelDivider(int adsChannelNumber, Divider divider) {
+        adsConfig.setAdsChannelDivider(adsChannelNumber, divider);
+    }
+
+    public void setAccelerometerDivider(Divider divider) {
+        adsConfig.setAccelerometerDivider(divider);
+    }
+
+
+    public boolean isLoffEnabled() {
+        return adsConfig.isLoffEnabled();
+    }
+
+    public int getNumberOfAdsChannels() {
+        return adsConfig.getNumberOfAdsChannels();
+    }
+
+    public int getSampleRate() {
+        return adsConfig.getSampleRate().getValue();
+    }
+
+    public void setSampleRate(Sps sampleRate) {
+        adsConfig.setSampleRate(sampleRate);
+    }
+
+    public boolean isAccelerometerEnabled() {
+        return adsConfig.isAccelerometerEnabled();
+    }
+
+    public void setAccelerometerEnabled(boolean accelerometerEnabled) {
+        adsConfig.setAccelerometerEnabled(accelerometerEnabled);
+    }
+
+    public boolean isBatteryVoltageMeasureEnabled() {
+        return adsConfig.isBatteryVoltageMeasureEnabled();
+    }
+
+    public void setBatteryVoltageMeasureEnabled(boolean batteryVoltageMeasureEnabled) {
+        adsConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
+    }
+
+    public String getDeviceType() {
+        return adsConfig.getDeviceType().name();
+    }
+
+    public void setDeviceType(DeviceType deviceType) {
+        adsConfig.setDeviceType(deviceType);
+    }
+
+    public boolean isAccelerometerOneChannelMode() {
+        return adsConfig.isAccelerometerOneChannelMode();
+    }
+
+    public void setAccelerometerOneChannelMode(boolean accelerometerOneChannelMode) {
+        adsConfig.setAccelerometerOneChannelMode(accelerometerOneChannelMode);
+    }
+
+    public String getAdsChannelName(int adsChannelNumber) {
+        return adsConfig.getAdsChannelName(adsChannelNumber);
+    }
+
+    public void setAdsChannelName(int adsChannelNumber, String name) {
+        adsConfig.setAdsChannelName(adsChannelNumber, name);
+    }
+
+    public void setAdsChannelLoffEnable(int adsChannelNumber, boolean loffEnable) {
+        adsConfig.setAdsChannelLoffEnable(adsChannelNumber, loffEnable);
+    }
+
+    public void setAdsChannelRldSenseEnabled(int adsChannelNumber, boolean rldSenseEnabled) {
+        adsConfig.setAdsChannelRldSenseEnabled(adsChannelNumber, rldSenseEnabled);
+    }
+
+    public boolean isAdsChannelLoffEnable(int adsChannelNumber) {
+        return adsConfig.isAdsChannelLoffEnable(adsChannelNumber);
+    }
+
+    public boolean isAdsChannelRldSenseEnabled(int adsChannelNumber) {
+        return adsConfig.isAdsChannelRldSenseEnabled(adsChannelNumber);
+    }
+
+    public int getAdsChannelGain(int adsChannelNumber) {
+        return adsConfig.getAdsChannelGain(adsChannelNumber).getValue();
+    }
+
+    public void setAdsChannelGain(int adsChannelNumber, Gain gain) {
+        adsConfig.setAdsChannelGain(adsChannelNumber, gain);
+    }
+
+    public String getAdsChannelCommutatorState(int adsChannelNumber) {
+        return adsConfig.getAdsChannelCommutatorState(adsChannelNumber).name();
+    }
+
+    public void setAdsChannelCommutatorState(int adsChannelNumber, CommutatorState commutatorState) {
+        adsConfig.setAdsChannelCommutatorState(adsChannelNumber, commutatorState);
+    }
+
+
+    public boolean isAdsChannelEnabled(int adsChannelNumber) {
+        return adsConfig.isAdsChannelEnabled(adsChannelNumber);
+    }
+
+    public void setAdsChannelEnabled(int adsChannelNumber, boolean enabled) {
+        adsConfig.setAdsChannelEnabled(adsChannelNumber, enabled);
+    }
 
 }

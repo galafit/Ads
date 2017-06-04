@@ -1,9 +1,9 @@
 package com.biorecorder.ads;
 
 
-import com.biorecorder.ads.exceptions.AdsConnectionRuntimeException;
-import com.biorecorder.ads.exceptions.AdsTypeIvalidRuntimeException;
-import com.biorecorder.ads.exceptions.ComPortNotFoundRuntimeException;
+import com.biorecorder.ads.exceptions.PortBusyRuntimeException;
+import com.biorecorder.ads.exceptions.PortNotFoundRuntimeException;
+import com.biorecorder.ads.exceptions.PortRuntimeException;
 import jssc.SerialPortException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -11,245 +11,240 @@ import org.apache.commons.logging.LogFactory;
 
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
  */
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);
-    private static final int COMPORT_SPEED = 460800;
-    private static final byte PING_COMMAND = (byte) (0xFB & 0xFF);
-    private static final byte HELLO_REQUEST = (byte) (0xFD & 0xFF);
-    private static final byte STOP_REQUEST = (byte) (0xFF & 0xFF);
-    private static final byte HARDWARE_REQUEST = (byte) (0xFA & 0xFF);
+    private final int COMPORT_SPEED = 460800;
+    private final byte PING_COMMAND = (byte) (0xFB & 0xFF);
+    private final byte HELLO_REQUEST = (byte) (0xFD & 0xFF);
+    private final byte STOP_REQUEST = (byte) (0xFF & 0xFF);
+    private final byte HARDWARE_REQUEST = (byte) (0xFA & 0xFF);
+
+    private final String CONNECTION_ERROR_MESSAGE = "Ads must be connected to some serial port";
 
     private static final int PING_TIMER_DELAY_MS = 1000;
-    private static final int WATCHDOG_TIMER_DELAY_MS = 500;
-    int MAX_START_TIMEOUT_SEC = 60;
+    private static final int WATCHDOG_TIMER_PERIOD_MS = 500;
 
-    private List<AdsDataListener> adsDataListeners = new ArrayList<AdsDataListener>();
-    private List<AdsEventsListener> adsEventsListeners = new ArrayList<AdsEventsListener>();
-    private volatile ComPort comPort;
+    private AdsDataListener adsDataListener;
+    private AdsEventsListener adsEventsListener;
+    private volatile Comport comport;
     private volatile AdsConfig adsConfig = new AdsConfig();
     private volatile Timer pingTimer;
     private volatile Timer monitoringTimer = new Timer();
     private final AdsState adsState = new AdsState();
 
 
-    public synchronized AdsConfig getAdsConfig() {
+    public synchronized AdsConfig getConfig() {
         return adsConfig;
     }
 
-    public synchronized void setAdsConfig(AdsConfig adsConfig) {
+    public synchronized void setConfig(AdsConfig adsConfig) {
         this.adsConfig = adsConfig;
+        log.info(adsConfig.toString());
     }
 
 
-    private void comPortSimpleConnect(String comPortName) throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
-        if (!isComPortAvailable(comPortName)) {
-            String msg = MessageFormat.format("No serial port with the name: \"{0}\"", comPortName);
-            throw new ComPortNotFoundRuntimeException(msg);
+    public void connect(String comportName) throws PortNotFoundRuntimeException, PortBusyRuntimeException, PortRuntimeException {
+        if (comport != null && comport.isOpened() && comport.getComportName().equals(comportName)) {
+            return;
         }
-        try {
-            comPort = new ComPort(comPortName, COMPORT_SPEED);
-        } catch (SerialPortException e) {
-            String msg = MessageFormat.format("Error while connecting to serial port: \"{0}\"", comPortName);
-            System.out.println(msg);
-            throw new AdsConnectionRuntimeException(msg, e);
-        }
-    }
-
-    private void comPortConnect(String comPortName) throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
-        if (comPort == null) {
-            comPortSimpleConnect(comPortName);
-        }
-        if (!comPort.isOpened()) {
-            comPortSimpleConnect(comPortName);
-        }
-        if (!comPort.getComPortName().equals(comPortName)) {
+        if (comport != null && comport.isOpened() && !comport.getComportName().equals(comportName)) {
             try {
-                comPort.close();
+                comport.close();
             } catch (SerialPortException e) {
-                String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comPort.getComPortName());
-                System.out.println(msg);
-                throw new AdsConnectionRuntimeException(msg, e);
+                String msg = MessageFormat.format("Error while closing serial port: \"{0}\"", comport.getComportName());
+                log.error(msg, e);
             }
-            comPortSimpleConnect(comPortName);
         }
-
-        System.out.println("portName " + comPortName);
-    }
-
-
-    public synchronized void connect(String comPortName) throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
-        comPortConnect(comPortName);
+        comport = new Comport(comportName, COMPORT_SPEED);
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         startMonitoringTimer(frameDecoder, true);
-        comPort.setComPortListener(frameDecoder);
+        comport.setComPortListener(frameDecoder);
+    }
+
+    public static void printThreads() {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        Thread[] threadArray = threadSet.toArray(new Thread[threadSet.size()]);
+        for (Thread thread : threadArray) {
+            System.out.println("thread: " + thread.getName());
+        }
+    }
+
+    public synchronized boolean isConnected() {
+        if (comport != null && comport.isOpened()) {
+            return true;
+        } else {
+            return false;
+        }
 
     }
 
-    public synchronized void startRecording(String comPortName) throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
-        comPortConnect(comPortName);
+    /**
+     * Send command to start ads measurements
+     *
+     * @return true if command was successfully written, and false - otherwise
+     * @throws IllegalStateException if ads was not connected first to some comport
+     */
+    public synchronized boolean sendStartCommand() throws IllegalStateException {
+        if (!isConnected()) {
+            throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
+        }
+
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
             public void onDataReceived(int[] dataFrame) {
-                for (AdsDataListener l : adsDataListeners) {
-                    l.onDataReceived(dataFrame);
-                }
+                adsDataListener.onDataReceived(dataFrame);
             }
         });
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
                 if (adsMessage == AdsMessage.LOW_BATTERY) {
-                    for (AdsEventsListener l : adsEventsListeners) {
-                        l.handleAdsLowButtery();
-                    }
+                    adsEventsListener.handleAdsLowButtery();
                 }
                 if (adsMessage == AdsMessage.FRAME_BROKEN) {
-                    for (AdsEventsListener l : adsEventsListeners) {
-                        l.handleAdsFrameBroken(additionalInfo);
-                    }
+                    adsEventsListener.handleAdsFrameBroken(additionalInfo);
                 }
 
             }
         });
         startMonitoringTimer(frameDecoder, false);
-        comPort.setComPortListener(frameDecoder);
-        comPort.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
-        adsState.setStoped(false);
+        comport.setComPortListener(frameDecoder);
         //---------------------------
-        TimerTask timerTask = new TimerTask() {
+        pingTimer = new Timer();
+        pingTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                comPort.writeByte(PING_COMMAND);
+                comport.writeByte(PING_COMMAND);
             }
-        };
-        pingTimer = new Timer();
-        pingTimer.schedule(timerTask, PING_TIMER_DELAY_MS, PING_TIMER_DELAY_MS);
+        }, PING_TIMER_DELAY_MS, PING_TIMER_DELAY_MS);
+
+        return comport.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
     }
 
-
-    public synchronized void stopRecording() {
-        if (comPort != null) {
-            comPort.writeByte(STOP_REQUEST);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                log.warn(e);
-            }
-            FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-            startMonitoringTimer(frameDecoder, true);
-            comPort.setComPortListener(frameDecoder);
+    /**
+     * Send command to stop ads measurements and work
+     *
+     * @return true if command was successfully written, and false - otherwise
+     * @throws IllegalStateException if ads was not connected first to some comport
+     */
+    public synchronized boolean sendStopRecordingCommand() throws IllegalStateException {
+        if (!isConnected()) {
+            throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
         }
         if (pingTimer != null) {
             pingTimer.cancel();
         }
-    }
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
+        startMonitoringTimer(frameDecoder, true);
+        comport.setComPortListener(frameDecoder);
 
-    public boolean isActive() {
-        return adsState.isActive();
-    }
+        boolean is_writing_ok = comport.writeByte(STOP_REQUEST);
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            log.warn(e);
+        }
 
-    public boolean isSendingData() {
-        return adsState.isDataComing();
+        return is_writing_ok;
     }
 
     /**
      * Sends request for hardware config. If receive ads_type return it.
      * Otherwise return null
+     *
      * @return ads type (2 or 8 channel) or null if ads not contests for some reasons
+     * @throws IllegalStateException if ads was not connected first to some comport
      */
-    public synchronized  DeviceType  requestDeviceType() {
-        if (comPort != null) {
-            comPort.writeByte(HARDWARE_REQUEST);
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    log.warn(e);
-                }
-                DeviceType deviceType = adsState.getDeviceType();
-                if(deviceType != null) {
-                    return deviceType;
-                }
+    public synchronized DeviceType sendDeviceTypeRequest() throws IllegalStateException {
+        if (!isConnected()) {
+            throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
+        }
+        if(adsState.getDeviceType() != null) {
+            return adsState.getDeviceType();
+        }
+        comport.writeByte(HARDWARE_REQUEST);
+        for (int i = 0; i < 5; i++) {
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                log.warn(e);
+            }
+            if (adsState.getDeviceType() != null) {
+                return adsState.getDeviceType();
             }
         }
         return null;
     }
 
-    public void addAdsDataListener(AdsDataListener adsDataListener) {
-        adsDataListeners.add(adsDataListener);
+
+    public boolean isActive() {
+        return adsState.isActive();
     }
 
-    public void removeAdsDataListener(AdsDataListener adsDataListener) {
-        adsDataListeners.remove(adsDataListener);
+    public void setAdsDataListener(AdsDataListener adsDataListener) {
+        this.adsDataListener = adsDataListener;
     }
 
-    public void addAdsEventsListener(AdsEventsListener eventListener) {
-        adsEventsListeners.add(eventListener);
+    public void setAdsEventsListener(AdsEventsListener adsEventsListener) {
+        this.adsEventsListener = adsEventsListener;
     }
 
-    public void removeAdsEventsListener(AdsEventsListener eventListener) {
-        adsEventsListeners.remove(eventListener);
-    }
-
-    public synchronized void disconnect() {
-        if (comPort != null) {
+    public synchronized void disconnect() throws PortRuntimeException {
+        if (comport != null) {
             try {
-                comPort.close();
+                comport.close();
+                comport = null;
             } catch (SerialPortException e) {
-                String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comPort.getComPortName());
-                System.out.println("comport disconnecting failed");
-                throw new AdsConnectionRuntimeException(msg, e);
+                String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comport.getComportName());
+                throw new PortRuntimeException(msg, e);
             }
         }
     }
 
-    public static boolean isComPortAvailable(String comPortName) {
-        return ComPort.isComPortAvailable(comPortName);
+    public static boolean isComportAvailable(String comPortName) {
+        return Comport.isComportAvailable(comPortName);
     }
 
-    public static String[] getAvailableComPortNames() {
-        return ComPort.getAvailableComPortNames();
+    public static String[] getAvailableComportNames() {
+        return Comport.getAvailableComportNames();
     }
 
 
     private void startMonitoringTimer(FrameDecoder frameDecoder, boolean isHelloRequestsActivated) {
         monitoringTimer.cancel();
         monitoringTimer = new Timer();
-        MonitoringTask watchDogTask = new MonitoringTask(adsState);
-        frameDecoder.addMessageListener(watchDogTask);
-        frameDecoder.addDataListener(watchDogTask);
-        monitoringTimer.schedule(watchDogTask, WATCHDOG_TIMER_DELAY_MS, WATCHDOG_TIMER_DELAY_MS);
+        MonitoringTask monitoringTask = new MonitoringTask(adsState);
+        frameDecoder.addMessageListener(monitoringTask);
+        frameDecoder.addDataListener(monitoringTask);
+        monitoringTimer.schedule(monitoringTask, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
 
-        if(isHelloRequestsActivated) {
+        if (isHelloRequestsActivated) {
             monitoringTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    comPort.writeByte(HARDWARE_REQUEST);
+                    comport.writeByte(HARDWARE_REQUEST);
                 }
-            }, WATCHDOG_TIMER_DELAY_MS, WATCHDOG_TIMER_DELAY_MS);
+            }, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
         }
     }
 
 
 
- /*   public synchronized Future startRecording_full(String comPortName) throws ComPortNotFoundRuntimeException, AdsConnectionRuntimeException {
+ /*   public synchronized Future startRecording_full(String comPortName) throws PortNotFoundRuntimeException, AdsConnectionRuntimeException {
+        int MAX_START_TIMEOUT_SEC = 60;
         comPortConnect(comPortName);
 
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
-            public void onDataReceived(int[] dataFrame) {
+            public void onDataRecordReceived(int[] dataFrame) {
                 for (AdsDataListener l : adsDataListeners) {
-                    l.onDataReceived(dataFrame);
+                    l.onDataRecordReceived(dataFrame);
                 }
             }
         });
@@ -269,12 +264,12 @@ public class Ads {
             }
         });
         startMonitoringTimer(frameDecoder, false);
-        comPort.setComPortListener(frameDecoder);
+        comport.setComPortListener(frameDecoder);
         //---------------------------
         TimerTask timerTask = new TimerTask() {
             @Override
             public void run() {
-                comPort.writeByte(PING_COMMAND);
+                comport.writeByte(PING_COMMAND);
             }
         };
         pingTimer = new Timer();
@@ -287,11 +282,11 @@ public class Ads {
             public void run() {
                 int delay = 200;
                 while (adsState.getDeviceType() == null) {
-                    comPort.writeByte(HARDWARE_REQUEST);
+                    comport.writeByte(HARDWARE_REQUEST);
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException e) {
-                        String msg = "Ads startRecording(): Interruption during ads hardware requesting.";
+                        String msg = "Ads sendStartCommand(): Interruption during ads hardware requesting.";
                         log.info(msg, e);
                     }
                 }
@@ -302,16 +297,16 @@ public class Ads {
                 }
 
                 if (!adsState.isStoped()) {
-                    comPort.writeByte(STOP_REQUEST);
+                    comport.writeByte(STOP_REQUEST);
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
-                        String msg = "Ads startRecording(): Interruption during ads stopping.";
+                        String msg = "Ads sendStartCommand(): Interruption during ads stopping.";
                         log.info(msg, e);
                     }
                 }
 
-                comPort.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
+                comport.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
 
                 System.out.println("device config written");
 
@@ -320,7 +315,7 @@ public class Ads {
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException e) {
-                        String msg = "Ads startRecording(): Interruption waiting data coming.";
+                        String msg = "Ads sendStartCommand(): Interruption waiting data coming.";
                         log.info(msg, e);
                     }
                 }
@@ -333,7 +328,7 @@ public class Ads {
             public void run() {
                if(!adsState.isDataComing()) {
                    future.cancel(true);
-                   stopRecording();
+                   sendStopRecordingCommand();
                }
             }
         }, MAX_START_TIMEOUT_SEC, TimeUnit.SECONDS);
