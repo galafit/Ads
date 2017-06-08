@@ -6,8 +6,8 @@ import com.biorecorder.ads.exceptions.PortNotFoundRuntimeException;
 import com.biorecorder.bdfrecorder.exceptions.*;
 import com.biorecorder.edflib.EdfFileWriter;
 import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.base.DefaultEdfRecordingInfo;
-import com.biorecorder.edflib.base.EdfRecordingInfo;
+import com.biorecorder.edflib.base.DefaultEdfConfig;
+import com.biorecorder.edflib.base.EdfConfig;
 import com.biorecorder.edflib.base.EdfWriter;
 import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
 import com.biorecorder.edflib.filters.EdfFilter;
@@ -53,11 +53,11 @@ public class BdfRecorder implements AdsEventsListener {
      * Get the info about edf
      * @return
      */
-    public EdfRecordingInfo getRecordingInfo(BdfRecorderConfig bdfRecorderConfig) {
+    public EdfConfig getRecordingInfo(BdfRecorderConfig bdfRecorderConfig) {
         if(edfWriter == null) {
             edfWriter = createEdfWriter(null, bdfRecorderConfig , null, null);
         }
-        return edfWriter.getResultantRecordingInfo();
+        return edfWriter.getResultantConfig();
     }
 
     /**
@@ -123,7 +123,7 @@ public class BdfRecorder implements AdsEventsListener {
             ads.addAdsDataListener(new AdsDataListener() {
                 @Override
                 public void onDataReceived(int[] dataFrame) {
-                    edfWriter.writeDigitalSamples(dataFrame);
+                    edfWriter.writeDigitalRecord(dataFrame);
                 }
             });
             ads.sendStartCommand(bdfRecorderConfig.getAdsConfig());
@@ -209,7 +209,7 @@ public class BdfRecorder implements AdsEventsListener {
     private EdfFilter createEdfWriter(@Nullable File file, BdfRecorderConfig bdfRecorderConfig, @Nullable String patientId, @Nullable String recordingId) throws FileNotFoundRuntimeException {
         EdfDataReceiver edfDataReceiver = new EdfDataReceiver(file);
 
-        EdfRecordingInfo adsDataRecordConfig = createAdsDataRecordConfig(bdfRecorderConfig.getAdsConfig(), patientId, recordingId);
+        EdfConfig adsDataRecordConfig = createAdsDataRecordConfig(bdfRecorderConfig.getAdsConfig(), patientId, recordingId);
 
         System.out.print(adsDataRecordConfig);
         // join DataRecords to have data records length = resultantDataRecordDuration;
@@ -234,12 +234,12 @@ public class BdfRecorder implements AdsEventsListener {
             edfSignalsRemover.removeSignal(adsDataRecordConfig.getNumberOfSignals() - 1);
         }
 
-        edfSignalsRemover.setRecordingInfo(adsDataRecordConfig);
+        edfSignalsRemover.setConfig(adsDataRecordConfig);
         return edfSignalsRemover;
     }
 
-    EdfRecordingInfo createAdsDataRecordConfig(AdsConfig adsConfig, @Nullable String patientId, @Nullable String recordingId) {
-        DefaultEdfRecordingInfo edfConfig = new DefaultEdfRecordingInfo();
+    EdfConfig createAdsDataRecordConfig(AdsConfig adsConfig, @Nullable String patientId, @Nullable String recordingId) {
+        DefaultEdfConfig edfConfig = new DefaultEdfConfig();
         if (patientId != null) {
             edfConfig.setPatientIdentification(patientId);
         }
@@ -329,21 +329,21 @@ public class BdfRecorder implements AdsEventsListener {
         }
 
         @Override
-        public void setRecordingInfo(EdfRecordingInfo recordingInfo) {
-            super.setRecordingInfo(recordingInfo);
+        public void setConfig(EdfConfig recordingInfo) {
+            super.setConfig(recordingInfo);
             if(edfFileWriter != null) {
-                edfFileWriter.setRecordingInfo(recordingInfo);
+                edfFileWriter.setConfig(recordingInfo);
             }
         }
 
         @Override
-        public void writeDigitalSamples(int[] samples) {
+        public void writeDigitalSamples(int[] samples, int offset, int length) {
             sampleCounter += samples.length;
             for (BdfDataListener listener : dataListeners) {
                 listener.onDataRecordReceived(samples);
             }
             if(edfFileWriter != null) {
-                edfFileWriter.writeDigitalSamples(samples);
+                edfFileWriter.writeDigitalSamples(samples, offset, length);
             }
         }
 
