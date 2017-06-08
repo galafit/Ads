@@ -135,8 +135,8 @@ public class AppConfig {
         }
     }
 
-    public boolean isLoffEnabled() {
-        return bdfRecorderConfig.isLoffEnabled();
+    public boolean isLeadOffEnabled() {
+        return bdfRecorderConfig.isLeadOffEnabled();
     }
 
     public int getNumberOfAdsChannels() {
@@ -173,7 +173,7 @@ public class AppConfig {
     }
 
     public String getDeviceType() {
-        return bdfRecorderConfig.getDeviceType();
+        return bdfRecorderConfig.getDeviceType().name();
     }
 
     public void setDeviceType(String deviceType) {
@@ -205,16 +205,16 @@ public class AppConfig {
         bdfRecorderConfig.setAdsChannelName(adsChannelNumber, name);
     }
 
-    public void setAdsChannelLoffEnable(int adsChannelNumber, boolean loffEnable) {
-        bdfRecorderConfig.setAdsChannelLoffEnable(adsChannelNumber, loffEnable);
+    public void setAdsChannelLeadOffEnable(int adsChannelNumber, boolean leadOffEnable) {
+        bdfRecorderConfig.setAdsChannelLeadOffEnable(adsChannelNumber, leadOffEnable);
     }
 
     public void setAdsChannelRldSenseEnabled(int adsChannelNumber, boolean rldSenseEnabled) {
         bdfRecorderConfig.setAdsChannelRldSenseEnabled(adsChannelNumber, rldSenseEnabled);
     }
 
-    public boolean isAdsChannelLoffEnable(int adsChannelNumber) {
-        return bdfRecorderConfig.isAdsChannelLoffEnable(adsChannelNumber);
+    public boolean isAdsChannelLeadOffEnable(int adsChannelNumber) {
+        return bdfRecorderConfig.isAdsChannelLeadOffEnable(adsChannelNumber);
     }
 
     public boolean isAdsChannelRldSenseEnabled(int adsChannelNumber) {
@@ -239,7 +239,7 @@ public class AppConfig {
     }
 
     public String getAdsChannelCommutatorState(int adsChannelNumber) {
-        return bdfRecorderConfig.getAdsChannelCommutatorState(adsChannelNumber);
+        return bdfRecorderConfig.getAdsChannelCommutatorState(adsChannelNumber).name();
     }
 
     public void setAdsChannelCommutatorState(int adsChannelNumber, String commutatorState) {

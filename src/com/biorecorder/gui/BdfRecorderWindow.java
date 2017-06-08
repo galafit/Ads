@@ -1,7 +1,6 @@
 package com.biorecorder.gui;
 
 import com.biorecorder.*;
-import com.biorecorder.ads.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 
 import javax.swing.*;
@@ -16,10 +15,10 @@ import java.util.ArrayList;
 /**
  *
  */
-public class SettingsWindow extends JFrame  {
+public class BdfRecorderWindow extends JFrame  {
 
     private BdfRecorderApp bdfRecorder;
-    private AppConfig bdfConfig;
+    private AppConfig recordingSettings;
 
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
@@ -73,9 +72,9 @@ public class SettingsWindow extends JFrame  {
             new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Lead Off Detection"), new JLabel(" "),new JLabel("50 Hz Filter")};
 
 
-    public SettingsWindow(BdfRecorderApp bdfRecorder) {
+    public BdfRecorderWindow(BdfRecorderApp bdfRecorder, AppConfig recordingSettings) {
+        this.recordingSettings = recordingSettings;
         this.bdfRecorder = bdfRecorder;
-        bdfConfig = bdfRecorder.getConfig();
         stopButton.setVisible(false);
         init();
         pack();
@@ -94,7 +93,7 @@ public class SettingsWindow extends JFrame  {
     }
 
     private void createFields() {
-        int numberOfAdsChannels = bdfConfig.getNumberOfAdsChannels();
+        int numberOfAdsChannels = recordingSettings.getNumberOfAdsChannels();
 
         spsField = new JComboBox();
         comport = new JComboBox();
@@ -144,15 +143,16 @@ public class SettingsWindow extends JFrame  {
         deviceTypeField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                bdfConfig.setDeviceType(getDeviceType());
+                recordingSettings.setDeviceType(getDeviceType());
                 init();
+                pack();
             }
         });
 
         bdfRecorder.addMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(String message) {
-                JOptionPane.showMessageDialog(SettingsWindow.this, message);
+                JOptionPane.showMessageDialog(BdfRecorderWindow.this, message);
 
             }
         });
@@ -160,23 +160,15 @@ public class SettingsWindow extends JFrame  {
         bdfRecorder.addNotificationListener(new NotificationListener() {
             @Override
             public void update() {
+                updateLeadOffStatus(bdfRecorder.getLeadOfDetectionMask());
                 Color activeColor = Color.GREEN;
                 Color nonActiveColor = Color.GRAY;
                 Color stateColor = nonActiveColor;
-                String stateString = "Disconnected";
                 if(bdfRecorder.isActive()) {
                     stateColor = activeColor;
-                    stateString = "Connected";
                 }
-
-                int recordsNumber = bdfRecorder.getNumberOfWrittenDataRecords();
                 if(bdfRecorder.isRecording()) {
-                    if(recordsNumber == 0) {
-                        stateColor = activeColor;
-                        stateString = "Starting...";
-                    } else {
-                        stateString = "Recording... " + recordsNumber + " data records";
-                    }
+                    stateColor = activeColor;
                     stopButton.setVisible(true);
                     startButton.setVisible(false);
                     disableFields();
@@ -184,11 +176,8 @@ public class SettingsWindow extends JFrame  {
                     stopButton.setVisible(false);
                     startButton.setVisible(true);
                     enableFields();
-                   if(recordsNumber > 0) {
-                       stateString = "Saved to file: " + bdfRecorder.getSavedFile();
-                   }
                 }
-                setReport(stateString, stateColor);
+                setReport(bdfRecorder.getStateReport(), stateColor);
             }
         });
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
@@ -196,7 +185,7 @@ public class SettingsWindow extends JFrame  {
            @Override
            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
                comport.setModel(new DefaultComboBoxModel(bdfRecorder.getAvailableComportNames()));
-               SettingsWindow.this.pack();
+               BdfRecorderWindow.this.pack();
            }
 
            @Override
@@ -215,20 +204,19 @@ public class SettingsWindow extends JFrame  {
             @Override
             public void mouseEntered(MouseEvent e) {
                 comport.setModel(new DefaultComboBoxModel(bdfRecorder.getAvailableComports()));
-                SettingsWindow.this.pack();
+                BdfRecorderWindow.this.pack();
               }
         });*/
 
         comport.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("comport item");
                 bdfRecorder.connect(getComPortName());
             }
         });
 
 
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             channelEnable[i].addActionListener(new AdsChannelEnableListener(i));
         }
 
@@ -258,8 +246,8 @@ public class SettingsWindow extends JFrame  {
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                AppConfig bdfRecorderConfig = saveDataToModel();
-                bdfRecorder.startRecording(bdfRecorderConfig);
+                saveDataToModel();
+                bdfRecorder.startRecording(recordingSettings);
             }
         });
 
@@ -290,8 +278,8 @@ public class SettingsWindow extends JFrame  {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent windowEvent) {
-                AppConfig bdfRecorderConfig = saveDataToModel();
-                bdfRecorder.closeApplication(bdfRecorderConfig);
+                saveDataToModel();
+                bdfRecorder.closeApplication(recordingSettings);
             }
         });
     }
@@ -341,7 +329,7 @@ public class SettingsWindow extends JFrame  {
             channelsPanel.add(component);
         }
 
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             channelsPanel.add(new JLabel(" " + (i + 1) + " "));
             channelsPanel.add(channelEnable[i]);
             channelsPanel.add(channelName[i]);
@@ -358,7 +346,7 @@ public class SettingsWindow extends JFrame  {
         }
 
         // Add line of accelerometer
-        channelsPanel.add(new JLabel(" " + (1 + bdfConfig.getNumberOfAdsChannels()) + " "));
+        channelsPanel.add(new JLabel(" " + (1 + recordingSettings.getNumberOfAdsChannels()) + " "));
         channelsPanel.add(accelerometerEnable);
         channelsPanel.add(accelerometerName);
         channelsPanel.add(accelerometerFrequency);
@@ -416,7 +404,7 @@ public class SettingsWindow extends JFrame  {
         adsPanel.add(identificationBorderPanel, BorderLayout.CENTER);
         adsPanel.add(fileToSaveUI, BorderLayout.SOUTH);
 
-        // Root Panel of the SettingsWindow
+        // Root Panel of the BdfRecorderWindow
         add(topPanel, BorderLayout.NORTH);
         add(adsPanel, BorderLayout.CENTER);
         add(reportPanel, BorderLayout.SOUTH);
@@ -438,7 +426,7 @@ public class SettingsWindow extends JFrame  {
         accelerometerFrequency.setEnabled(isEnable);
         accelerometerCommutator.setEnabled(isEnable);
 
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             channelEnable[i].setEnabled(isEnable);
             channel50Hz[i].setEnabled(isEnable);
             channelName[i].setEnabled(isEnable);
@@ -450,9 +438,11 @@ public class SettingsWindow extends JFrame  {
     }
 
     private void selectComport() {
-        String comportName = bdfConfig.getComportName();
+        String comportName = recordingSettings.getComportName();
         if(comportName != null && !comportName.isEmpty()) {
             comport.setSelectedItem(comportName);
+        } else if(comport.getItemCount() > 0) {
+            comport.setSelectedIndex(0);
         }
     }
 
@@ -468,12 +458,12 @@ public class SettingsWindow extends JFrame  {
     private void enableFields() {
         boolean isEnable = true;
         disableEnableFields(isEnable);
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             if (!isChannelEnable(i)) {
                 enableAdsChannel(i, false);
             }
         }
-        if (!bdfConfig.isAccelerometerEnabled()) {
+        if (!recordingSettings.isAccelerometerEnabled()) {
             enableAccelerometer(false);
         }
     }
@@ -493,29 +483,29 @@ public class SettingsWindow extends JFrame  {
     private void loadDataFromModel() {
         comport.setModel(new DefaultComboBoxModel(bdfRecorder.getAvailableComportNames()));
         selectComport();
-        spsField.setModel(new DefaultComboBoxModel(bdfConfig.getAvailableSampleRates()));
-        spsField.setSelectedItem(bdfConfig.getSampleRate());
-        deviceTypeField.setModel(new DefaultComboBoxModel(bdfConfig.getAvailableDeviceTypes()));
-        deviceTypeField.setSelectedItem(bdfConfig.getDeviceType());
-        fileToSaveUI.setDirectory(new File(bdfConfig.getDirToSave()).getName());
+        spsField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableSampleRates()));
+        spsField.setSelectedItem(recordingSettings.getSampleRate());
+        deviceTypeField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableDeviceTypes()));
+        deviceTypeField.setSelectedItem(recordingSettings.getDeviceType());
+        fileToSaveUI.setDirectory(new File(recordingSettings.getDirToSave()).getName());
 //        fileToSave.setText(FILENAME_PATTERN);
-        patientIdentification.setText(bdfConfig.getPatientIdentification());
-        recordingIdentification.setText(bdfConfig.getRecordingIdentification());
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
-            channelName[i].setText(bdfConfig.getAdsChannelName(i));
-            channelEnable[i].setSelected(bdfConfig.isAdsChannelEnabled(i));
-            if (!bdfConfig.isAdsChannelEnabled(i)) {
+        patientIdentification.setText(recordingSettings.getPatientIdentification());
+        recordingIdentification.setText(recordingSettings.getRecordingIdentification());
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+            channelName[i].setText(recordingSettings.getAdsChannelName(i));
+            channelEnable[i].setSelected(recordingSettings.isAdsChannelEnabled(i));
+            if (!recordingSettings.isAdsChannelEnabled(i)) {
                 enableAdsChannel(i, false);
             }
-            channel50Hz[i].setSelected(bdfConfig.is50HzFilterEnabled(i));
-            channelLoffEnable[i].setSelected(bdfConfig.isAdsChannelLoffEnable(i));
+            channel50Hz[i].setSelected(recordingSettings.is50HzFilterEnabled(i));
+            channelLoffEnable[i].setSelected(recordingSettings.isAdsChannelLeadOffEnable(i));
         }
 
-        accelerometerEnable.setSelected(bdfConfig.isAccelerometerEnabled());
-        if (!bdfConfig.isAccelerometerEnabled()) {
+        accelerometerEnable.setSelected(recordingSettings.isAccelerometerEnabled());
+        if (!recordingSettings.isAccelerometerEnabled()) {
             enableAccelerometer(false);
         }
-        setChannelsFrequencies(bdfConfig.getSampleRate());
+        setChannelsFrequencies(recordingSettings.getSampleRate());
         setChannelsGain();
         setChannelsCommutatorState();
         setAccelerometerCommutator();
@@ -523,26 +513,26 @@ public class SettingsWindow extends JFrame  {
 
 
     private AppConfig saveDataToModel() {
-        bdfConfig.setDeviceType(getDeviceType());
-        bdfConfig.setComportName(getComPortName());
-        bdfConfig.setPatientIdentification(getPatientIdentification());
-        bdfConfig.setRecordingIdentification(getRecordingIdentification());
-        int[] adsChannelsFrequencies = new int[bdfConfig.getNumberOfAdsChannels()];
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
-            bdfConfig.setAdsChannelName(i, getChannelName(i));
-            bdfConfig.setAdsChannelEnabled(i, isChannelEnable(i));
-            bdfConfig.setIs50HzFilterEnabled(i, is50HzFilterEnable(i));
-            bdfConfig.setAdsChannelGain(i, getChannelGain(i));
-            bdfConfig.setAdsChannelCommutatorState(i, getChannelCommutatorState(i));
-            bdfConfig.setAdsChannelLoffEnable(i, isChannelLoffEnable(i));
+        recordingSettings.setDeviceType(getDeviceType());
+        recordingSettings.setComportName(getComPortName());
+        recordingSettings.setPatientIdentification(getPatientIdentification());
+        recordingSettings.setRecordingIdentification(getRecordingIdentification());
+        int[] adsChannelsFrequencies = new int[recordingSettings.getNumberOfAdsChannels()];
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+            recordingSettings.setAdsChannelName(i, getChannelName(i));
+            recordingSettings.setAdsChannelEnabled(i, isChannelEnable(i));
+            recordingSettings.setIs50HzFilterEnabled(i, is50HzFilterEnable(i));
+            recordingSettings.setAdsChannelGain(i, getChannelGain(i));
+            recordingSettings.setAdsChannelCommutatorState(i, getChannelCommutatorState(i));
+            recordingSettings.setAdsChannelLeadOffEnable(i, isChannelLoffEnable(i));
             adsChannelsFrequencies[i] = getChannelFrequency(i);
         }
-        bdfConfig.setFrequencies(getSampleRate(), getAccelerometerFrequency(), adsChannelsFrequencies);
-        bdfConfig.setAccelerometerEnabled(isAccelerometerEnable());
-        bdfConfig.setAccelerometerOneChannelMode(getAccelerometerCommutator());
-        bdfConfig.setFileName(getFilename());
-        bdfConfig.setDirToSave(getDirectory());
-        return bdfConfig;
+        recordingSettings.setFrequencies(getSampleRate(), getAccelerometerFrequency(), adsChannelsFrequencies);
+        recordingSettings.setAccelerometerEnabled(isAccelerometerEnable());
+        recordingSettings.setAccelerometerOneChannelMode(getAccelerometerCommutator());
+        recordingSettings.setFileName(getFilename());
+        recordingSettings.setDirToSave(getDirectory());
+        return recordingSettings;
     }
 
 
@@ -562,39 +552,59 @@ public class SettingsWindow extends JFrame  {
     }
 
     private void setChannelsFrequencies(int sampleRate) {
-        Integer[] adsChannelsAvilableFrequencies = bdfConfig.getAdsChannelsAvailableFrequencies(sampleRate);
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        Integer[] adsChannelsAvilableFrequencies = recordingSettings.getAdsChannelsAvailableFrequencies(sampleRate);
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             channelFrequency[i].setModel(new DefaultComboBoxModel(adsChannelsAvilableFrequencies));
-            channelFrequency[i].setSelectedItem(bdfConfig.getAdsChannelFrequency(i));
+            channelFrequency[i].setSelectedItem(recordingSettings.getAdsChannelFrequency(i));
         }
 
-        accelerometerFrequency.setModel(new DefaultComboBoxModel(bdfConfig.getAccelerometerAvailableFrequencies(sampleRate)));
-        accelerometerFrequency.setSelectedItem(bdfConfig.getAccelerometerFrequency());
+        accelerometerFrequency.setModel(new DefaultComboBoxModel(recordingSettings.getAccelerometerAvailableFrequencies(sampleRate)));
+        accelerometerFrequency.setSelectedItem(recordingSettings.getAccelerometerFrequency());
 
         // put the size if field   accelerometerFrequency equal to the size of fields  channelFrequency
         accelerometerFrequency.setPreferredSize(channelFrequency[0].getPreferredSize());
     }
 
+    private void updateLeadOffStatus(Boolean[] leadOffDetectionMask) {
+         for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+             if (leadOffDetectionMask[2 * i] == null) {
+                 channelLoffStatPositive[i].setIcon(iconDisabled);
+             } else if (leadOffDetectionMask[2 * i] == true) {
+                 channelLoffStatPositive[i].setIcon(iconDisconnected);
+             }else if (leadOffDetectionMask[2 * i] == false) {
+                 channelLoffStatPositive[i].setIcon(iconConnected);
+             }
+
+             if (leadOffDetectionMask[2 * i + 1] == null) {
+                 channelLoffStatNegative[i].setIcon(iconDisabled);
+             } else if (leadOffDetectionMask[2 * i +1] == true) {
+                 channelLoffStatNegative[i].setIcon(iconDisconnected);
+             }else if (leadOffDetectionMask[2 * i + 1] == false) {
+                 channelLoffStatNegative[i].setIcon(iconConnected);
+             }
+         }
+    }
+
     private void setChannelsGain(){
-        Integer[] availableGains = bdfConfig.getAvailableGaines();
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        Integer[] availableGains = recordingSettings.getAvailableGaines();
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             channelGain[i].setModel(new DefaultComboBoxModel(availableGains));
-            channelGain[i].setSelectedItem(bdfConfig.getAdsChannelGain(i));
+            channelGain[i].setSelectedItem(recordingSettings.getAdsChannelGain(i));
         }
     }
 
     private void setChannelsCommutatorState(){
-        String[] availableStates = bdfConfig.getAvailableCommutatorStates();
-        for (int i = 0; i < bdfConfig.getNumberOfAdsChannels(); i++) {
+        String[] availableStates = recordingSettings.getAvailableCommutatorStates();
+        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
             channelCommutatorState[i].setModel(new DefaultComboBoxModel(availableStates));
-            channelCommutatorState[i].setSelectedItem(bdfConfig.getAdsChannelCommutatorState(i));
+            channelCommutatorState[i].setSelectedItem(recordingSettings.getAdsChannelCommutatorState(i));
         }
     }
 
     private void setAccelerometerCommutator(){
         accelerometerCommutator.addItem("1 Channel");
         accelerometerCommutator.addItem("3 Channels");
-        if(bdfConfig.isAccelerometerOneChannelMode()){
+        if(recordingSettings.isAccelerometerOneChannelMode()){
             accelerometerCommutator.setSelectedIndex(0);
         }else {
             accelerometerCommutator.setSelectedIndex(1);

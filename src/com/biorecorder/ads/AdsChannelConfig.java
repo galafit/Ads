@@ -4,14 +4,13 @@ package com.biorecorder.ads;
  * Class-structure to store info about Ads-channels
  */
 class AdsChannelConfig {
-
-    protected Divider divider = Divider.D1;
-    protected boolean isEnabled = true;
+    private String name = "Channel";
+    private Divider divider = Divider.D1;
+    private boolean isEnabled = true;
     private Gain gain = Gain.G2;
     private CommutatorState commutatorState = CommutatorState.INPUT;
-    protected boolean isLoffEnable = true;
+    private boolean isLoffEnable = true;
     private boolean isRldSenseEnabled = false;
-    private String name = "Channel";
 
     public String getName() {
         return name;

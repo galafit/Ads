@@ -41,10 +41,10 @@ class AdsConfigurator2Ch implements AdsConfigurator{
 
         //reg 0x07
         int loffSensRegisterValue = 0;
-         if(adsConfiguration.isAdsChannelLoffEnable(0)){
+         if(adsConfiguration.isAdsChannelLeadOffEnable(0)){
             loffSensRegisterValue += 0x03;
         }
-        if(adsConfiguration.isAdsChannelLoffEnable(1)){
+        if(adsConfiguration.isAdsChannelLeadOffEnable(1)){
             loffSensRegisterValue += 0x0C;
         }
         result.add((byte)loffSensRegisterValue);     //reg 0x07
@@ -68,7 +68,7 @@ class AdsConfigurator2Ch implements AdsConfigurator{
         result.add((byte)batteryMeasure);
 
         result.add((byte)0xF5);     //передача данных loff статуса: 0 - disabled, 1 - enabled
-        int loffEnabled = adsConfiguration.isLoffEnabled() ? 1 : 0;
+        int loffEnabled = adsConfiguration.isLeadOffEnabled() ? 1 : 0;
         result.add((byte)loffEnabled);
 
         result.add((byte)0xF6);     //reset timeout. In seconds
@@ -100,7 +100,7 @@ class AdsConfigurator2Ch implements AdsConfigurator{
     private int loffComparatorEnabledBit(AdsConfig configuration) {
         int result = 0x00;
         for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
-            if (configuration.isAdsChannelLoffEnable(i)) {
+            if (configuration.isAdsChannelLeadOffEnable(i)) {
                 result = 0x40;
             }
         }

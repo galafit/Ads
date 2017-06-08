@@ -11,7 +11,6 @@ public class JsonPreferences implements Preferences {
     File propertyFile = new File(System.getProperty("user.dir"), "config.json");
 
 
-    @Override
     public AppConfig getConfig() {
         if (propertyFile.exists() && propertyFile.isFile()) {
             JsonProperties properties = new JsonProperties(propertyFile);

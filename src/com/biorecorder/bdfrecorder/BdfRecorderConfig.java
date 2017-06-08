@@ -1,7 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,8 +83,8 @@ public class BdfRecorderConfig {
     }
 
 
-    public boolean isLoffEnabled() {
-        return adsConfig.isLoffEnabled();
+    public boolean isLeadOffEnabled() {
+        return adsConfig.isLeadOffEnabled();
     }
 
     public int getNumberOfAdsChannels() {
@@ -116,8 +115,8 @@ public class BdfRecorderConfig {
         adsConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
     }
 
-    public String getDeviceType() {
-        return adsConfig.getDeviceType().name();
+    public DeviceType getDeviceType() {
+        return adsConfig.getDeviceType();
     }
 
     public void setDeviceType(DeviceType deviceType) {
@@ -140,16 +139,16 @@ public class BdfRecorderConfig {
         adsConfig.setAdsChannelName(adsChannelNumber, name);
     }
 
-    public void setAdsChannelLoffEnable(int adsChannelNumber, boolean loffEnable) {
-        adsConfig.setAdsChannelLoffEnable(adsChannelNumber, loffEnable);
+    public void setAdsChannelLeadOffEnable(int adsChannelNumber, boolean leadOffEnable) {
+        adsConfig.setAdsChannelLeadOffEnable(adsChannelNumber, leadOffEnable);
     }
 
     public void setAdsChannelRldSenseEnabled(int adsChannelNumber, boolean rldSenseEnabled) {
         adsConfig.setAdsChannelRldSenseEnabled(adsChannelNumber, rldSenseEnabled);
     }
 
-    public boolean isAdsChannelLoffEnable(int adsChannelNumber) {
-        return adsConfig.isAdsChannelLoffEnable(adsChannelNumber);
+    public boolean isAdsChannelLeadOffEnable(int adsChannelNumber) {
+        return adsConfig.isAdsChannelLeadOffEnable(adsChannelNumber);
     }
 
     public boolean isAdsChannelRldSenseEnabled(int adsChannelNumber) {
@@ -164,8 +163,8 @@ public class BdfRecorderConfig {
         adsConfig.setAdsChannelGain(adsChannelNumber, gain);
     }
 
-    public String getAdsChannelCommutatorState(int adsChannelNumber) {
-        return adsConfig.getAdsChannelCommutatorState(adsChannelNumber).name();
+    public CommutatorState getAdsChannelCommutatorState(int adsChannelNumber) {
+        return adsConfig.getAdsChannelCommutatorState(adsChannelNumber);
     }
 
     public void setAdsChannelCommutatorState(int adsChannelNumber, CommutatorState commutatorState) {

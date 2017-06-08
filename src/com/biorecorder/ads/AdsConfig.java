@@ -46,9 +46,9 @@ public class AdsConfig {
         return values;
     }
 
-    public boolean isLoffEnabled() {
+    public boolean isLeadOffEnabled() {
         for (int i = 0; i < getNumberOfAdsChannels(); i++) {
-            if (adsChannels.get(i).isEnabled && adsChannels.get(i).isLoffEnable()) {
+            if (adsChannels.get(i).isEnabled() && adsChannels.get(i).isLoffEnable()) {
                 return true;
             }
         }
@@ -120,8 +120,8 @@ public class AdsConfig {
         adsChannels.get(adsChannelNumber).setName(name);
     }
 
-    public void setAdsChannelLoffEnable(int adsChannelNumber, boolean loffEnable) {
-        adsChannels.get(adsChannelNumber).setLoffEnable(loffEnable);
+    public void setAdsChannelLeadOffEnable(int adsChannelNumber, boolean leadOffEnable) {
+        adsChannels.get(adsChannelNumber).setLoffEnable(leadOffEnable);
     }
 
 
@@ -129,7 +129,7 @@ public class AdsConfig {
         adsChannels.get(adsChannelNumber).setRldSenseEnabled(rldSenseEnabled);
     }
 
-    public boolean isAdsChannelLoffEnable(int adsChannelNumber) {
+    public boolean isAdsChannelLeadOffEnable(int adsChannelNumber) {
         return adsChannels.get(adsChannelNumber).isLoffEnable();
     }
 
@@ -162,7 +162,7 @@ public class AdsConfig {
     }
 
     public boolean isAdsChannelEnabled(int adsChannelNumber) {
-        return adsChannels.get(adsChannelNumber).isEnabled;
+        return adsChannels.get(adsChannelNumber).isEnabled();
     }
 
     public void setAdsChannelEnabled(int adsChannelNumber, boolean enabled) {
@@ -251,23 +251,23 @@ public class AdsConfig {
         return "V";
     }
 
-    public double getLoffStatusPhysicalMax() {
+    public double getLeadOffStatusPhysicalMax() {
         return 65536;
     }
 
-    public double getLoffStatusPhysicalMin() {
+    public double getLeadOffStatusPhysicalMin() {
         return 0;
     }
 
-    public int getLoffStatusDigitalMax() {
+    public int getLeadOffStatusDigitalMax() {
         return 65536;
     }
 
-    public int getLoffStatusDigitalMin() {
+    public int getLeadOffStatusDigitalMin() {
         return 0;
     }
 
-    public String getLoffStatusDimension() {
+    public String getLeadOffStatusDimension() {
         return "Bit mask";
     }
 

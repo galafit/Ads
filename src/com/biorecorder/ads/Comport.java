@@ -7,6 +7,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.text.MessageFormat;
+import java.util.Set;
 
 /**
  * Library jSSC is used.
@@ -27,6 +28,7 @@ class Comport implements SerialPortEventListener {
         serialPort = new SerialPort(comportName);
         try {
             serialPort.openPort();//Open serial port
+            System.out.println(Thread.currentThread() + " opened comport: "+comportName);
             serialPort.setParams(speed,
                     SerialPort.DATABITS_8,
                     SerialPort.STOPBITS_1,
@@ -36,43 +38,30 @@ class Comport implements SerialPortEventListener {
             // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
             serialPort.setEventsMask(SerialPort.MASK_RXCHAR);
             serialPort.addEventListener(this);
-        } catch(SerialPortException ex) {
-            if(ex.getExceptionType().equals(SerialPortException.TYPE_PORT_BUSY)) {
+        } catch (SerialPortException ex) {
+            if (ex.getExceptionType().equals(SerialPortException.TYPE_PORT_BUSY)) {
                 throw new PortBusyRuntimeException(ex.getMessage(), ex);
-            }
-            if(ex.getExceptionType().equals(SerialPortException.TYPE_PORT_NOT_FOUND)) {
+            } else if (ex.getExceptionType().equals(SerialPortException.TYPE_PORT_NOT_FOUND)) {
                 throw new PortNotFoundRuntimeException(ex.getMessage(), ex);
+            } else {
+                String msg = MessageFormat.format("Error while connecting to serial port: \"{0}\"", comportName);
+                throw new PortRuntimeException(msg, ex);
             }
-            String msg = MessageFormat.format("Error while connecting to serial port: \"{0}\"", comportName);
-            throw new PortRuntimeException(msg, ex);
+        }
+    }
+
+    public static void printThreads() {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        Thread[] threadArray = threadSet.toArray(new Thread[threadSet.size()]);
+        for (int i = 0; i < threadArray.length; i++) {
+            System.out.println(i+" Thread: " + threadArray[i].getName());
         }
     }
 
-    public static String[] getAvailableComportNames() {
-        return SerialPortList.getPortNames();
-    }
-
-
-    public static boolean isComportAvailable(String comPortName) {
-        if (comPortName != null && !comPortName.isEmpty()) {
-            comPortName = comPortName.trim();
-            for (String name : getAvailableComportNames()) {
-                if (comPortName.equalsIgnoreCase(name)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
     public String getComportName() {
         return comportName;
     }
-
-    public boolean isOpened() {
-        return serialPort.isOpened();
-    }
-
 
     public void close() throws SerialPortException {
         serialPort.closePort();
@@ -82,7 +71,8 @@ class Comport implements SerialPortEventListener {
         try {
             serialPort.writeBytes(bytes);
         } catch (SerialPortException e) {
-            log.error(e);
+            String errMsg = "Error during writing byte to serial port.";
+            log.error(errMsg, e);
         }
         return false;
     }
@@ -92,7 +82,8 @@ class Comport implements SerialPortEventListener {
         try {
             return serialPort.writeByte(b);
         } catch (SerialPortException e) {
-            log.error(e);
+            String errMsg = "Error during writing bytes to serial port.";
+            log.error(errMsg, e);
         }
         return false;
     }
@@ -113,7 +104,9 @@ class Comport implements SerialPortEventListener {
                     }
                 }
             } catch (SerialPortException ex) {
-                log.error(ex);
+                String errMsg = "Error during receiving serial port data: " + ex.getMessage();
+                log.error(errMsg, ex);
+                throw new PortRuntimeException(errMsg, ex);
             }
         }
     }

@@ -1,11 +1,12 @@
 package com.biorecorder;
 
-import com.biorecorder.gui.SettingsWindow;
+import com.biorecorder.gui.BdfRecorderWindow;
 
 public class Start {
     public static void main(String[] args) {
-        Preferences preferences = new JsonPreferences();
+        JsonPreferences preferences = new JsonPreferences();
+        AppConfig recordingSettings = preferences.getConfig();
         BdfRecorderApp bdfRecorder = new BdfRecorderApp(preferences);
-        SettingsWindow settingsWindow = new SettingsWindow(bdfRecorder);
+        BdfRecorderWindow bdfRecorderWindow = new BdfRecorderWindow(bdfRecorder, recordingSettings);
     }
 }

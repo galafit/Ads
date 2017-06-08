@@ -1,6 +1,8 @@
 package com.biorecorder.ads;
 
 
+import com.sun.istack.internal.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +33,7 @@ class FrameDecoder implements ComPortListener {
     private int MAX_MESSAGE_SIZE = 7;
 
 
-    FrameDecoder(AdsConfig configuration) {
+    FrameDecoder(@Nullable AdsConfig configuration) {
         adsConfig = configuration;
         numberOf3ByteSamples = getNumberOf3ByteSamples();
         dataRecordSize = getRawFrameSize();
@@ -188,7 +190,7 @@ class FrameDecoder implements ComPortListener {
             rawFrameOffset += 2;
         }
 
-        if (adsConfig.isLoffEnabled()) {
+        if (adsConfig.isLeadOffEnabled()) {
             if (adsConfig.getNumberOfAdsChannels() == 8) {
                 decodedFrame[decodedFrameOffset++] = bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
@@ -207,6 +209,9 @@ class FrameDecoder implements ComPortListener {
     }
 
     private int getRawFrameSize() {
+        if(adsConfig == null) {
+            return 0;
+        }
         int result = 2;//маркер начала фрейма
         result += 2; // счечик фреймов
         result += 3 * getNumberOf3ByteSamples();
@@ -216,7 +221,7 @@ class FrameDecoder implements ComPortListener {
         if (adsConfig.isBatteryVoltageMeasureEnabled()) {
             result += 2;
         }
-        if (adsConfig.isLoffEnabled()) {
+        if (adsConfig.isLeadOffEnabled()) {
             if (adsConfig.getNumberOfAdsChannels() == 8) {
                 result += 2;
             } else {
@@ -228,6 +233,9 @@ class FrameDecoder implements ComPortListener {
     }
 
     private int getDecodedFrameSize() {
+        if(adsConfig == null) {
+            return 0;
+        }
         int result = 0;
         result += getNumberOf3ByteSamples();
         if (adsConfig.isAccelerometerEnabled()) {
@@ -236,7 +244,7 @@ class FrameDecoder implements ComPortListener {
         if (adsConfig.isBatteryVoltageMeasureEnabled()) {
             result += 1;
         }
-        if(adsConfig.isLoffEnabled()) {
+        if(adsConfig.isLeadOffEnabled()) {
             if (adsConfig.getNumberOfAdsChannels() == 8) {
                 result += 2;
             } else {
@@ -248,6 +256,9 @@ class FrameDecoder implements ComPortListener {
     }
 
     private int getNumberOf3ByteSamples() {
+        if(adsConfig == null) {
+            return 0;
+        }
         int result = 0;
         for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {

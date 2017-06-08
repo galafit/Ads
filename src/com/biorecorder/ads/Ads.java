@@ -4,7 +4,9 @@ package com.biorecorder.ads;
 import com.biorecorder.ads.exceptions.PortBusyRuntimeException;
 import com.biorecorder.ads.exceptions.PortNotFoundRuntimeException;
 import com.biorecorder.ads.exceptions.PortRuntimeException;
+import com.sun.istack.internal.Nullable;
 import jssc.SerialPortException;
+import jssc.SerialPortList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -28,30 +30,20 @@ public class Ads {
     private static final int PING_TIMER_DELAY_MS = 1000;
     private static final int WATCHDOG_TIMER_PERIOD_MS = 500;
 
-    private AdsDataListener adsDataListener;
-    private AdsEventsListener adsEventsListener;
+    private List<AdsDataListener> dataListeners = new ArrayList<AdsDataListener>(1);
+    private List<AdsEventsListener> eventsListeners = new ArrayList<AdsEventsListener>(1);
     private volatile Comport comport;
-    private volatile AdsConfig adsConfig = new AdsConfig();
     private volatile Timer pingTimer;
     private volatile Timer monitoringTimer = new Timer();
     private final AdsState adsState = new AdsState();
 
 
-    public synchronized AdsConfig getConfig() {
-        return adsConfig;
-    }
 
-    public synchronized void setConfig(AdsConfig adsConfig) {
-        this.adsConfig = adsConfig;
-        log.info(adsConfig.toString());
-    }
-
-
-    public void connect(String comportName) throws PortNotFoundRuntimeException, PortBusyRuntimeException, PortRuntimeException {
-        if (comport != null && comport.isOpened() && comport.getComportName().equals(comportName)) {
+    public synchronized void connect(String comportName) throws PortNotFoundRuntimeException, PortBusyRuntimeException, PortRuntimeException {
+        if (comport != null && comport.getComportName().equals(comportName)) {
             return;
         }
-        if (comport != null && comport.isOpened() && !comport.getComportName().equals(comportName)) {
+        if (comport != null && !comport.getComportName().equals(comportName)) {
             try {
                 comport.close();
             } catch (SerialPortException e) {
@@ -60,21 +52,14 @@ public class Ads {
             }
         }
         comport = new Comport(comportName, COMPORT_SPEED);
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-        startMonitoringTimer(frameDecoder, true);
+        FrameDecoder frameDecoder = new FrameDecoder(null);
+        startMonitoringTimer(frameDecoder, null,  true);
         comport.setComPortListener(frameDecoder);
     }
 
-    public static void printThreads() {
-        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
-        Thread[] threadArray = threadSet.toArray(new Thread[threadSet.size()]);
-        for (Thread thread : threadArray) {
-            System.out.println("thread: " + thread.getName());
-        }
-    }
 
     public synchronized boolean isConnected() {
-        if (comport != null && comport.isOpened()) {
+        if (comport != null) {
             return true;
         } else {
             return false;
@@ -86,10 +71,10 @@ public class Ads {
      * Send command to start ads measurements
      *
      * @return true if command was successfully written, and false - otherwise
-     * @throws IllegalStateException if ads was not connected first to some comport
+     * @throws IllegalStateException if ads is not connected to comport
      */
-    public synchronized boolean sendStartCommand() throws IllegalStateException {
-        if (!isConnected()) {
+    public synchronized boolean sendStartCommand(AdsConfig adsConfig) throws IllegalStateException {
+        if (comport == null) {
             throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
         }
 
@@ -97,22 +82,28 @@ public class Ads {
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
             public void onDataReceived(int[] dataFrame) {
-                adsDataListener.onDataReceived(dataFrame);
+                for (AdsDataListener listener : dataListeners) {
+                    listener.onDataReceived(dataFrame);
+                }
             }
         });
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
                 if (adsMessage == AdsMessage.LOW_BATTERY) {
-                    adsEventsListener.handleAdsLowButtery();
+                    for (AdsEventsListener listener : eventsListeners) {
+                        listener.handleAdsLowButtery();
+                    }
                 }
                 if (adsMessage == AdsMessage.FRAME_BROKEN) {
-                    adsEventsListener.handleAdsFrameBroken(additionalInfo);
+                    for (AdsEventsListener listener : eventsListeners) {
+                        listener.handleAdsFrameBroken(additionalInfo);
+                    }
                 }
 
             }
         });
-        startMonitoringTimer(frameDecoder, false);
+        startMonitoringTimer(frameDecoder, adsConfig,  false);
         comport.setComPortListener(frameDecoder);
         //---------------------------
         pingTimer = new Timer();
@@ -130,17 +121,17 @@ public class Ads {
      * Send command to stop ads measurements and work
      *
      * @return true if command was successfully written, and false - otherwise
-     * @throws IllegalStateException if ads was not connected first to some comport
+     * @throws IllegalStateException if ads is not connected to comport
      */
     public synchronized boolean sendStopRecordingCommand() throws IllegalStateException {
-        if (!isConnected()) {
+        if (comport == null) {
             throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
         }
         if (pingTimer != null) {
             pingTimer.cancel();
         }
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-        startMonitoringTimer(frameDecoder, true);
+        FrameDecoder frameDecoder = new FrameDecoder(null);
+        startMonitoringTimer(frameDecoder, null, true);
         comport.setComPortListener(frameDecoder);
 
         boolean is_writing_ok = comport.writeByte(STOP_REQUEST);
@@ -158,10 +149,10 @@ public class Ads {
      * Otherwise return null
      *
      * @return ads type (2 or 8 channel) or null if ads not contests for some reasons
-     * @throws IllegalStateException if ads was not connected first to some comport
+     * @throws IllegalStateException if ads is not connected to comport
      */
     public synchronized DeviceType sendDeviceTypeRequest() throws IllegalStateException {
-        if (!isConnected()) {
+        if (comport == null) {
             throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
         }
         if(adsState.getDeviceType() != null) {
@@ -182,43 +173,69 @@ public class Ads {
     }
 
 
+    /**
+     * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
+     * contact or disconnecting. Therefore in Lead-Off detection mask TRUE means DISCONNECTED and
+     * FALSE means CONNECTED.
+     * <p>
+     * Every ads-channel has 2 electrodes (Positive and Negative) so in leadOff detection mask:
+     * <br>
+     * element-0 and element-1 correspond to Positive and Negative electrodes of ads channel 0,
+     * element-2 and element-3 correspond to Positive and Negative electrodes of ads channel 1,
+     * ...
+     * element-14 and element-15 correspond to Positive and Negative electrodes of ads channel 8.
+     * <p>
+     * @return leadOff detection mask or null if ads is stopped or
+     * leadOff detection is disabled
+     */
+    public boolean[] getLeadOfDetectionMask() {
+        return adsState.getLeadOffMask();
+    }
+
     public boolean isActive() {
         return adsState.isActive();
     }
 
-    public void setAdsDataListener(AdsDataListener adsDataListener) {
-        this.adsDataListener = adsDataListener;
+    public void addAdsDataListener(AdsDataListener adsDataListener) {
+        dataListeners.add(adsDataListener);
     }
 
-    public void setAdsEventsListener(AdsEventsListener adsEventsListener) {
-        this.adsEventsListener = adsEventsListener;
+    public void addAdsEventsListener(AdsEventsListener adsEventsListener) {
+        eventsListeners.add(adsEventsListener);
     }
 
     public synchronized void disconnect() throws PortRuntimeException {
         if (comport != null) {
             try {
                 comport.close();
-                comport = null;
             } catch (SerialPortException e) {
                 String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comport.getComportName());
                 throw new PortRuntimeException(msg, e);
+            } finally {
+                comport = null;
             }
         }
     }
 
-    public static boolean isComportAvailable(String comPortName) {
-        return Comport.isComportAvailable(comPortName);
+    /**
+     * Serial port lib (jssc) en Mac and linux to create portNames list
+     * actually OPENS and CLOSES every port (suppose to be sure it is exist). So
+     * this operation is really DANGEROUS and can course serious bugs...
+     * Like possibility to have multiple connections with the same  port
+     * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
+     * That is why the method is synchronized.
+     *
+     * @return array of names of all comports or empty array.
+     */
+    public synchronized String[] getAvailableComportNames() {
+        return SerialPortList.getPortNames();
     }
 
-    public static String[] getAvailableComportNames() {
-        return Comport.getAvailableComportNames();
-    }
 
-
-    private void startMonitoringTimer(FrameDecoder frameDecoder, boolean isHelloRequestsActivated) {
+    private void startMonitoringTimer(FrameDecoder frameDecoder, @Nullable AdsConfig adsConfig, boolean isHelloRequestsActivated) {
         monitoringTimer.cancel();
         monitoringTimer = new Timer();
-        MonitoringTask monitoringTask = new MonitoringTask(adsState);
+        MonitoringTask monitoringTask = new MonitoringTask(adsState, adsConfig);
         frameDecoder.addMessageListener(monitoringTask);
         frameDecoder.addDataListener(monitoringTask);
         monitoringTimer.schedule(monitoringTask, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
@@ -232,7 +249,6 @@ public class Ads {
             }, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
         }
     }
-
 
 
  /*   public synchronized Future startRecording_full(String comPortName) throws PortNotFoundRuntimeException, AdsConnectionRuntimeException {

@@ -1,5 +1,7 @@
 package com.biorecorder.ads;
 
+import java.util.BitSet;
+
 /**
  * Serves to send and share data between threads
  */
@@ -8,12 +10,13 @@ public class AdsState {
     private  volatile DeviceType deviceType;
     private volatile boolean isStoped;
     private volatile boolean isDataComing;
+    private volatile boolean[] loffMask;
 
-    public boolean isDataComing() {
+    public synchronized boolean isDataComing() {
         return isDataComing;
     }
 
-    public void setDataComing(boolean dataComing) {
+    public synchronized void setDataComing(boolean dataComing) {
         isDataComing = dataComing;
     }
 
@@ -39,5 +42,13 @@ public class AdsState {
 
     public synchronized void setActive(boolean active) {
         isActive = active;
+    }
+
+    public boolean[] getLeadOffMask() {
+        return loffMask;
+    }
+
+    public void setLoffMask(boolean[] loffMask) {
+        this.loffMask = loffMask;
     }
 }

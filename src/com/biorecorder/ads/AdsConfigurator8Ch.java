@@ -25,7 +25,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         result.add((byte) getRegister_1Value(adsConfiguration));         //register 0x01   set SPS
         result.add((byte)testSignalEnabledBits(adsConfiguration));       //register 0x02   example signal
         result.add((byte)0xCC);                                          //register 0x03
-        boolean isLoffEnabled = adsConfiguration.isLoffEnabled();
+        boolean isLoffEnabled = adsConfiguration.isLeadOffEnabled();
         result.add((byte)(isLoffEnabled? 0x13 : 0x00));                  //register 0x04
         for (int i = 0; i < 8; i++) {
             result.add((byte) getChanelRegisterValue(adsConfiguration, i));//registers 0x05 - 0x0C
@@ -141,7 +141,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
     private int getLoffSensRegisterValue(AdsConfig configuration){
         int result = 0;
         for (int i = 0; i < configuration.getNumberOfAdsChannels(); i++) {
-            result += (configuration.isAdsChannelEnabled(i) && configuration.isAdsChannelLoffEnable(i)) ? Math.pow(2, i) : 0;
+            result += (configuration.isAdsChannelEnabled(i) && configuration.isAdsChannelLeadOffEnable(i)) ? Math.pow(2, i) : 0;
         }
         return result;
     }

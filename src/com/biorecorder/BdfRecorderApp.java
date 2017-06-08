@@ -33,23 +33,21 @@ public class BdfRecorderApp implements LowButteryEventListener {
     private Preferences preferences;
 
     private final BdfRecorder bdfRecorder = new BdfRecorder();
-    private AppConfig appConfig;
 
     private int NOTIFICATION_PERIOD_MS = 1000;
     private int CONNECTION_PERIOD_MS = 2000;
     javax.swing.Timer notificationTimer;
     java.util.Timer connectionTimer;
     private volatile String[] comportNames;
+    private volatile String selectedComportName;
+    private AppConfig recordingSettings;
 
     private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
     private List<MessageListener> messageListeners = new ArrayList<MessageListener>(1);
 
     public BdfRecorderApp(Preferences preferences) {
         this.preferences = preferences;
-        appConfig = preferences.getConfig();
-        bdfRecorder.setConfig(appConfig.getBdfRecorderConfig());
         bdfRecorder.addLowButteryEventListener(this);
-        createAvailablePortNamesList();
 
         notificationTimer = new javax.swing.Timer(NOTIFICATION_PERIOD_MS, new ActionListener() {
             @Override
@@ -65,32 +63,51 @@ public class BdfRecorderApp implements LowButteryEventListener {
         connectionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                String comportName = appConfig.getComportName();
-                createAvailablePortNamesList();
-                if (!bdfRecorder.isConnected() && bdfRecorder.isComportAvailable(comportName)) {
-                    try {
-                        javax.swing.SwingUtilities.invokeLater(new Runnable() {
-                            public void run() {
-                                bdfRecorder.connect(comportName);
-                            }
-                        });
-
-                    } catch (Exception ex) {
-                        //log.error("Error during connection: "+comportName, ex);
-                        // DO NOTHING!
-                    }
-                }
+               daemonConnect();
             }
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
     }
 
+
+    /**
+     * If the comportName is not equal to any available port we add it to the list.
+     * <p>
+     * String full comparison is very "heavy" operation.
+     * So instead we will compare only lengths and 2 last symbols...
+     * That will be quick and good enough for our purpose
+     * @return available comports list with selected port included
+     */
     public synchronized String[] getAvailableComportNames() {
-        return comportNames;
+        String[] availablePorts = bdfRecorder.getAvailableComportNames();
+        String[] ports = availablePorts;
+        if(selectedComportName == null || selectedComportName.isEmpty()) {
+            return availablePorts;
+        }
+        if(availablePorts.length == 0) {
+            String[] resultantPorts = new String[1];
+            resultantPorts[0] = selectedComportName;
+            return resultantPorts;
+        }
+
+        boolean isSelectedPortAvailable = false;
+        for (String port : availablePorts) {
+            if(port.length() == selectedComportName.length()
+                    && port.charAt(port.length() - 1) == selectedComportName.charAt(selectedComportName.length() - 1)
+                    && port.charAt(port.length() - 2) == selectedComportName.charAt(selectedComportName.length() - 2)) {
+                isSelectedPortAvailable = true;
+                break;
+            }
+        }
+        if(isSelectedPortAvailable) {
+            return availablePorts;
+        } else {
+            String[] resultantPorts = new String[availablePorts.length + 1];
+            resultantPorts[0] = selectedComportName;
+            System.arraycopy(availablePorts, 0, resultantPorts, 1, availablePorts.length);
+            return resultantPorts;
+        }
     }
 
-    public AppConfig getConfig() {
-        return appConfig;
-    }
 
     @Override
     public void handleLowButteryEvent() {
@@ -98,29 +115,40 @@ public class BdfRecorderApp implements LowButteryEventListener {
         sendMessage(LOW_BUTTERY_MSG);
     }
 
-    private void createAvailablePortNamesList() {
-        String[] availablePorts = BdfRecorder.getAvailableComportNames();
-        String selectedPort = appConfig.getComportName();
-        String[] ports = availablePorts;
-        if (selectedPort != null && !selectedPort.isEmpty()) {
-            boolean containSelectedPort = false;
-            for (String port : availablePorts) {
-                if (port.equalsIgnoreCase(selectedPort)) {
-                    containSelectedPort = true;
-                    break;
+
+    /**
+     * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
+     * contact or disconnecting. Therefore in Lead-Off detection mask has:
+     * <ul>
+     *     <li>TRUE if electrode DISCONNECTED</li>
+     *     <li>FALSE if electrode CONNECTED</li>
+     *     <li>NULL if the channel is disabled or its lead-off detection disabled or
+     *     its commutator state != "INPUT"</li>
+     * </ul>
+     * Every ads-channel has 2 electrodes (Positive and Negative) so in leadOff detection mask:
+     * <br>element-0 and element-1 correspond to Positive and Negative electrodes of ads channel 0,
+     * <br>element-2 and element-3 correspond to Positive and Negative electrodes of ads channel 1,
+     * <br>...
+     * <br>element-14 and element-15 correspond to Positive and Negative electrodes of ads channel 8.
+     *
+     * @return leadOff detection mask
+     */
+    public Boolean[] getLeadOfDetectionMask() {
+        if(recordingSettings == null) {
+            return new Boolean[8 * 2];
+        }
+        Boolean[] mask = new Boolean[recordingSettings.getNumberOfAdsChannels() * 2];
+        boolean[] adsMask = bdfRecorder.getLeadOfDetectionMask();
+        if(adsMask != null) {
+            for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+                if(recordingSettings.isAdsChannelEnabled(i) && recordingSettings.isAdsChannelLeadOffEnable(i)
+                        && recordingSettings.getAdsChannelCommutatorState(i).equals("INPUT")) {
+                    mask[2*i] = adsMask[2*i];
+                    mask[2*i + 1] = adsMask[2*i + 1];
                 }
             }
-            if (!containSelectedPort) {
-                String[] newPorts = new String[ports.length + 1];
-                newPorts[0] = selectedPort;
-                System.arraycopy(availablePorts, 0, newPorts, 1, availablePorts.length);
-                ports = newPorts;
-            }
         }
-        synchronized(this){
-            comportNames = ports;
-        }
-
+        return mask;
     }
 
     public void addNotificationListener(NotificationListener l) {
@@ -137,7 +165,19 @@ public class BdfRecorderApp implements LowButteryEventListener {
         }
     }
 
-    public void connect(String comportName) {
+    private synchronized void daemonConnect() {
+        if (!bdfRecorder.isConnected() && selectedComportName != null && !selectedComportName.isEmpty()) {
+            try {
+                bdfRecorder.connect(selectedComportName);
+            } catch (Exception ex) {
+                // DO NOTHING!
+            }
+        }
+
+    }
+
+    public synchronized void connect(String comportName) {
+        selectedComportName = comportName;
         try {
             if(comportName != null && !comportName.isEmpty()) {
                 bdfRecorder.connect(comportName);
@@ -158,14 +198,14 @@ public class BdfRecorderApp implements LowButteryEventListener {
         }
     }
 
-    public void startRecording(AppConfig appConfig)  {
-        this.appConfig = appConfig;
-        File fileToWrite = new File(appConfig.getDirToSave(), appConfig.getFilename());
-        String comportName = appConfig.getComportName();
+    public synchronized void startRecording(AppConfig recordingSettings)  {
+        this.recordingSettings = recordingSettings;
+        File fileToWrite = new File(recordingSettings.getDirToSave(), recordingSettings.getFilename());
+        String comportName = recordingSettings.getComportName();
+        selectedComportName = comportName;
         try {
-            bdfRecorder.setConfig(appConfig.getBdfRecorderConfig());
             bdfRecorder.connect(comportName);
-            bdfRecorder.startRecording(fileToWrite);
+            bdfRecorder.startRecording(recordingSettings.getBdfRecorderConfig(), fileToWrite);
         } catch (BdfFileNotFoundRuntimeException ex) {
             log.error(ex);
             String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_ERR, fileToWrite);
@@ -180,13 +220,14 @@ public class BdfRecorderApp implements LowButteryEventListener {
             sendMessage(errMSg);
         } catch (Exception ex) {
             log.error(ex);
+            ex.printStackTrace();
             String errMSg = MessageFormat.format(APP_ERR, ex.getMessage());
             sendMessage(errMSg);
             closeApplication(ERROR_STATUS);
         }
     }
 
-    public void stopRecording() throws BdfRecorderRuntimeException {
+    public synchronized void stopRecording() throws BdfRecorderRuntimeException {
         try {
             bdfRecorder.stopRecording();
         } catch (Exception ex) {
@@ -205,7 +246,30 @@ public class BdfRecorderApp implements LowButteryEventListener {
         return bdfRecorder.isActive();
     }
 
-    public int getNumberOfWrittenDataRecords() {
+    public String getStateReport() {
+        String stateString = "Disconnected";
+        if(bdfRecorder.isActive()) {
+            stateString = "Connected";
+        }
+
+        int recordsNumber = getNumberOfWrittenDataRecords();
+        if(bdfRecorder.isRecording()) {
+            if(recordsNumber == 0) {
+                stateString = "Starting...";
+            } else {
+                stateString = "Recording... " + recordsNumber + " data records";
+            }
+        } else {
+            if(recordsNumber > 0) {
+                stateString = "Saved to file: " + bdfRecorder.getSavedFile();
+            }
+        }
+        return stateString;
+    }
+
+
+
+    private int getNumberOfWrittenDataRecords() {
         try {
             return bdfRecorder.getNumberOfSentDataRecords();
         } catch (Exception ex) {
@@ -217,27 +281,32 @@ public class BdfRecorderApp implements LowButteryEventListener {
         return 0;
     }
 
-    public File getSavedFile() {
-        return bdfRecorder.getSavedFile();
-    }
 
     private void closeApplication(int status) {
         try {
+            if(recordingSettings != null) {
+                try{
+                    preferences.saveConfig(recordingSettings);
+                } catch (Exception ex) {
+                    String errMsg = "Error during saving preferences";
+                    log.error(errMsg, ex);
+                }
+            }
             bdfRecorder.stopRecording();
             notificationTimer.stop();
             connectionTimer.cancel();
-            preferences.saveConfig(appConfig);
             bdfRecorder.disconnect();
             System.exit(status);
         } catch (Exception e) {
-            String errMsg = "Error during close application";
+            String errMsg = "Error during closing application";
             log.error(errMsg, e);
             System.exit(ERROR_STATUS);
         }
     }
 
-    public void closeApplication(AppConfig appConfig) {
-        this.appConfig = appConfig;
+    public synchronized void closeApplication(AppConfig recordingSettings) {
+        this.recordingSettings = recordingSettings;
         closeApplication(SUCCESS_STATUS);
     }
+
 }
