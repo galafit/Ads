@@ -8,10 +8,14 @@ import java.io.IOException;
 
 public class JsonPreferences implements Preferences {
     private static final Log log = LogFactory.getLog(JsonPreferences.class);
-    File propertyFile = new File(System.getProperty("user.dir"), "config.json");
+    File propertyFile1 = new File(System.getProperty("user.dir"), "config.json");
+    File propertyFile2 = new File(System.getProperty("user.home"), "config.json");
+    File propertyFile = propertyFile1;
 
 
     public AppConfig getConfig() {
+        System.out.println(System.getProperty("user.dir"));
+        System.out.println(System.getProperty("user.home"));
         if (propertyFile.exists() && propertyFile.isFile()) {
             JsonProperties properties = new JsonProperties(propertyFile);
             try {
@@ -19,7 +23,7 @@ public class JsonPreferences implements Preferences {
                 return appConfig;
             } catch (IOException e) {
                 e.printStackTrace();
-                log.error("Error during property file reading: " + propertyFile + "! " + e.getMessage());
+                log.error("Error during property file reading: " + propertyFile + ". " + e.getMessage());
             }
         }
         return new AppConfig();
@@ -34,5 +38,13 @@ public class JsonPreferences implements Preferences {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private String getProjectDir() {
+        return System.getProperty("user.dir");
+    }
+
+    private String getUserHomeDir() {
+        return System.getProperty("user.home");
     }
 }

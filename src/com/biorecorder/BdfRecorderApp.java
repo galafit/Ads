@@ -45,8 +45,9 @@ public class BdfRecorderApp implements LowButteryEventListener {
     private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
     private List<MessageListener> messageListeners = new ArrayList<MessageListener>(1);
 
-    public BdfRecorderApp(Preferences preferences) {
+    public BdfRecorderApp(Preferences preferences, String selectedComportName) {
         this.preferences = preferences;
+        this.selectedComportName = selectedComportName;
         bdfRecorder.addLowButteryEventListener(this);
 
         notificationTimer = new javax.swing.Timer(NOTIFICATION_PERIOD_MS, new ActionListener() {
@@ -77,7 +78,7 @@ public class BdfRecorderApp implements LowButteryEventListener {
      * That will be quick and good enough for our purpose
      * @return available comports list with selected port included
      */
-    public synchronized String[] getAvailableComportNames() {
+    public synchronized String[] getComportNames() {
         String[] availablePorts = bdfRecorder.getAvailableComportNames();
         String[] ports = availablePorts;
         if(selectedComportName == null || selectedComportName.isEmpty()) {

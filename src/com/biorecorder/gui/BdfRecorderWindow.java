@@ -184,7 +184,7 @@ public class BdfRecorderWindow extends JFrame  {
        comport.addPopupMenuListener(new PopupMenuListener() {
            @Override
            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-               comport.setModel(new DefaultComboBoxModel(bdfRecorder.getAvailableComportNames()));
+               comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
                BdfRecorderWindow.this.pack();
            }
 
@@ -481,7 +481,7 @@ public class BdfRecorderWindow extends JFrame  {
 
 
     private void loadDataFromModel() {
-        comport.setModel(new DefaultComboBoxModel(bdfRecorder.getAvailableComportNames()));
+        comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
         selectComport();
         spsField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableSampleRates()));
         spsField.setSelectedItem(recordingSettings.getSampleRate());
