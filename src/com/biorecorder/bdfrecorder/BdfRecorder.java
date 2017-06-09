@@ -218,7 +218,6 @@ public class BdfRecorder implements AdsEventsListener {
 
         // apply MovingAveragePrefilter to ads channels to reduce 50HZ
         EdfSignalsFilter edfSignalsFilter = new EdfSignalsFilter(edfJoiner);
-        //int sps = bdfRecorderConfig.getSampleRate();
         int enableSignalsCounter = 0;
         for (int i = 0; i < bdfRecorderConfig.getNumberOfAdsChannels(); i++) {
             if (bdfRecorderConfig.isAdsChannelEnabled(i)) {
@@ -338,7 +337,7 @@ public class BdfRecorder implements AdsEventsListener {
 
         @Override
         public void writeDigitalSamples(int[] samples, int offset, int length) {
-            sampleCounter += samples.length;
+            sampleCounter += length;
             for (BdfDataListener listener : dataListeners) {
                 listener.onDataRecordReceived(samples);
             }
@@ -351,6 +350,8 @@ public class BdfRecorder implements AdsEventsListener {
         public void close() {
             if(edfFileWriter != null) {
                 edfFileWriter.close();
+                System.out.println("close: number of records "+edfFileWriter.getNumberOfReceivedDataRecords());
+                System.out.println(edfFileWriter.getWritingInfo());
                 if(getNumberOfReceivedDataRecords() == 0) {
                     bdfFile.delete();
                     bdfFile = null;

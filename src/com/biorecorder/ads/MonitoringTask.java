@@ -45,7 +45,7 @@ class MonitoringTask extends TimerTask implements MessageListener, AdsDataListen
                 if(adsConfig.getDeviceType().getNumberOfAdsChannels() == 2) {
                     adsState.setLoffMask(intToBitMask(dataFrame[dataFrame.length - 1], adsConfig.getDeviceType().getNumberOfAdsChannels() * 2));
                 } else if (adsConfig.getDeviceType().getNumberOfAdsChannels() == 8) {
-                    adsState.setLoffMask(intToBitMask(dataFrame[dataFrame.length - 2], adsConfig.getDeviceType().getNumberOfAdsChannels() * 2));
+                    adsState.setLoffMask(bytesToBitMask(dataFrame[dataFrame.length - 2], adsConfig.getDeviceType().getNumberOfAdsChannels() * 2));
                 }
             }
         }
@@ -75,5 +75,30 @@ class MonitoringTask extends TimerTask implements MessageListener, AdsDataListen
         return bm;
     }
 
+    /**
+     * ads_8channel send lead-off status in different manner:
+     * first byte - states of all negative electrodes from 8 channels
+     * second byte - states of all positive electrodes from 8 channels
+     * @param num integer with lead-off info
+     * @param maskLength 2*2 or 8*2 (2 electrodes for every channel)
+     * @return
+     */
+    static boolean[] bytesToBitMask(int num, int maskLength) {
+        boolean[] bm = new boolean[maskLength];
+        for (int k = 0; k < bm.length; k++) {
+            bm[k] = false;
+            if(k < 8) { // first byte
+                if (((num >> k) & 1) == 1) {
+                    bm[2 * k + 1] = true;
+                }
+            } else { // second byte
+                if (((num >> k) & 1) == 1) {
+                    bm[2 * (k - 8)] = true;
+                }
+            }
+
+        }
+        return bm;
+    }
 }
 

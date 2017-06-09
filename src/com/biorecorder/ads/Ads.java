@@ -15,6 +15,44 @@ import java.text.MessageFormat;
 import java.util.*;
 
 /**
+ * Ads packs samples from all channels received during the
+ * time = MaxDiv/SampleRate (durationOfDataRecord)
+ * in one array of int. Every array (data record or data package) has
+ * the following structure (in case of 8 channels):
+ * <p>
+ * <br>{
+ * <br>  n_0 samples from ads_channel_0 (if this ads channel enabled)
+ * <br>  n_1 samples from ads_channel_1 (if this ads channel enabled)
+ * <br>  ...
+ * <br>  n_8 samples from ads_channel_8 (if this ads channel enabled)
+ * <br>  n_acc_x samples from accelerometer_x channel
+ * <br>  n_acc_y samples from accelerometer_y channel
+ * <br>  n_acc_z samples from accelerometer_Z channel
+ * <br>  1 sample with BatteryVoltage info (if BatteryVoltageMeasure  enabled)
+ * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
+ * <br>}
+ * <p>
+ *  Where n_i = ads_channel_i_sampleRate * durationOfDataRecord
+ *  <br>ads_channel_i_sampleRate = sampleRate / ads_channel_i_divider
+ * <p>
+ *  n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * durationOfDataRecord
+ *  <br>accelerometer_sampleRate = sampleRate / accelerometer_divider
+ * <p>
+ * If for Accelerometer  one channel mode is chosen then samples from
+ * acc_x_channel, acc_y_channel and acc_z_channel will be summarized and data records will
+ * have "one accelerometer channel" instead of three:
+ * <p>
+ * <br>{
+ * <br>  n_0 samples from ads_channel_0 (if this ads channel enabled)
+ * <br>  n_1 samples from ads_channel_1 (if this ads channel enabled)
+ * <br>  ...
+ * <br>  n_8 samples from ads_channel_8 (if this ads channel enabled)
+ * <br>  n_acc samples from accelerometer channels
+ * <br>  1 sample with BatteryVoltage info (if BatteryVoltageMeasure  enabled)
+ * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
+ * <br>}
+ * <p>
+ * Where n_acc =  accelerometer_sampleRate * durationOfDataRecord
  *
  */
 public class Ads {
