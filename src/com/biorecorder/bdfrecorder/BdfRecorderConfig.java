@@ -1,6 +1,8 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
+import com.biorecorder.edflib.base.DefaultEdfConfig;
+import com.biorecorder.edflib.base.EdfConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +13,8 @@ import java.util.List;
 public class BdfRecorderConfig {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
+    private boolean isDurationOfDataRecordComputable = true;
+    private boolean isButteryVoltageChannelDelite = true;
     private AdsConfig adsConfig = new AdsConfig();
     private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
 
@@ -20,6 +24,14 @@ public class BdfRecorderConfig {
 
     void setAdsConfig(AdsConfig adsConfig) {
         this.adsConfig = adsConfig;
+    }
+
+    public boolean isDurationOfDataRecordComputable() {
+        return isDurationOfDataRecordComputable;
+    }
+
+    public boolean isButteryVoltageChannelDelite() {
+        return isButteryVoltageChannelDelite;
     }
 
     public Boolean is50HzFilterEnabled(int adsChannelNumber) {
@@ -179,5 +191,81 @@ public class BdfRecorderConfig {
     public void setAdsChannelEnabled(int adsChannelNumber, boolean enabled) {
         adsConfig.setAdsChannelEnabled(adsChannelNumber, enabled);
     }
+
+    EdfConfig getAdsDataRecordConfig() {
+        DefaultEdfConfig edfConfig = new DefaultEdfConfig();
+        edfConfig.setRecordingIdentification(getRecordingIdentification());
+        edfConfig.setPatientIdentification(getPatientIdentification());
+        edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
+        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+            if (adsConfig.isAdsChannelEnabled(i)) {
+                edfConfig.addSignal();
+                int signalNumber = edfConfig.getNumberOfSignals() - 1;
+                edfConfig.setTransducer(signalNumber, "Unknown");
+                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
+                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
+                edfConfig.setDigitalRange(signalNumber, adsConfig.getAdsChannelsDigitalMin(), adsConfig.getAdsChannelsDigitalMax());
+                edfConfig.setPrefiltering(signalNumber, "None");
+                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAdsChannelSampleRate(i));
+                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                edfConfig.setLabel(signalNumber, adsConfig.getAdsChannelName(i));
+            }
+        }
+
+        if (adsConfig.isAccelerometerEnabled()) {
+            if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
+                edfConfig.addSignal();
+                int signalNumber = edfConfig.getNumberOfSignals() - 1;
+                edfConfig.setLabel(signalNumber, "Accelerometer");
+                edfConfig.setTransducer(signalNumber, "None");
+                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
+                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
+                edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
+                edfConfig.setPrefiltering(signalNumber, "None");
+                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
+                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+            } else {
+                String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
+                for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
+                    edfConfig.addSignal();
+                    int signalNumber = edfConfig.getNumberOfSignals() - 1;
+                    edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
+                    edfConfig.setTransducer(signalNumber, "None");
+                    edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
+                    edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
+                    edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
+                    edfConfig.setPrefiltering(signalNumber, "None");
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
+                    edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                }
+            }
+        }
+        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
+            edfConfig.addSignal();
+            int signalNumber = edfConfig.getNumberOfSignals() - 1;
+            edfConfig.setLabel(signalNumber, "Battery voltage");
+            edfConfig.setTransducer(signalNumber, "None");
+            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getBatteryVoltageDimension());
+            edfConfig.setPhysicalRange(signalNumber, adsConfig.getBatteryVoltagePhysicalMin(), adsConfig.getBatteryVoltagePhysicalMax());
+            edfConfig.setDigitalRange(signalNumber, adsConfig.getBatteryVoltageDigitalMin(), adsConfig.getBatteryVoltageDigitalMax());
+            edfConfig.setPrefiltering(signalNumber, "None");
+            int nrOfSamplesInEachDataRecord = 1;
+            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+        }
+        if (adsConfig.isLeadOffEnabled()) {
+            edfConfig.addSignal();
+            int signalNumber = edfConfig.getNumberOfSignals() - 1;
+            edfConfig.setLabel(signalNumber, "Loff Status");
+            edfConfig.setTransducer(signalNumber, "None");
+            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());
+            edfConfig.setPhysicalRange(signalNumber, adsConfig.getLeadOffStatusPhysicalMin(), adsConfig.getLeadOffStatusPhysicalMax());
+            edfConfig.setDigitalRange(signalNumber, adsConfig.getLeadOffStatusDigitalMin(), adsConfig.getLeadOffStatusDigitalMax());
+            edfConfig.setPrefiltering(signalNumber, "None");
+            int nrOfSamplesInEachDataRecord = 1;
+            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+        }
+        return edfConfig;
+    }
+
 
 }

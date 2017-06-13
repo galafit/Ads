@@ -33,8 +33,7 @@ public class BdfRecorder implements AdsEventsListener {
 
     private boolean isRecording = false;
     private double resultantDataRecordDuration = 1; // sec
-    private EdfFilter edfWriter;
-    private File bdfFile;
+    private AdsListenerBdfWriter adsListenerBdfWriter;
 
     public BdfRecorder() {
         ads = new Ads();
@@ -50,14 +49,15 @@ public class BdfRecorder implements AdsEventsListener {
     }
 
     /**
-     * Get the info about edf
-     * @return
+     * Get the info describing the structure of dataRecords
+     * that BdfRecorder sends to its listeners and write to the Edf/Bdf file
+     * @return object with info about recording process and dataRecords structure
      */
     public EdfConfig getRecordingInfo(BdfRecorderConfig bdfRecorderConfig) {
-        if(edfWriter == null) {
-            edfWriter = createEdfWriter(null, bdfRecorderConfig , null, null);
+        if(adsListenerBdfWriter == null) {
+            adsListenerBdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig , null, resultantDataRecordDuration,null);
         }
-        return edfWriter.getResultantConfig();
+        return adsListenerBdfWriter.getResultantEdfConfig();
     }
 
     /**
@@ -119,13 +119,8 @@ public class BdfRecorder implements AdsEventsListener {
             throw new IllegalStateException(errMsg);
         }
         try {
-            edfWriter = createEdfWriter(file, bdfRecorderConfig, bdfRecorderConfig.getPatientIdentification(), bdfRecorderConfig.getRecordingIdentification());
-            ads.addAdsDataListener(new AdsDataListener() {
-                @Override
-                public void onDataReceived(int[] dataFrame) {
-                    edfWriter.writeDigitalRecord(dataFrame);
-                }
-            });
+            adsListenerBdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig, file, resultantDataRecordDuration, dataListeners);
+            ads.addAdsDataListener(adsListenerBdfWriter);
             ads.sendStartCommand(bdfRecorderConfig.getAdsConfig());
             isRecording = true;
         } catch (FileNotFoundRuntimeException ex) {
@@ -145,8 +140,9 @@ public class BdfRecorder implements AdsEventsListener {
         }
         try {
             ads.sendStopRecordingCommand();
-            if(edfWriter != null) {
-                edfWriter.close();
+            ads.removeAdsDataListener(adsListenerBdfWriter);
+            if(adsListenerBdfWriter != null) {
+                adsListenerBdfWriter.close();
             }
             isRecording = false;
         } catch (Exception e) {
@@ -175,7 +171,10 @@ public class BdfRecorder implements AdsEventsListener {
     }
 
     public File getSavedFile() {
-        return bdfFile;
+        if(adsListenerBdfWriter != null) {
+            return adsListenerBdfWriter.getFile();
+        }
+        return null;
     }
 
     public boolean isRecording() {
@@ -187,8 +186,8 @@ public class BdfRecorder implements AdsEventsListener {
     }
     
     public int getNumberOfSentDataRecords() {
-        if (edfWriter != null) {
-            return edfWriter.getNumberOfWrittenDataRecords();
+        if (adsListenerBdfWriter != null) {
+            return adsListenerBdfWriter.getNumberOfWrittenDataRecords();
 
         }
         return 0;
@@ -206,157 +205,4 @@ public class BdfRecorder implements AdsEventsListener {
         log.info(eventInfo);
     }
 
-    private EdfFilter createEdfWriter(@Nullable File file, BdfRecorderConfig bdfRecorderConfig, @Nullable String patientId, @Nullable String recordingId) throws FileNotFoundRuntimeException {
-        EdfDataReceiver edfDataReceiver = new EdfDataReceiver(file);
-
-        EdfConfig adsDataRecordConfig = createAdsDataRecordConfig(bdfRecorderConfig.getAdsConfig(), patientId, recordingId);
-
-        System.out.print(adsDataRecordConfig);
-        // join DataRecords to have data records length = resultantDataRecordDuration;
-        int numberOfFramesToJoin = (int) (resultantDataRecordDuration / adsDataRecordConfig.getDurationOfDataRecord());
-        EdfJoiner edfJoiner = new EdfJoiner(numberOfFramesToJoin, edfDataReceiver);
-
-        // apply MovingAveragePrefilter to ads channels to reduce 50HZ
-        EdfSignalsFilter edfSignalsFilter = new EdfSignalsFilter(edfJoiner);
-        int enableSignalsCounter = 0;
-        for (int i = 0; i < bdfRecorderConfig.getNumberOfAdsChannels(); i++) {
-            if (bdfRecorderConfig.isAdsChannelEnabled(i)) {
-                if (bdfRecorderConfig.is50HzFilterEnabled(i)) {
-                    edfSignalsFilter.addSignalFilter(enableSignalsCounter, new MovingAverageFilter(bdfRecorderConfig.getAdsChannelFrequency(i) / 50));
-                }
-                enableSignalsCounter++;
-            }
-        }
-        // delete helper Loff channel
-        EdfSignalsRemover edfSignalsRemover = new EdfSignalsRemover(edfSignalsFilter);
-        if (bdfRecorderConfig.isLeadOffEnabled()) {
-            edfSignalsRemover.removeSignal(adsDataRecordConfig.getNumberOfSignals() - 1);
-        }
-
-        edfSignalsRemover.setConfig(adsDataRecordConfig);
-        return edfSignalsRemover;
-    }
-
-    EdfConfig createAdsDataRecordConfig(AdsConfig adsConfig, @Nullable String patientId, @Nullable String recordingId) {
-        DefaultEdfConfig edfConfig = new DefaultEdfConfig();
-        if (patientId != null) {
-            edfConfig.setPatientIdentification(patientId);
-        }
-        if (patientId != null) {
-            edfConfig.setRecordingIdentification(recordingId);
-        }
-        edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
-        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
-            if (adsConfig.isAdsChannelEnabled(i)) {
-                edfConfig.addSignal();
-                int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                edfConfig.setTransducer(signalNumber, "Unknown");
-                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
-                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
-                edfConfig.setDigitalRange(signalNumber, adsConfig.getAdsChannelsDigitalMin(), adsConfig.getAdsChannelsDigitalMax());
-                edfConfig.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAdsChannelSampleRate(i));
-                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                edfConfig.setLabel(signalNumber, adsConfig.getAdsChannelName(i));
-            }
-        }
-
-        if (adsConfig.isAccelerometerEnabled()) {
-            if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
-                edfConfig.addSignal();
-                int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                edfConfig.setLabel(signalNumber, "Accelerometer");
-                edfConfig.setTransducer(signalNumber, "None");
-                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
-                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
-                edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
-                edfConfig.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
-                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-            } else {
-                String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
-                for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
-                    edfConfig.addSignal();
-                    int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                    edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
-                    edfConfig.setTransducer(signalNumber, "None");
-                    edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
-                    edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
-                    edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
-                    edfConfig.setPrefiltering(signalNumber, "None");
-                    int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
-                    edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                }
-            }
-        }
-        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-            edfConfig.addSignal();
-            int signalNumber = edfConfig.getNumberOfSignals() - 1;
-            edfConfig.setLabel(signalNumber, "Battery voltage");
-            edfConfig.setTransducer(signalNumber, "None");
-            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getBatteryVoltageDimension());
-            edfConfig.setPhysicalRange(signalNumber, adsConfig.getBatteryVoltagePhysicalMin(), adsConfig.getBatteryVoltagePhysicalMax());
-            edfConfig.setDigitalRange(signalNumber, adsConfig.getBatteryVoltageDigitalMin(), adsConfig.getBatteryVoltageDigitalMax());
-            edfConfig.setPrefiltering(signalNumber, "None");
-            int nrOfSamplesInEachDataRecord = 1;
-            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-        }
-        if (adsConfig.isLeadOffEnabled()) {
-            edfConfig.addSignal();
-            int signalNumber = edfConfig.getNumberOfSignals() - 1;
-            edfConfig.setLabel(signalNumber, "Loff Status");
-            edfConfig.setTransducer(signalNumber, "None");
-            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());
-            edfConfig.setPhysicalRange(signalNumber, adsConfig.getLeadOffStatusPhysicalMin(), adsConfig.getLeadOffStatusPhysicalMax());
-            edfConfig.setDigitalRange(signalNumber, adsConfig.getLeadOffStatusDigitalMin(), adsConfig.getLeadOffStatusDigitalMax());
-            edfConfig.setPrefiltering(signalNumber, "None");
-            int nrOfSamplesInEachDataRecord = 1;
-            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-        }
-        return edfConfig;
-    }
-
-
-    class EdfDataReceiver extends EdfWriter {
-        private EdfFileWriter edfFileWriter = null;
-
-        public EdfDataReceiver(@Nullable File file) {
-            if(file != null) {
-                bdfFile = file;
-                edfFileWriter = new EdfFileWriter(file, FileType.BDF_24BIT);
-            }
-        }
-
-        @Override
-        public void setConfig(EdfConfig recordingInfo) {
-            super.setConfig(recordingInfo);
-            if(edfFileWriter != null) {
-                edfFileWriter.setConfig(recordingInfo);
-            }
-        }
-
-        @Override
-        public void writeDigitalSamples(int[] samples, int offset, int length) {
-            sampleCounter += length;
-            for (BdfDataListener listener : dataListeners) {
-                listener.onDataRecordReceived(samples);
-            }
-            if(edfFileWriter != null) {
-                edfFileWriter.writeDigitalSamples(samples, offset, length);
-            }
-        }
-
-        @Override
-        public void close() {
-            if(edfFileWriter != null) {
-                edfFileWriter.close();
-                System.out.println("close: number of records "+edfFileWriter.getNumberOfReceivedDataRecords());
-                System.out.println(edfFileWriter.getWritingInfo());
-                if(getNumberOfReceivedDataRecords() == 0) {
-                    bdfFile.delete();
-                    bdfFile = null;
-                }
-            }
-        }
-    }
 }

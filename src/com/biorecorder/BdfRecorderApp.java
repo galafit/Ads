@@ -32,7 +32,7 @@ public class BdfRecorderApp implements LowButteryEventListener {
 
     private Preferences preferences;
 
-    private final BdfRecorder bdfRecorder = new BdfRecorder();
+    private BdfRecorder bdfRecorder = new BdfRecorder();
 
     private int NOTIFICATION_PERIOD_MS = 1000;
     private int CONNECTION_PERIOD_MS = 2000;
@@ -107,6 +107,12 @@ public class BdfRecorderApp implements LowButteryEventListener {
             System.arraycopy(availablePorts, 0, resultantPorts, 1, availablePorts.length);
             return resultantPorts;
         }
+    }
+
+    public void changeRecorder() {
+        stopRecording();
+        bdfRecorder.disconnect();
+        bdfRecorder = new BdfRecorder();
     }
 
 

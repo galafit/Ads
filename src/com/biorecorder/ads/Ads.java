@@ -242,10 +242,25 @@ public class Ads {
         eventsListeners.add(adsEventsListener);
     }
 
+    public void removeAdsDataListener(AdsDataListener adsDataListener) {
+        dataListeners.remove(adsDataListener);
+    }
+
+    public void removeAdsEventsListener(AdsEventsListener adsEventsListener) {
+        eventsListeners.remove(adsEventsListener);
+    }
+
     public synchronized void disconnect() throws PortRuntimeException {
         if (comport != null) {
             try {
+                comport.writeByte(STOP_REQUEST);
                 comport.close();
+                if(pingTimer != null) {
+                    pingTimer.cancel();
+                }
+                if(monitoringTimer != null) {
+                    monitoringTimer.cancel();
+                }
             } catch (SerialPortException e) {
                 String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comport.getComportName());
                 throw new PortRuntimeException(msg, e);
