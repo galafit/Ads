@@ -489,7 +489,7 @@ public class BdfRecorderWindow extends JFrame  {
         spsField.setSelectedItem(recordingSettings.getSampleRate());
         deviceTypeField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableDeviceTypes()));
         deviceTypeField.setSelectedItem(recordingSettings.getDeviceType());
-        fileToSaveUI.setDirectory(new File(recordingSettings.getDirToSave()).getName());
+        fileToSaveUI.setDirectory(new File(recordingSettings.getDirToSave()).toString());
 //        fileToSave.setText(FILENAME_PATTERN);
         patientIdentification.setText(recordingSettings.getPatientIdentification());
         recordingIdentification.setText(recordingSettings.getRecordingIdentification());
