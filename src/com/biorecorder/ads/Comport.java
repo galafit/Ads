@@ -67,31 +67,29 @@ class Comport implements SerialPortEventListener {
         serialPort.closePort();
     }
 
-    public boolean writeBytes(byte[] bytes) {
-        try {
-            serialPort.writeBytes(bytes);
+    public boolean writeBytes(byte[] bytes) throws SerialPortException {
+        return serialPort.writeBytes(bytes);
+     /*   try {
+            return serialPort.writeBytes(bytes);
         } catch (SerialPortException e) {
             String errMsg = "Error during writing byte to serial port.";
             log.error(errMsg, e);
         }
-        return false;
+        return false;*/
     }
 
 
-    public boolean writeByte(byte b) {
-        try {
-            return serialPort.writeByte(b);
-        } catch (SerialPortException e) {
-            String errMsg = "Error during writing bytes to serial port.";
-            log.error(errMsg, e);
-        }
-        return false;
+    public boolean writeByte(byte b) throws SerialPortException {
+        return serialPort.writeByte(b);
     }
 
     public void setComPortListener(ComPortListener comPortListener) {
         this.comPortListener = comPortListener;
     }
 
+    public void removeComPortListener() {
+        comPortListener = null;
+    }
 
     @Override
     public void serialEvent(SerialPortEvent event) {

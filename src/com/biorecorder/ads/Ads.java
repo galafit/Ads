@@ -68,8 +68,8 @@ public class Ads {
     private static final int PING_TIMER_DELAY_MS = 1000;
     private static final int WATCHDOG_TIMER_PERIOD_MS = 500;
 
-    private List<AdsDataListener> dataListeners = new ArrayList<AdsDataListener>(1);
-    private List<AdsEventsListener> eventsListeners = new ArrayList<AdsEventsListener>(1);
+    private AdsDataListener dataListener;
+    private AdsEventsListener eventsListener;
     private volatile Comport comport;
     private volatile Timer pingTimer;
     private volatile Timer monitoringTimer = new Timer();
@@ -83,6 +83,7 @@ public class Ads {
         }
         if (comport != null && !comport.getComportName().equals(comportName)) {
             try {
+                comport.removeComPortListener();
                 comport.close();
             } catch (SerialPortException e) {
                 String msg = MessageFormat.format("Error while closing serial port: \"{0}\"", comport.getComportName());
@@ -90,6 +91,12 @@ public class Ads {
             }
         }
         comport = new Comport(comportName, COMPORT_SPEED);
+        try {
+            comport.writeByte(STOP_REQUEST);
+        } catch (SerialPortException e) {
+            System.out.println("comport write ");
+            e.printStackTrace();
+        }
         FrameDecoder frameDecoder = new FrameDecoder(null);
         startMonitoringTimer(frameDecoder, null,  true);
         comport.setComPortListener(frameDecoder);
@@ -120,23 +127,20 @@ public class Ads {
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
             public void onDataReceived(int[] dataFrame) {
-                for (AdsDataListener listener : dataListeners) {
-                    listener.onDataReceived(dataFrame);
+                if(dataListener != null) {
+                    dataListener.onDataReceived(dataFrame);
                 }
+
             }
         });
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
-                if (adsMessage == AdsMessage.LOW_BATTERY) {
-                    for (AdsEventsListener listener : eventsListeners) {
-                        listener.handleAdsLowButtery();
-                    }
+                if (adsMessage == AdsMessage.LOW_BATTERY && eventsListener != null) {
+                    eventsListener.handleAdsLowButtery();
                 }
-                if (adsMessage == AdsMessage.FRAME_BROKEN) {
-                    for (AdsEventsListener listener : eventsListeners) {
-                        listener.handleAdsFrameBroken(additionalInfo);
-                    }
+                if (adsMessage == AdsMessage.FRAME_BROKEN && eventsListener != null) {
+                    eventsListener.handleAdsFrameBroken(additionalInfo);
                 }
 
             }
@@ -148,11 +152,23 @@ public class Ads {
         pingTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                comport.writeByte(PING_COMMAND);
+                try {
+                    comport.writeByte(PING_COMMAND);
+                } catch (SerialPortException e) {
+                   // do nothing;
+                }
             }
         }, PING_TIMER_DELAY_MS, PING_TIMER_DELAY_MS);
 
-        return comport.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
+        boolean isWriteOk;
+        try {
+            isWriteOk = comport.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
+        } catch (SerialPortException e) {
+            String errMsg = "Error during writing «start command» to serial port.";
+            log.error(errMsg, e);
+            isWriteOk = false;
+        }
+        return isWriteOk;
     }
 
     /**
@@ -172,14 +188,25 @@ public class Ads {
         startMonitoringTimer(frameDecoder, null, true);
         comport.setComPortListener(frameDecoder);
 
-        boolean is_writing_ok = comport.writeByte(STOP_REQUEST);
+        boolean isWriteOk;
         try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            log.warn(e);
+            isWriteOk = comport.writeByte(STOP_REQUEST);
+        } catch (SerialPortException e) {
+            String errMsg = "Error during writing «stop command» to serial port.";
+            log.error(errMsg, e);
+            isWriteOk = false;
         }
-
-        return is_writing_ok;
+        for (int i = 0; i < 10; i++) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                log.warn(e);
+            }
+            if (adsState.isStoped()) {
+                return isWriteOk;
+            }
+        }
+        return isWriteOk;
     }
 
     /**
@@ -196,10 +223,17 @@ public class Ads {
         if(adsState.getDeviceType() != null) {
             return adsState.getDeviceType();
         }
-        comport.writeByte(HARDWARE_REQUEST);
-        for (int i = 0; i < 5; i++) {
+
+        try {
+            comport.writeByte(HARDWARE_REQUEST);
+        } catch (SerialPortException e) {
+            String errMsg = "Error during writing «hardware request command» to serial port.";
+            log.error(errMsg, e);
+        }
+
+        for (int i = 0; i < 10; i++) {
             try {
-                Thread.sleep(200);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 log.warn(e);
             }
@@ -234,20 +268,20 @@ public class Ads {
         return adsState.isActive();
     }
 
-    public void addAdsDataListener(AdsDataListener adsDataListener) {
-        dataListeners.add(adsDataListener);
+    public void setAdsDataListener(AdsDataListener adsDataListener) {
+        dataListener = adsDataListener;
     }
 
-    public void addAdsEventsListener(AdsEventsListener adsEventsListener) {
-        eventsListeners.add(adsEventsListener);
+    public void setAdsEventsListener(AdsEventsListener adsEventsListener) {
+        eventsListener = adsEventsListener;
     }
 
-    public void removeAdsDataListener(AdsDataListener adsDataListener) {
-        dataListeners.remove(adsDataListener);
+    public void removeAdsEventsListener() {
+        eventsListener = null;
     }
 
-    public void removeAdsEventsListener(AdsEventsListener adsEventsListener) {
-        eventsListeners.remove(adsEventsListener);
+    public void removeAdsDataListener( ) {
+        dataListener = null;
     }
 
     public synchronized void disconnect() throws PortRuntimeException {
@@ -265,6 +299,7 @@ public class Ads {
                 String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comport.getComportName());
                 throw new PortRuntimeException(msg, e);
             } finally {
+                comport.removeComPortListener();
                 comport = null;
             }
         }
@@ -297,7 +332,11 @@ public class Ads {
             monitoringTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
-                    comport.writeByte(HARDWARE_REQUEST);
+                    try {
+                        comport.writeByte(HARDWARE_REQUEST);
+                    } catch (SerialPortException e) {
+                        // do nothing!
+                    }
                 }
             }, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
         }
@@ -365,7 +404,7 @@ public class Ads {
                     throw new AdsTypeIvalidRuntimeException(msg);
                 }
 
-                if (!adsState.isStoped()) {
+                if (!adsState.is  ed()) {
                     comport.writeByte(STOP_REQUEST);
                     try {
                         Thread.sleep(1000);

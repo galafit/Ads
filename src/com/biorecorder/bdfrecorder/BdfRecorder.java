@@ -4,17 +4,8 @@ import com.biorecorder.ads.*;
 import com.biorecorder.ads.exceptions.PortBusyRuntimeException;
 import com.biorecorder.ads.exceptions.PortNotFoundRuntimeException;
 import com.biorecorder.bdfrecorder.exceptions.*;
-import com.biorecorder.edflib.EdfFileWriter;
-import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.base.DefaultEdfConfig;
 import com.biorecorder.edflib.base.EdfConfig;
-import com.biorecorder.edflib.base.EdfWriter;
 import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
-import com.biorecorder.edflib.filters.EdfFilter;
-import com.biorecorder.edflib.filters.EdfJoiner;
-import com.biorecorder.edflib.filters.EdfSignalsFilter;
-import com.biorecorder.edflib.filters.EdfSignalsRemover;
-import com.biorecorder.edflib.filters.signalfilters.MovingAverageFilter;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,7 +28,7 @@ public class BdfRecorder implements AdsEventsListener {
 
     public BdfRecorder() {
         ads = new Ads();
-        ads.addAdsEventsListener(this);
+        ads.setAdsEventsListener(this);
     }
 
     public void addBdfDataListener(BdfDataListener listener) {
@@ -87,6 +78,7 @@ public class BdfRecorder implements AdsEventsListener {
      */
     public void disconnect()  throws ConnectionRuntimeException {
         try {
+            ads.removeAdsDataListener();
             ads.disconnect();
         } catch (Exception ex) {
             String errMsg = "Error during disconnecting";
@@ -120,7 +112,7 @@ public class BdfRecorder implements AdsEventsListener {
         }
         try {
             adsListenerBdfWriter = new AdsListenerBdfWriter(bdfRecorderConfig, file, resultantDataRecordDuration, dataListeners);
-            ads.addAdsDataListener(adsListenerBdfWriter);
+            ads.setAdsDataListener(adsListenerBdfWriter);
             ads.sendStartCommand(bdfRecorderConfig.getAdsConfig());
             isRecording = true;
         } catch (FileNotFoundRuntimeException ex) {
@@ -140,7 +132,7 @@ public class BdfRecorder implements AdsEventsListener {
         }
         try {
             ads.sendStopRecordingCommand();
-            ads.removeAdsDataListener(adsListenerBdfWriter);
+            ads.removeAdsDataListener();
             if(adsListenerBdfWriter != null) {
                 adsListenerBdfWriter.close();
             }

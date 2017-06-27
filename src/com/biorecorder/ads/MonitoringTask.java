@@ -41,6 +41,7 @@ class MonitoringTask extends TimerTask implements MessageListener, AdsDataListen
             isDataReceived = true;
             adsState.setActive(true);
             adsState.setDataComing(true);
+            adsState.setStoped(false);
             if(adsConfig.isLeadOffEnabled()) {
                 if(adsConfig.getDeviceType().getNumberOfAdsChannels() == 2) {
                     adsState.setLoffMask(intToBitMask(dataFrame[dataFrame.length - 1], adsConfig.getDeviceType().getNumberOfAdsChannels() * 2));
