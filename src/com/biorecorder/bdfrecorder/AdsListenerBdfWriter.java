@@ -22,9 +22,10 @@ import java.util.List;
  */
 class AdsListenerBdfWriter implements AdsDataListener {
     private static final Log LOG = LogFactory.getLog(AdsListenerBdfWriter.class);
-    EdfDataReceiver edfDataReceiver;
+    private EdfDataReceiver edfDataReceiver;
     private EdfFilter edfWriter;
-    List<BdfDataListener> dataListeners;
+    private List<BdfDataListener> dataListeners;
+    private volatile boolean isDataRecieved = false;
 
     public AdsListenerBdfWriter(BdfRecorderConfig bdfRecorderConfig, @Nullable File file, double resultantDataRecordDuration, List<BdfDataListener> dataListeners)  {
         this.dataListeners = dataListeners;
@@ -66,8 +67,13 @@ class AdsListenerBdfWriter implements AdsDataListener {
         edfDataReceiver = dataReceiver;
     }
 
+    public boolean isDataReceived() {
+        return isDataRecieved;
+    }
+
     @Override
     public void onDataReceived(int[] dataFrame) {
+        isDataRecieved = true;
         try {
             edfWriter.writeDigitalSamples(dataFrame);
         } catch (Exception e) {

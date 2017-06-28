@@ -13,6 +13,9 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimerTask;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 /**
  * Created by galafit on 2/6/17.
@@ -27,20 +30,22 @@ public class BdfRecorderApp implements LowButteryEventListener {
     String COMPORT_BUSY_ERR = "ComPort: {0} is busy.";
     String COMPORT_NOT_FOUND_ERR = "ComPort: {0} is not found.";
     String APP_ERR = "Error: {0}";
-    String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped";
-
+    String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped.";
+    String START_CANCELLED_MSG = "Start cancelled.";
+    String START_FAILED_MSG = "Start failed. \nCheck whether the device is connected" +
+            "\nand the correct ComPort is selected!";
 
     private Preferences preferences;
-
     private BdfRecorder bdfRecorder = new BdfRecorder();
 
     private int NOTIFICATION_PERIOD_MS = 1000;
     private int CONNECTION_PERIOD_MS = 2000;
     javax.swing.Timer notificationTimer;
     java.util.Timer connectionTimer;
-    private volatile String[] comportNames;
     private volatile String selectedComportName;
     private AppConfig recordingSettings;
+
+    private Future startFuture;
 
     private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
     private List<MessageListener> messageListeners = new ArrayList<MessageListener>(1);
@@ -53,6 +58,25 @@ public class BdfRecorderApp implements LowButteryEventListener {
         notificationTimer = new javax.swing.Timer(NOTIFICATION_PERIOD_MS, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if(startFuture != null) {
+                    if (startFuture.isDone()) {
+                        try {
+                            startFuture.get();
+                        } catch (ExecutionException ex) {
+                            if(ex.getCause() instanceof InvalidDeviceTypeRuntimeException) {
+                                sendMessage(ex.getCause().getMessage());
+                            } else {
+                                sendMessage(START_FAILED_MSG);
+                            }
+                        } catch (CancellationException ex) {
+                            sendMessage(START_CANCELLED_MSG);
+                        } catch (InterruptedException ie) {
+                            sendMessage(START_FAILED_MSG);
+                        } finally {
+                            startFuture = null;
+                        }
+                    }
+                }
                 for (NotificationListener listener : notificationListeners) {
                     listener.update();
                 }
@@ -80,7 +104,6 @@ public class BdfRecorderApp implements LowButteryEventListener {
      */
     public synchronized String[] getComportNames() {
         String[] availablePorts = bdfRecorder.getAvailableComportNames();
-        String[] ports = availablePorts;
         if(selectedComportName == null || selectedComportName.isEmpty()) {
             return availablePorts;
         }
@@ -111,8 +134,9 @@ public class BdfRecorderApp implements LowButteryEventListener {
 
     public void changeRecorder() {
         stopRecording();
-        bdfRecorder.disconnect();
-        bdfRecorder = new BdfRecorder();
+        recordingSettings = null;
+      //  bdfRecorder.disconnect();
+      //  bdfRecorder = new BdfRecorder();
     }
 
 
@@ -212,7 +236,7 @@ public class BdfRecorderApp implements LowButteryEventListener {
         selectedComportName = comportName;
         try {
             bdfRecorder.connect(comportName);
-            bdfRecorder.startRecording(recordingSettings.getBdfRecorderConfig(), fileToWrite);
+            startFuture = bdfRecorder.startRecording(recordingSettings.getBdfRecorderConfig(), fileToWrite);
         } catch (BdfFileNotFoundRuntimeException ex) {
             log.error(ex);
             String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_ERR, fileToWrite);

@@ -28,7 +28,7 @@ class Comport implements SerialPortEventListener {
         serialPort = new SerialPort(comportName);
         try {
             serialPort.openPort();//Open serial port
-            System.out.println(Thread.currentThread() + " opened comport: "+comportName);
+            log.info(Thread.currentThread() + " opened comport: "+comportName);
             serialPort.setParams(speed,
                     SerialPort.DATABITS_8,
                     SerialPort.STOPBITS_1,

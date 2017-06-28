@@ -136,16 +136,13 @@ public class BdfRecorderWindow extends JFrame  {
     }
 
 
-
-
     private void setActions() {
 
         deviceTypeField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                bdfRecorder.changeRecorder();
-                bdfRecorder.connect(getComPortName());
                 recordingSettings.setDeviceType(getDeviceType());
+                bdfRecorder.changeRecorder();
                 init();
                 pack();
             }

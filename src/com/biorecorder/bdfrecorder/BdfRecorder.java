@@ -14,17 +14,24 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 
 
 public class BdfRecorder implements AdsEventsListener {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
-    private Ads ads = new Ads();
+
+    private final int MAX_START_TIMEOUT_SEC = 5;
+
+    private volatile Ads ads = new Ads();
     private List<BdfDataListener> dataListeners = new ArrayList<BdfDataListener>();
     private List<LowButteryEventListener> butteryEventListeners = new ArrayList<LowButteryEventListener>();
 
-    private boolean isRecording = false;
+    private volatile boolean isRecording = false;
     private double resultantDataRecordDuration = 1; // sec
-    private AdsListenerBdfWriter adsListenerBdfWriter;
+    private volatile AdsListenerBdfWriter adsListenerBdfWriter;
+    private volatile Future startFuture;
 
     public BdfRecorder() {
         ads = new Ads();
@@ -58,7 +65,7 @@ public class BdfRecorder implements AdsEventsListener {
      * @throws ComportBusyRuntimeException
      * @throws ConnectionRuntimeException
      */
-    public void connect(String comportName) throws  ComportNotFoundRuntimeException, ComportBusyRuntimeException, ConnectionRuntimeException {
+    public synchronized void connect(String comportName) throws  ComportNotFoundRuntimeException, ComportBusyRuntimeException, ConnectionRuntimeException {
         try {
             ads.connect(comportName);
         } catch (PortNotFoundRuntimeException ex) {
@@ -76,7 +83,7 @@ public class BdfRecorder implements AdsEventsListener {
      *
      * @throws ConnectionRuntimeException
      */
-    public void disconnect()  throws ConnectionRuntimeException {
+    public synchronized void disconnect()  throws ConnectionRuntimeException {
         try {
             ads.removeAdsDataListener();
             ads.disconnect();
@@ -86,10 +93,9 @@ public class BdfRecorder implements AdsEventsListener {
         }
     }
 
-    public boolean isConnected() {
+    public synchronized boolean isConnected() {
         return ads.isConnected();
     }
-
 
     public  String[] getAvailableComportNames() {
         return ads.getAvailableComportNames();
@@ -101,11 +107,23 @@ public class BdfRecorder implements AdsEventsListener {
      * If file is not null the data are also written to the file.
      *
      * @param file file the data will be saved
+     * @param bdfRecorderConfig object with the device configuration info
+     * @return Future object to get info whether start will failed or successful.
+     * In case of fail future object:
+     * <br>1) throws InvalidDeviceTypeRuntimeException if specified in bdfRecorderConfig
+     * device type does not coincide with really connected device
+     * <br>2)throws BdfRecorderRuntimeException if the given for starting  time-limit is exceeds
+     * and data still not coming
+     *
      * @throws IllegalStateException if BdfRecorder is not connected
      * @throws BdfFileNotFoundRuntimeException If file to write data could not be created or
      * does not have permission to write
+
      */
-    public void startRecording(BdfRecorderConfig bdfRecorderConfig, @Nullable File file) throws IllegalStateException, BdfFileNotFoundRuntimeException {
+    public synchronized Future startRecording(BdfRecorderConfig bdfRecorderConfig, @Nullable File file) throws IllegalStateException, BdfFileNotFoundRuntimeException {
+        if(isRecording) {
+            return startFuture;
+        }
         if(! ads.isConnected()) {
             String errMsg = "BdfRecorder must be connected to some serial port first!";
             throw new IllegalStateException(errMsg);
@@ -119,6 +137,42 @@ public class BdfRecorder implements AdsEventsListener {
             String errMsg = MessageFormat.format("File: \"{0}\" could not be created or accessed", file);
             new BdfFileNotFoundRuntimeException(errMsg, ex);
         }
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        startFuture = executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                int delay = 1000;
+                for (int i = 0; i < MAX_START_TIMEOUT_SEC * 1000 / delay; i++) {
+                    try {
+                        if(adsListenerBdfWriter.isDataReceived()) {
+                            return;
+                        }
+                        // check device type
+                        DeviceType realDeviceType = ads.sendDeviceTypeRequest();
+                        if (realDeviceType != null && realDeviceType != bdfRecorderConfig.getDeviceType()) {
+                            cancelStaring();
+                            String msg = MessageFormat.format("Specified device type is invalid: {0}. Connected: {1}", bdfRecorderConfig.getDeviceType(), realDeviceType);
+                            throw new InvalidDeviceTypeRuntimeException(msg);
+                        }
+                        Thread.sleep(delay);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                }
+                cancelStaring();
+                String msg = "Start failed. Start time exceeded.";
+                throw new BdfRecorderRuntimeException(msg);
+            }
+        });
+        executor.shutdown();
+        return startFuture;
+    }
+
+    private void cancelStaring() {
+        ads.removeAdsDataListener();
+        adsListenerBdfWriter.close();
+        ads.sendStopRecordingCommand();
+        isRecording = false;
     }
 
     /**
@@ -126,11 +180,19 @@ public class BdfRecorder implements AdsEventsListener {
      * @throws BdfRecorderRuntimeException if some kind of error occurs during
      * stopping recording
      */
-    public void stopRecording() throws BdfRecorderRuntimeException {
+    public synchronized void stopRecording() throws BdfRecorderRuntimeException {
         if(!isRecording) {
             return;
         }
+        if(! ads.isConnected()) {
+            String errMsg = "BdfRecorder must be connected to some serial port first!";
+            throw new IllegalStateException(errMsg);
+        }
         try {
+            if(startFuture != null) {
+                startFuture.cancel(true);
+                startFuture = null;
+            }
             ads.sendStopRecordingCommand();
             ads.removeAdsDataListener();
             if(adsListenerBdfWriter != null) {
@@ -169,11 +231,12 @@ public class BdfRecorder implements AdsEventsListener {
         return null;
     }
 
-    public boolean isRecording() {
+    public synchronized boolean isRecording() {
         return isRecording;
     }
 
     public boolean isActive() {
+
         return ads.isActive();
     }
     

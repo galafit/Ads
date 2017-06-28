@@ -76,7 +76,6 @@ public class Ads {
     private final AdsState adsState = new AdsState();
 
 
-
     public synchronized void connect(String comportName) throws PortNotFoundRuntimeException, PortBusyRuntimeException, PortRuntimeException {
         if (comport != null && comport.getComportName().equals(comportName)) {
             return;
@@ -91,12 +90,6 @@ public class Ads {
             }
         }
         comport = new Comport(comportName, COMPORT_SPEED);
-        try {
-            comport.writeByte(STOP_REQUEST);
-        } catch (SerialPortException e) {
-            System.out.println("comport write ");
-            e.printStackTrace();
-        }
         FrameDecoder frameDecoder = new FrameDecoder(null);
         startMonitoringTimer(frameDecoder, null,  true);
         comport.setComPortListener(frameDecoder);
@@ -231,7 +224,7 @@ public class Ads {
             log.error(errMsg, e);
         }
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 5; i++) {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
@@ -341,109 +334,4 @@ public class Ads {
             }, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
         }
     }
-
-
- /*   public synchronized Future startRecording_full(String comPortName) throws PortNotFoundRuntimeException, AdsConnectionRuntimeException {
-        int MAX_START_TIMEOUT_SEC = 60;
-        comPortConnect(comPortName);
-
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-        frameDecoder.addDataListener(new AdsDataListener() {
-            @Override
-            public void onDataRecordReceived(int[] dataFrame) {
-                for (AdsDataListener l : adsDataListeners) {
-                    l.onDataRecordReceived(dataFrame);
-                }
-            }
-        });
-        frameDecoder.addMessageListener(new MessageListener() {
-            @Override
-            public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
-                if (adsMessage == AdsMessage.LOW_BATTERY) {
-                    for (AdsEventsListener l : adsEventsListeners) {
-                        l.handleAdsLowButtery();
-                    }
-                }
-                if (adsMessage == AdsMessage.FRAME_BROKEN) {
-                    for (AdsEventsListener l : adsEventsListeners) {
-                        l.handleAdsFrameBroken(additionalInfo);
-                    }
-                }
-            }
-        });
-        startMonitoringTimer(frameDecoder, false);
-        comport.setComPortListener(frameDecoder);
-        //---------------------------
-        TimerTask timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                comport.writeByte(PING_COMMAND);
-            }
-        };
-        pingTimer = new Timer();
-        pingTimer.schedule(timerTask, PING_TIMER_DELAY_MS, PING_TIMER_DELAY_MS);
-
-        //------ Start ads in separate thread
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(2);
-        Future future = executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                int delay = 200;
-                while (adsState.getDeviceType() == null) {
-                    comport.writeByte(HARDWARE_REQUEST);
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException e) {
-                        String msg = "Ads sendStartCommand(): Interruption during ads hardware requesting.";
-                        log.info(msg, e);
-                    }
-                }
-                System.out.println("device type detected "+adsState.getDeviceType());
-                if (adsState.getDeviceType() != adsConfig.getDeviceType()) {
-                    String msg = MessageFormat.format("Device type is invalid: {0}. Expected: ", adsConfig.getDeviceType(), adsState.getDeviceType());
-                    throw new AdsTypeIvalidRuntimeException(msg);
-                }
-
-                if (!adsState.is  ed()) {
-                    comport.writeByte(STOP_REQUEST);
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        String msg = "Ads sendStartCommand(): Interruption during ads stopping.";
-                        log.info(msg, e);
-                    }
-                }
-
-                comport.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
-
-                System.out.println("device config written");
-
-                adsState.setStoped(false);
-                while (!adsState.isDataComing()) {
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException e) {
-                        String msg = "Ads sendStartCommand(): Interruption waiting data coming.";
-                        log.info(msg, e);
-                    }
-                }
-            }
-        });
-
-        // запускаем второй паралельный поток который прервет первый
-        // через MAX_START_TIMEOUT_SEC если данные не пошли
-        executor.schedule(new Runnable() {
-            public void run() {
-               if(!adsState.isDataComing()) {
-                   future.cancel(true);
-                   sendStopRecordingCommand();
-               }
-            }
-        }, MAX_START_TIMEOUT_SEC, TimeUnit.SECONDS);
-
-
-        return future;
-    }*/
-
-
 }
