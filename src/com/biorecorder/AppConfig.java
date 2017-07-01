@@ -13,8 +13,8 @@ import java.util.Date;
  * Created by galafit on 2/6/17.
  */
 public class AppConfig {
-    private String comportName = "";
-    private String dirToSave = new File(System.getProperty("user.dir"), "records").getAbsolutePath();
+    private String comportName;
+    private String dirToSave;
     private BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
     @JsonIgnore
     private String fileName;
@@ -37,7 +37,32 @@ public class AppConfig {
 
 
     public String getDirToSave() {
-        return dirToSave;
+        // first we try to return «dirToSave» if it is specified and exists
+        if(dirToSave != null) {
+            File dir = new File(dirToSave);
+            if(dir.exists() && dir.isDirectory()) {
+                return dirToSave;
+            }
+        }
+        // then we try return «projectDir/records» if it is exist or can be created
+        String projectDir = System.getProperty("user.dir");
+        String dirName = "records";
+
+        File dir = new File (projectDir, dirName);
+        if(dir.exists()) {
+          return dir.toString();
+        } else {
+            try {
+                dir.mkdir();
+                return dir.toString();
+            } catch (Exception ex) {
+               // do nothing!
+            }
+        }
+        // finally we return «homeDir/records»
+        String userHomeDir = System.getProperty("user.home");
+        dir = new File (userHomeDir, dirName);
+        return dir.toString();
     }
 
     public void setDirToSave(String dirToSave) {
@@ -45,35 +70,11 @@ public class AppConfig {
     }
 
     public void setFileName(String fileName) {
-        this.fileName = normalizeFilename(fileName);
+        this.fileName = fileName;
     }
 
     public String getFilename() {
         return fileName;
-    }
-
-    public static String normalizeFilename(@Nullable String filename) {
-        String FILE_EXTENSION = "bdf";
-        String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
-
-        if (filename == null || filename.isEmpty()) {
-            return defaultFilename.concat(".").concat(FILE_EXTENSION);
-        }
-        filename = filename.trim();
-
-        // if filename has no extension
-        if (filename.lastIndexOf('.') == -1) {
-            filename = filename.concat(".").concat(FILE_EXTENSION);
-            return defaultFilename + filename;
-        }
-        // if  extension  match with given FILE_EXTENSIONS
-        // (?i) makes it case insensitive (catch BDF as well as bdf)
-        if (filename.matches("(?i).*\\." + FILE_EXTENSION)) {
-            return defaultFilename +filename;
-        }
-        // If the extension do not match with  FILE_EXTENSION We need to replace it
-        filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);
-        return defaultFilename + "_" + filename;
     }
 
 

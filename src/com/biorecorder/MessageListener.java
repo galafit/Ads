@@ -5,4 +5,5 @@ package com.biorecorder;
  */
 public interface MessageListener {
     public void onMessageReceived(String message);
+    public boolean onConfirmationAsked(String message);
 }

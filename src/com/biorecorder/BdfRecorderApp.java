@@ -4,13 +4,16 @@ import com.biorecorder.bdfrecorder.BdfRecorder;
 import com.biorecorder.bdfrecorder.LowButteryEventListener;
 import com.biorecorder.bdfrecorder.exceptions.*;
 
+import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.CancellationException;
@@ -26,14 +29,16 @@ public class BdfRecorderApp implements LowButteryEventListener {
     private static final int SUCCESS_STATUS = 0;
     private static final int ERROR_STATUS = 1;
 
-    String FILE_NOT_ACCESSIBLE_ERR = "File: {0} could not be created or accessed.";
-    String COMPORT_BUSY_ERR = "ComPort: {0} is busy.";
-    String COMPORT_NOT_FOUND_ERR = "ComPort: {0} is not found.";
-    String APP_ERR = "Error: {0}";
-    String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped.";
-    String START_CANCELLED_MSG = "Start cancelled.";
-    String START_FAILED_MSG = "Start failed. \nCheck whether the device is connected" +
-            "\nand the correct ComPort is selected!";
+    private static final String FILE_NOT_ACCESSIBLE_ERR = "File: {0} could not be created or accessed.";
+    private static final String COMPORT_BUSY_ERR = "ComPort: {0} is busy.";
+    private static final String COMPORT_NOT_FOUND_ERR = "ComPort: {0} is not found.";
+    private static final String APP_ERR = "Error: {0}";
+    private static final String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped.";
+    private static final String START_CANCELLED_MSG = "Start cancelled.";
+    private static final String START_FAILED_MSG = "Start failed. Check whether the device is connected" +
+            "\nand selected ComPort is correct and try again.";
+    private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
+
 
     private Preferences preferences;
     private BdfRecorder bdfRecorder = new BdfRecorder();
@@ -47,8 +52,8 @@ public class BdfRecorderApp implements LowButteryEventListener {
 
     private Future startFuture;
 
-    private List<NotificationListener> notificationListeners = new ArrayList<NotificationListener>(1);
-    private List<MessageListener> messageListeners = new ArrayList<MessageListener>(1);
+    private NotificationListener notificationListener;
+    private MessageListener messageListener;
 
     public BdfRecorderApp(Preferences preferences, String selectedComportName) {
         this.preferences = preferences;
@@ -58,27 +63,9 @@ public class BdfRecorderApp implements LowButteryEventListener {
         notificationTimer = new javax.swing.Timer(NOTIFICATION_PERIOD_MS, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if(startFuture != null) {
-                    if (startFuture.isDone()) {
-                        try {
-                            startFuture.get();
-                        } catch (ExecutionException ex) {
-                            if(ex.getCause() instanceof InvalidDeviceTypeRuntimeException) {
-                                sendMessage(ex.getCause().getMessage());
-                            } else {
-                                sendMessage(START_FAILED_MSG);
-                            }
-                        } catch (CancellationException ex) {
-                            sendMessage(START_CANCELLED_MSG);
-                        } catch (InterruptedException ie) {
-                            sendMessage(START_FAILED_MSG);
-                        } finally {
-                            startFuture = null;
-                        }
-                    }
-                }
-                for (NotificationListener listener : notificationListeners) {
-                    listener.update();
+                checkStartFuture();
+                if(notificationListener != null) {
+                    notificationListener.update();
                 }
             }
         });
@@ -91,6 +78,29 @@ public class BdfRecorderApp implements LowButteryEventListener {
                daemonConnect();
             }
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+    }
+
+    private void checkStartFuture() {
+        if(startFuture != null) {
+            if (startFuture.isDone()) {
+                try {
+                    startFuture.get();
+                } catch (ExecutionException ex) {
+                    if(ex.getCause() instanceof InvalidDeviceTypeRuntimeException) {
+                        sendMessage(ex.getCause().getMessage());
+
+                    } else {
+                        sendMessage(START_FAILED_MSG);
+                    }
+                } catch (CancellationException ex) {
+                    sendMessage(START_CANCELLED_MSG);
+                } catch (InterruptedException ie) {
+                    sendMessage(START_FAILED_MSG);
+                } finally {
+                    startFuture = null;
+                }
+            }
+        }
     }
 
 
@@ -182,17 +192,17 @@ public class BdfRecorderApp implements LowButteryEventListener {
         return mask;
     }
 
-    public void addNotificationListener(NotificationListener l) {
-        notificationListeners.add(l);
+    public void setNotificationListener(NotificationListener l) {
+        notificationListener = l;
     }
 
-    public void addMessageListener(MessageListener l) {
-        messageListeners.add(l);
+    public void setMessageListener(MessageListener l) {
+        messageListener = l;
     }
 
     private void sendMessage(String message) {
-        for (MessageListener l : messageListeners) {
-            l.onMessageReceived(message);
+        if(messageListener != null) {
+            messageListener.onMessageReceived(message);
         }
     }
 
@@ -231,7 +241,20 @@ public class BdfRecorderApp implements LowButteryEventListener {
 
     public synchronized void startRecording(AppConfig recordingSettings)  {
         this.recordingSettings = recordingSettings;
-        File fileToWrite = new File(recordingSettings.getDirToSave(), recordingSettings.getFilename());
+        String dirToSave = recordingSettings.getDirToSave();
+        File dir = new File(dirToSave);
+        if(!dir.exists()) {
+            String msg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
+            boolean isConfirmed = messageListener.onConfirmationAsked(msg);
+            if(isConfirmed) {
+                dir.mkdir();
+            }
+            else {
+                return;
+            }
+        }
+        String filename =  normalizeFilename(recordingSettings.getFilename());
+        File fileToWrite = new File(dirToSave, filename);
         String comportName = recordingSettings.getComportName();
         selectedComportName = comportName;
         try {
@@ -297,6 +320,31 @@ public class BdfRecorderApp implements LowButteryEventListener {
         }
         return stateString;
     }
+
+    public static String normalizeFilename(@Nullable String filename) {
+        String FILE_EXTENSION = "bdf";
+        String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
+
+        if (filename == null || filename.isEmpty()) {
+            return defaultFilename.concat(".").concat(FILE_EXTENSION);
+        }
+        filename = filename.trim();
+
+        // if filename has no extension
+        if (filename.lastIndexOf('.') == -1) {
+            filename = filename.concat(".").concat(FILE_EXTENSION);
+            return defaultFilename + filename;
+        }
+        // if  extension  match with given FILE_EXTENSIONS
+        // (?i) makes it case insensitive (catch BDF as well as bdf)
+        if (filename.matches("(?i).*\\." + FILE_EXTENSION)) {
+            return defaultFilename +filename;
+        }
+        // If the extension do not match with  FILE_EXTENSION We need to replace it
+        filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);
+        return defaultFilename + "_" + filename;
+    }
+
 
 
 

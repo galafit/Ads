@@ -69,10 +69,6 @@ public class FileToSaveUI extends JPanel {
         return directory.getDirectory();
     }
 
-    public String getAbsFileName() {
-        //return new File(getDirectory(), getFileName()).getAbsolutePath();
-        return new File(getDirectory(), getFilename()).getName();
-    }
 
     @Override
     public void setEnabled(boolean isEnabled) {

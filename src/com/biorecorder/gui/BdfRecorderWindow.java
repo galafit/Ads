@@ -35,15 +35,15 @@ public class BdfRecorderWindow extends JFrame  {
     private int IDENTIFICATION_LENGTH = 80;
 
     private JComboBox accelerometerFrequency;
-    private JTextField accelerometerName = new JTextField("Accelerometer");
+    private JTextField accelerometerName;
     private JCheckBox accelerometerEnable;
     private JTextField patientIdentification;
     private JTextField recordingIdentification;
 
     private String start = "Start";
     private String stop = "Stop";
-    private JButton startButton = new JButton(start);
-    private JButton stopButton = new JButton(stop);
+    private JButton startButton;
+    private JButton stopButton;
 
     private String comPortLabel = "ComPort:";
     private JComboBox comport;
@@ -75,7 +75,13 @@ public class BdfRecorderWindow extends JFrame  {
     public BdfRecorderWindow(BdfRecorderApp bdfRecorder, AppConfig recordingSettings) {
         this.recordingSettings = recordingSettings;
         this.bdfRecorder = bdfRecorder;
-        stopButton.setVisible(false);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent windowEvent) {
+                saveDataToModel();
+                bdfRecorder.closeApplication(recordingSettings);
+            }
+        });
         init();
         pack();
         // place the window to the screen center
@@ -94,6 +100,10 @@ public class BdfRecorderWindow extends JFrame  {
 
     private void createFields() {
         int numberOfAdsChannels = recordingSettings.getNumberOfAdsChannels();
+
+        startButton = new JButton(start);
+        stopButton = new JButton(stop);
+        stopButton.setVisible(false);
 
         spsField = new JComboBox();
         comport = new JComboBox();
@@ -128,6 +138,7 @@ public class BdfRecorderWindow extends JFrame  {
             channelLoffStatNegative[i] = new MarkerLabel(iconDisabled);
             channelLoffEnable[i] = new JCheckBox();
         }
+        accelerometerName = new JTextField("Accelerometer");
         accelerometerEnable = new JCheckBox();
         accelerometerFrequency = new JComboBox();
         accelerometerCommutator = new JComboBox();
@@ -148,15 +159,23 @@ public class BdfRecorderWindow extends JFrame  {
             }
         });
 
-        bdfRecorder.addMessageListener(new MessageListener() {
+        bdfRecorder.setMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(String message) {
                 JOptionPane.showMessageDialog(BdfRecorderWindow.this, message);
 
             }
+            @Override
+            public boolean onConfirmationAsked(String message) {
+                int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow.this, message, null, JOptionPane.YES_NO_OPTION);
+                if(answer == JOptionPane.YES_OPTION) {
+                    return true;
+                }
+                return false;
+            }
         });
 
-        bdfRecorder.addNotificationListener(new NotificationListener() {
+        bdfRecorder.setNotificationListener(new NotificationListener() {
             @Override
             public void update() {
                 updateLeadOffStatus(bdfRecorder.getLeadOfDetectionMask());
@@ -273,14 +292,6 @@ public class BdfRecorderWindow extends JFrame  {
             }
         });
 
-
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent windowEvent) {
-                saveDataToModel();
-                bdfRecorder.closeApplication(recordingSettings);
-            }
-        });
     }
 
 
@@ -486,8 +497,7 @@ public class BdfRecorderWindow extends JFrame  {
         spsField.setSelectedItem(recordingSettings.getSampleRate());
         deviceTypeField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableDeviceTypes()));
         deviceTypeField.setSelectedItem(recordingSettings.getDeviceType());
-        fileToSaveUI.setDirectory(new File(recordingSettings.getDirToSave()).toString());
-//        fileToSave.setText(FILENAME_PATTERN);
+        fileToSaveUI.setDirectory(recordingSettings.getDirToSave());
         patientIdentification.setText(recordingSettings.getPatientIdentification());
         recordingIdentification.setText(recordingSettings.getRecordingIdentification());
         for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
