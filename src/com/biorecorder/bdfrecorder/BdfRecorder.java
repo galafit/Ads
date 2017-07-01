@@ -22,7 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class BdfRecorder implements AdsEventsListener {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
 
-    private final int MAX_START_TIMEOUT_SEC = 5;
+    private final int MAX_START_TIMEOUT_SEC = 30;
 
     private volatile Ads ads = new Ads();
     private List<BdfDataListener> dataListeners = new ArrayList<BdfDataListener>();
