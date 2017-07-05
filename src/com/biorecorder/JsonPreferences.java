@@ -71,8 +71,6 @@ public class JsonPreferences implements Preferences {
         // as a part of the name of property file
         StringBuilder fullFileName = new StringBuilder(projectDir.replace(separator.charAt(0),'_'));
         fullFileName.append("_").append(fileName);
-        // start file with '.' to make file hidden on mac and unix system
-        fullFileName.setCharAt(0, '.');
         File propertyFile = new File(homeDir, fullFileName.toString());
 
         // on windows file is made hidden in different way
@@ -84,6 +82,10 @@ public class JsonPreferences implements Preferences {
             } catch (IOException e) {
                 log.error("Error during making property file hidden");
             }
+        }  else {
+            // start file with '.' to make file hidden on mac and unix system
+            fullFileName.setCharAt(0, '.');
+            propertyFile = new File(homeDir, fullFileName.toString());
         }
 
         return  propertyFile;
