@@ -69,7 +69,10 @@ public class JsonPreferences implements Preferences {
         String separator = File.separator;
         // to avoid file names matches in user home dir we include "projectDir"
         // as a part of the name of property file
-        StringBuilder fullFileName = new StringBuilder(projectDir.replace(separator.charAt(0),'_'));
+        projectDir = projectDir.replace(separator.charAt(0),'_');
+        projectDir = projectDir.replace(':','_');
+
+        StringBuilder fullFileName = new StringBuilder(projectDir);
         fullFileName.append("_").append(fileName);
         File propertyFile = new File(homeDir, fullFileName.toString());
 
