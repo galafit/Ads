@@ -40,6 +40,16 @@ public class JsonPreferences implements Preferences {
                 if(!propertyFile.exists() || ! propertyFile.isFile()) {
                     try {
                         propertyFile.createNewFile();
+                        // hide file on windows
+                        String OS = System.getProperty("os.name").toLowerCase();
+                        if (OS.indexOf("win") >= 0) { // windows
+                            Path path = Paths.get(propertyFile.toString());
+                            try {
+                                Files.setAttribute(path, "dos:hidden", Boolean.TRUE, LinkOption.NOFOLLOW_LINKS);
+                            } catch (IOException ex) {
+                                log.error("Error during making property file hidden", ex);
+                            }
+                        }
                     } catch (IOException e1) {
                         String errMsg = "Error during creating property file: " + propertyFile;
                         log.error(errMsg, e1);
@@ -69,27 +79,16 @@ public class JsonPreferences implements Preferences {
         String separator = File.separator;
         // to avoid file names matches in user home dir we include "projectDir"
         // as a part of the name of property file
-        projectDir = projectDir.replace(separator.charAt(0),'_');
-        projectDir = projectDir.replace(':','_');
+        projectDir = projectDir.replace(separator,"_");
+        projectDir = projectDir.replace(":","");
 
         StringBuilder fullFileName = new StringBuilder(projectDir);
         fullFileName.append("_").append(fileName);
-        File propertyFile = new File(homeDir, fullFileName.toString());
 
-        // on windows file is made hidden in different way
-        String OS = System.getProperty("os.name").toLowerCase();
-        if (OS.indexOf("win") >= 0) { // windows
-            Path path = Paths.get(propertyFile.toString());
-            try {
-                Files.setAttribute(path, "dos:hidden", Boolean.TRUE, LinkOption.NOFOLLOW_LINKS);
-            } catch (IOException e) {
-                log.error("Error during making property file hidden");
-            }
-        }  else {
-            // start file with '.' to make file hidden on mac and unix system
-            fullFileName.setCharAt(0, '.');
-            propertyFile = new File(homeDir, fullFileName.toString());
-        }
+        // start file with '.' to make file hidden on mac and unix system
+        fullFileName.setCharAt(0, '.');
+
+        File propertyFile = new File(homeDir, fullFileName.toString());
 
         return  propertyFile;
     }
