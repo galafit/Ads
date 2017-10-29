@@ -50,8 +50,9 @@ class AdsConfigurator2Ch implements AdsConfigurator{
         result.add((byte)loffSensRegisterValue);     //reg 0x07
 
         result.add((byte)0x40);     //reg 0x08 clock divider Fclc/16 2048mHz external clock
-        result.add((byte)0x02);     //reg 0x09 Set mandatory bit. RLD REF INT doesn't work without it.
-        result.add((byte)0x03);     //reg 0x0A Set RLDREF_INT
+        result.add((byte)0x02);     //reg 0x09 Set mandatory bit. 
+        result.add((byte)0x01);     //reg 0x0A  RLDREF_INT disabled
+        //result.add((byte)0x03);     //reg 0x0A Set RLDREF_INT
 
         result.add((byte)0xF2);     //делители частоты для 2х каналов ads1292  возможные значения 0,1,2,5,10;
         for (int i = 0; i < NUMBER_OF_ADS_CHANNELS; i++) {
