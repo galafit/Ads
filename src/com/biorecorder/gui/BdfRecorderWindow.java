@@ -426,6 +426,16 @@ public class BdfRecorderWindow extends JFrame  {
         identificationBorderPanel.setPreferredSize(new Dimension(width, height));
     }
 
+
+    private void selectComport() {
+        String comportName = recordingSettings.getComportName();
+        if(comportName != null && !comportName.isEmpty()) {
+            comport.setSelectedItem(comportName);
+        } else if(comport.getItemCount() > 0) {
+            comport.setSelectedIndex(0);
+        }
+    }
+
     private void disableEnableFields(boolean isEnable) {
         spsField.setEnabled(isEnable);
         patientIdentification.setEnabled(isEnable);
@@ -447,21 +457,11 @@ public class BdfRecorderWindow extends JFrame  {
         }
     }
 
-    private void selectComport() {
-        String comportName = recordingSettings.getComportName();
-        if(comportName != null && !comportName.isEmpty()) {
-            comport.setSelectedItem(comportName);
-        } else if(comport.getItemCount() > 0) {
-            comport.setSelectedIndex(0);
-        }
-    }
 
 
     private void disableFields() {
         boolean isEnable = false;
         disableEnableFields(isEnable);
-
-
     }
 
 
@@ -473,7 +473,7 @@ public class BdfRecorderWindow extends JFrame  {
                 enableAdsChannel(i, false);
             }
         }
-        if (!recordingSettings.isAccelerometerEnabled()) {
+        if (!isAccelerometerEnable()) {
             enableAccelerometer(false);
         }
     }
