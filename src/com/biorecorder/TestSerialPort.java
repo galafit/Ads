@@ -13,13 +13,7 @@ public class TestSerialPort {
     int CONNECTION_PERIOD_MS = 1000;
     java.util.Timer connectionTimer;
     int i= 0;
-
-    public static void main(String[] args) {
-        String portName = SerialPortList.getPortNames()[0];
-        TestSerialPort comportTest = new TestSerialPort();
-        comportTest.openPort(portName);
-        comportTest.openPort(portName);
-    }
+    volatile SerialPort comPort;
 
     public TestSerialPort() {
         connectionTimer = new java.util.Timer();
@@ -31,7 +25,7 @@ public class TestSerialPort {
                 System.out.println(Thread.currentThread()+  ": finish get port names.");
                 System.out.println("\n");
                 i++;
-                if(i>2) {
+                if(i>3) {
                     connectionTimer.cancel();
                 }
 
@@ -39,11 +33,13 @@ public class TestSerialPort {
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
     }
 
-    private synchronized SerialPort openPort(String name) {
+    private SerialPort openPort(String name) {
         try {
-            SerialPort comPort = new SerialPort(name);
+            comPort = new SerialPort(name);
+            System.out.println(comPort.getPortName()+": is port opened_before =" +comPort.isOpened());
             comPort.openPort();
             System.out.println(Thread.currentThread() + ": comport opened "+name);
+            System.out.println(comPort.getPortName()+": is port opened_after =" +comPort.isOpened());
             comPort.setParams(460800,
                     SerialPort.DATABITS_8,
                     SerialPort.STOPBITS_1,
@@ -56,8 +52,20 @@ public class TestSerialPort {
         }
     }
 
-    private synchronized String[] getPortNames() {
+   public void isComportOpend() {
+        System.out.println("is port opened " +comPort.isOpened());
+   }
+
+    private String[] getPortNames() {
         return SerialPortList.getPortNames();
+    }
+
+    public static void main(String[] args) {
+        String portName = SerialPortList.getPortNames()[0];
+        TestSerialPort comportTest = new TestSerialPort();
+        comportTest.openPort(portName);
+        comportTest.isComportOpend();
+        comportTest.openPort(portName);
     }
 }
 

@@ -14,7 +14,6 @@ public class BdfRecorderConfig {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private boolean isDurationOfDataRecordComputable = true;
-    private boolean isButteryVoltageChannelDelite = true;
     private AdsConfig adsConfig = new AdsConfig();
     private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
 
@@ -29,11 +28,7 @@ public class BdfRecorderConfig {
     public boolean isDurationOfDataRecordComputable() {
         return isDurationOfDataRecordComputable;
     }
-
-    public boolean isButteryVoltageChannelDelite() {
-        return isButteryVoltageChannelDelite;
-    }
-
+    
     public Boolean is50HzFilterEnabled(int adsChannelNumber) {
         while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
             filter50HzMask.add(true);
@@ -64,11 +59,6 @@ public class BdfRecorderConfig {
     public void setRecordingIdentification(String recordingIdentification) {
         this.recordingIdentification = recordingIdentification;
     }
-
-    public int getMaxDiv() {
-        return adsConfig.getMaxDiv();
-    }
-
 
     public int[] getChannelsAvailableDividers() {
         return adsConfig.getChannelsAvailableDividers();
@@ -127,12 +117,12 @@ public class BdfRecorderConfig {
         adsConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
     }
 
-    public DeviceType getDeviceType() {
-        return adsConfig.getDeviceType();
+    public AdsType getDeviceType() {
+        return adsConfig.getAdsType();
     }
 
-    public void setDeviceType(DeviceType deviceType) {
-        adsConfig.setDeviceType(deviceType);
+    public void setDeviceType(AdsType adsType) {
+        adsConfig.setAdsType(adsType);
     }
 
     public boolean isAccelerometerOneChannelMode() {

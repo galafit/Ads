@@ -6,7 +6,7 @@ import java.util.ArrayList;
  * Class-structure to store info about Ads configuration
  */
 public class AdsConfig {
-    private DeviceType deviceType = DeviceType.ADS_2;
+    private AdsType adsType = AdsType.ADS_2;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
     private Divider accelerometerDivider = Divider.D10;
     private boolean isAccelerometerEnabled = true;
@@ -24,12 +24,16 @@ public class AdsConfig {
         }
     }
 
+    public byte[] getAdsConfigurationCommand() {
+        return getAdsType().getAdsConfigurationCommand(this);
+    }
+
     public int getMaxDiv() {
-        return deviceType.getMaxDiv().getValue();
+        return adsType.getMaxDiv().getValue();
     }
 
     public int[] getChannelsAvailableDividers() {
-        Divider[] dividers = deviceType.getChannelsAvailableDividers();
+        Divider[] dividers = adsType.getChannelsAvailableDividers();
         int[] values = new int[dividers.length];
         for (int i = 0; i < values.length; i++) {
            values[i] = dividers[i].getValue();
@@ -38,7 +42,7 @@ public class AdsConfig {
     }
 
     public int[] getAccelerometerAvailableDividers() {
-        Divider[] dividers = deviceType.getGetAccelerometerAvailableDividers();
+        Divider[] dividers = adsType.getGetAccelerometerAvailableDividers();
         int[] values = new int[dividers.length];
         for (int i = 0; i < values.length; i++) {
             values[i] = dividers[i].getValue();
@@ -56,7 +60,7 @@ public class AdsConfig {
     }
 
     public int getNumberOfAdsChannels() {
-        return deviceType.getNumberOfAdsChannels();
+        return adsType.getAdsChannelsCount();
     }
 
     public Sps getSampleRate() {
@@ -91,12 +95,12 @@ public class AdsConfig {
         accelerometerDivider = divider;
     }
 
-    public DeviceType getDeviceType() {
-        return deviceType;
+    public AdsType getAdsType() {
+        return adsType;
     }
 
-    public void setDeviceType(DeviceType deviceType) {
-        this.deviceType = deviceType;
+    public void setAdsType(AdsType adsType) {
+        this.adsType = adsType;
     }
 
     public int getNoiseDivider() {

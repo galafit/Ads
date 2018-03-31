@@ -155,7 +155,7 @@ public class Ads {
 
         boolean isWriteOk;
         try {
-            isWriteOk = comport.writeBytes(adsConfig.getDeviceType().getAdsConfigurationCommand(adsConfig));
+            isWriteOk = comport.writeBytes(adsConfig.getAdsType().getAdsConfigurationCommand(adsConfig));
         } catch (SerialPortException e) {
             String errMsg = "Error during writing «start command» to serial port.";
             log.error(errMsg, e);
@@ -209,12 +209,12 @@ public class Ads {
      * @return ads type (2 or 8 channel) or null if ads not contests for some reasons
      * @throws IllegalStateException if ads is not connected to comport
      */
-    public synchronized DeviceType sendDeviceTypeRequest() throws IllegalStateException {
+    public synchronized AdsType sendDeviceTypeRequest() throws IllegalStateException {
         if (comport == null) {
             throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
         }
-        if(adsState.getDeviceType() != null) {
-            return adsState.getDeviceType();
+        if(adsState.getAdsType() != null) {
+            return adsState.getAdsType();
         }
 
         try {
@@ -230,8 +230,8 @@ public class Ads {
             } catch (InterruptedException e) {
                 log.warn(e);
             }
-            if (adsState.getDeviceType() != null) {
-                return adsState.getDeviceType();
+            if (adsState.getAdsType() != null) {
+                return adsState.getAdsType();
             }
         }
         return null;

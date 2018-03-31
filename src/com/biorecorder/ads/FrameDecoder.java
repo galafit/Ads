@@ -192,10 +192,12 @@ class FrameDecoder implements ComPortListener {
 
         if (adsConfig.isLeadOffEnabled()) {
             if (adsConfig.getNumberOfAdsChannels() == 8) {
+                // 2 bytes for 8 channels
                 decodedFrame[decodedFrameOffset++] = bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
             }
             else {
+                // 1 byte for 2 channels
                 decodedFrame[decodedFrameOffset++] = rawFrame[rawFrameOffset];
                 rawFrameOffset += 1;
             }

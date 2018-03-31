@@ -28,10 +28,10 @@ class MonitoringTask extends TimerTask implements MessageListener, AdsDataListen
             adsState.setStoped(true);
         }
         if (adsMessage == AdsMessage.ADS_2_CHANNELS) {
-            adsState.setDeviceType(DeviceType.ADS_2);
+            adsState.setAdsType(AdsType.ADS_2);
         }
         if (adsMessage == AdsMessage.ADS_8_CHANNELS) {
-            adsState.setDeviceType(DeviceType.ADS_8);
+            adsState.setAdsType(AdsType.ADS_8);
         }
     }
 
@@ -43,10 +43,10 @@ class MonitoringTask extends TimerTask implements MessageListener, AdsDataListen
             adsState.setDataComing(true);
             adsState.setStoped(false);
             if(adsConfig.isLeadOffEnabled()) {
-                if(adsConfig.getDeviceType().getNumberOfAdsChannels() == 2) {
-                    adsState.setLoffMask(intToBitMask(dataFrame[dataFrame.length - 1], adsConfig.getDeviceType().getNumberOfAdsChannels() * 2));
-                } else if (adsConfig.getDeviceType().getNumberOfAdsChannels() == 8) {
-                    adsState.setLoffMask(bytesToBitMask(dataFrame[dataFrame.length - 2], adsConfig.getDeviceType().getNumberOfAdsChannels() * 2));
+                if(adsConfig.getAdsType().getAdsChannelsCount() == 2) {
+                    adsState.setLoffMask(intToBitMask(dataFrame[dataFrame.length - 1], adsConfig.getAdsType().getAdsChannelsCount() * 2));
+                } else if (adsConfig.getAdsType().getAdsChannelsCount() == 8) {
+                    adsState.setLoffMask(bytesToBitMask(dataFrame[dataFrame.length - 2], adsConfig.getAdsType().getAdsChannelsCount() * 2));
                 }
             }
         }

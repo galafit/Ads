@@ -4,6 +4,7 @@ import com.biorecorder.ads.*;
 import com.biorecorder.ads.exceptions.PortBusyRuntimeException;
 import com.biorecorder.ads.exceptions.PortNotFoundRuntimeException;
 import com.biorecorder.bdfrecorder.exceptions.*;
+import com.biorecorder.bdfrecorder.exceptions.InvalidDeviceTypeRuntimeException;
 import com.biorecorder.edflib.base.EdfConfig;
 import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
 import com.sun.istack.internal.Nullable;
@@ -110,7 +111,7 @@ public class BdfRecorder implements AdsEventsListener {
      * @param bdfRecorderConfig object with the device configuration info
      * @return Future object to get info whether start will failed or successful.
      * In case of fail future object:
-     * <br>1) throws InvalidDeviceTypeRuntimeException if specified in bdfRecorderConfig
+     * <br>1) throws InvalidAdsTypeRuntimeException if specified in bdfRecorderConfig
      * device type does not coincide with really connected device
      * <br>2)throws BdfRecorderRuntimeException if the given for starting  time-limit is exceeds
      * and data still not coming
@@ -148,10 +149,10 @@ public class BdfRecorder implements AdsEventsListener {
                             return;
                         }
                         // check device type
-                        DeviceType realDeviceType = ads.sendDeviceTypeRequest();
-                        if (realDeviceType != null && realDeviceType != bdfRecorderConfig.getDeviceType()) {
+                        AdsType realAdsType = ads.sendDeviceTypeRequest();
+                        if (realAdsType != null && realAdsType != bdfRecorderConfig.getDeviceType()) {
                             cancelStaring();
-                            String msg = MessageFormat.format("Specified device type is invalid: {0}. Connected: {1}", bdfRecorderConfig.getDeviceType(), realDeviceType);
+                            String msg = MessageFormat.format("Specified device type is invalid: {0}. Connected: {1}", bdfRecorderConfig.getDeviceType(), realAdsType);
                             throw new InvalidDeviceTypeRuntimeException(msg);
                         }
                         Thread.sleep(delay);

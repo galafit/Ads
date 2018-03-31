@@ -1,12 +1,11 @@
-package com.biorecorder.bdfrecorder.exceptions;
+package com.biorecorder.ads;
 
-import com.biorecorder.ads.SerialPortRuntimeException;
 import jssc.SerialPortException;
 
 /**
- * Created by galafit on 29/5/17.
+ * Created by galafit on 23/3/18.
  */
-public class ConnectionRuntimeException extends BdfRecorderRuntimeException {
+public class SerialPortRuntimeException extends RuntimeException {
     public static final String TYPE_PORT_ALREADY_OPENED = "Port already opened";
     public static final String TYPE_PORT_NOT_OPENED = "Port not opened";
     public static final String TYPE_CANT_SET_MASK = "Can't set mask";
@@ -19,25 +18,16 @@ public class ConnectionRuntimeException extends BdfRecorderRuntimeException {
     public static final String TYPE_PORT_NOT_FOUND = "Port not found";
     public static final String TYPE_PERMISSION_DENIED = "Permission denied";
     public static final String TYPE_INCORRECT_SERIAL_PORT = "Incorrect serial port";
-
     private String portName;
     private String exceptionType;
 
-    public ConnectionRuntimeException(String message) {
-        super(message);
-    }
-
-    public ConnectionRuntimeException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public ConnectionRuntimeException(SerialPortRuntimeException ex) {
+    public SerialPortRuntimeException(SerialPortException ex) {
         super(ex.getMessage());
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();
     }
 
-    public ConnectionRuntimeException(String msg, SerialPortRuntimeException ex) {
+    public SerialPortRuntimeException(String msg, SerialPortException ex) {
         super(msg, ex);
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();
@@ -50,4 +40,5 @@ public class ConnectionRuntimeException extends BdfRecorderRuntimeException {
     public String getExceptionType() {
         return this.exceptionType;
     }
+
 }

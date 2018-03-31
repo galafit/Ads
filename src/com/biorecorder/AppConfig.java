@@ -3,11 +3,8 @@ package com.biorecorder;
 import com.biorecorder.ads.*;
 import com.biorecorder.bdfrecorder.BdfRecorderConfig;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.sun.istack.internal.Nullable;
 
 import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * Created by galafit on 2/6/17.
@@ -178,14 +175,14 @@ public class AppConfig {
     }
 
     public void setDeviceType(String deviceType) {
-        bdfRecorderConfig.setDeviceType(DeviceType.valueOf(deviceType));
+        bdfRecorderConfig.setDeviceType(AdsType.valueOf(deviceType));
     }
 
     public String[] getAvailableDeviceTypes() {
-        DeviceType[] deviceTypes = DeviceType.values();
-        String[] typesNames = new String[deviceTypes.length];
-        for (int i = 0; i < deviceTypes.length; i++) {
-            typesNames[i] = deviceTypes[i].name();
+        AdsType[] adsTypes = AdsType.values();
+        String[] typesNames = new String[adsTypes.length];
+        for (int i = 0; i < adsTypes.length; i++) {
+            typesNames[i] = adsTypes[i].name();
         }
         return typesNames;
     }

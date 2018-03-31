@@ -53,7 +53,7 @@ class AdsListenerBdfWriter implements AdsDataListener {
             // delete helper Lead-off channel
             edfSignalsRemover.removeSignal(adsDataRecordConfig.getNumberOfSignals() - 1);
         }
-        if(bdfRecorderConfig.isBatteryVoltageMeasureEnabled() && bdfRecorderConfig.isButteryVoltageChannelDelite()) {
+        if(bdfRecorderConfig.isBatteryVoltageMeasureEnabled()) {
             // delete helper BatteryVoltage channel
             if(bdfRecorderConfig.isLeadOffEnabled()) {
                 edfSignalsRemover.removeSignal(adsDataRecordConfig.getNumberOfSignals() - 2);
