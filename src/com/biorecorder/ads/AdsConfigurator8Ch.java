@@ -101,7 +101,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
                     break;
           //  }
         } /*else {
-            switch (adsConfig.getSampleRate()) {
+            switch (adsConfig.getRecorderSampleRate()) {
                 case S250:
                     registerValue = 0x06;
                     break;

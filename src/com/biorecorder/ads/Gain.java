@@ -15,18 +15,18 @@ public enum Gain {
     private int registerBits;
     private int value;
 
-    private Gain(int registerBits, int value) {
+    Gain(int registerBits, int value) {
         this.registerBits = registerBits;
         this.value = value;
     }
 
-    public static Gain valueOf(int value) throws IllegalArgumentException {
+    public static Gain valueOf(int gainValue) throws IllegalArgumentException {
         for (Gain gain : Gain.values()) {
-            if (gain.getValue() == value) {
+            if (gain.getValue() == gainValue) {
                 return gain;
             }
         }
-        String msg = "Invalid Gain value";
+        String msg = "Invalid Gain value: "+gainValue;
         throw new IllegalArgumentException(msg);
     }
 

@@ -32,7 +32,7 @@ public class AdsConfig {
         return adsType.getMaxDiv().getValue();
     }
 
-    public int[] getChannelsAvailableDividers() {
+    public int[] getAdsChannelsAvailableDividers() {
         Divider[] dividers = adsType.getChannelsAvailableDividers();
         int[] values = new int[dividers.length];
         for (int i = 0; i < values.length; i++) {
@@ -92,7 +92,15 @@ public class AdsConfig {
     }
 
     public void setAccelerometerDivider(Divider divider) {
-        accelerometerDivider = divider;
+        int[] availableDividers = getAccelerometerAvailableDividers();
+        for (int availableDivider : availableDividers) {
+            if(availableDivider == divider.getValue()) {
+                accelerometerDivider = divider;
+                return;
+            }
+        }
+        String msg = "Invalid Accelerometer divider: "+divider;
+        throw new IllegalArgumentException(msg);
     }
 
     public AdsType getAdsType() {
@@ -162,7 +170,15 @@ public class AdsConfig {
     }
 
     public void setAdsChannelDivider(int adsChannelNumber, Divider divider) {
-        adsChannels.get(adsChannelNumber).setDivider(divider);
+        int[] availableDividers = getAdsChannelsAvailableDividers();
+        for (int availableDivider : availableDividers) {
+            if(availableDivider == divider.getValue()) {
+                adsChannels.get(adsChannelNumber).setDivider(divider);
+                return;
+            }
+        }
+        String msg = "Invalid Ads Channel divider: "+divider;
+        throw new IllegalArgumentException(msg);
     }
 
     public boolean isAdsChannelEnabled(int adsChannelNumber) {

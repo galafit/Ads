@@ -1,32 +1,42 @@
 package com.biorecorder.bdfrecorder;
 
 
+import com.biorecorder.ads.AdsType;
+
 /**
  * Created by galafit on 30/3/18.
  */
 public enum RecorderType {
-    RECORDER_2(2),
-    RECORDER_8(8);
+    CHANNELS_2(AdsType.ADS_2),
+    CHANNELS_8(AdsType.ADS_8);
 
-    private int channelsCount;
+    private AdsType adsType;
 
-    private RecorderType(int channelsCount) {
-        this.channelsCount = channelsCount;
+    RecorderType(AdsType adsType) {
+        this.adsType = adsType;
     }
 
     public int getChannelsCount() {
-        return channelsCount;
+        return adsType.getAdsChannelsCount();
     }
 
-    public static RecorderType valueOf(int channelsCount) throws IllegalArgumentException {
+    public AdsType getAdsType() {
+        return adsType;
+    }
+
+    public static RecorderType valueOf(AdsType adsType) throws IllegalArgumentException {
         for (RecorderType recorderType : RecorderType.values()) {
-            if(recorderType.getChannelsCount() == channelsCount) {
+            if(recorderType.getAdsType() == adsType) {
                 return recorderType;
             }
-
         }
-        String msg = "Invalid channels count: "+channelsCount+ ". Number of channels should be 2 or 8";
+        String msg = "Invalid AdsType: "+adsType;
         throw new IllegalArgumentException(msg);
+    }
+
+    @Override
+    public String toString(){
+        return  getChannelsCount() + " channels";
     }
 
 }

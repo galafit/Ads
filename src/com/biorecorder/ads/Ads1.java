@@ -247,18 +247,8 @@ public class Ads1 {
     }
 
 
-    /**
-     * Attention! This method is DENGAROUS!!!
-     * Serial port lib (jssc) en Mac and Linux to create portNames list
-     * actually OPENS and CLOSES every port (suppose to be sure it is exist). So
-     * this operation can course serious bugs...
-     * Like possibility to have multiple connections with the same  port
-     * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
-     *
-     * @return array of names of all comports or empty array.
-     */
     public static String[] getAvailableComportNames() {
-        return SerialPortList.getPortNames();
+        return Comport1.getAvailableComportNames();
     }
 
 

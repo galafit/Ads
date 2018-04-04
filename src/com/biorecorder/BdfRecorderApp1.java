@@ -39,7 +39,7 @@ public class BdfRecorderApp1  {
     private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
 
 
-    private Preferences1 preferences;
+    private Preferences1 appConfig;
     private BdfRecorder1 bdfRecorder;
     private volatile EdfFileWriter edfFileWriter;
     private volatile File edfFile;
@@ -58,8 +58,8 @@ public class BdfRecorderApp1  {
     private volatile boolean isRecording = false;
     private volatile long recordingStartTime;
 
-    public BdfRecorderApp1(Preferences1 preferences, String comportName) {
-        this.preferences = preferences;
+    public BdfRecorderApp1(Preferences1 appConfig, String comportName) {
+        this.appConfig = appConfig;
         this.comportName = comportName;
 
         notificationTimer = new javax.swing.Timer(NOTIFICATION_PERIOD_MS, new ActionListener() {
@@ -105,18 +105,16 @@ public class BdfRecorderApp1  {
     }
 
     private void createBdfRecorder() throws ConnectionRuntimeException {
-        synchronized (BdfRecorderApp1.class) {
-            if (bdfRecorder == null && comportName != null && !comportName.isEmpty()) {
-                bdfRecorder = new BdfRecorder1(comportName);
-                bdfRecorder.addLowButteryEventListener(new LowButteryEventListener() {
-                    @Override
-                    public void handleLowButteryEvent() {
-                        stopRecording();
-                        sendMessage(LOW_BUTTERY_MSG);
-                    }
-                });
-                bdfRecorder.startMonitoring();
-            }
+        if (bdfRecorder == null && comportName != null && !comportName.isEmpty()) {
+            bdfRecorder = new BdfRecorder1(comportName);
+            bdfRecorder.addLowButteryEventListener(new LowButteryEventListener() {
+                @Override
+                public void handleLowButteryEvent() {
+                    stopRecording();
+                    sendMessage(LOW_BUTTERY_MSG);
+                }
+            });
+            bdfRecorder.startMonitoring();
         }
     }
 
@@ -175,7 +173,7 @@ public class BdfRecorderApp1  {
 
             EdfConfig edfConfig = bdfRecorder.getResultantRecordingInfo(recordingSettings.getBdfRecorderConfig());
             edfFileWriter = new EdfFileWriter(fileToWrite, FileType.BDF_24BIT);
-            edfFileWriter.setDurationOfDataRecordsComputable(recordingSettings.getBdfRecorderConfig().isDurationOfDataRecordComputable());
+            edfFileWriter.setDurationOfDataRecordsComputable(recordingSettings.isDurationOfDataRecordComputable());
             edfFileWriter.setConfig(edfConfig);
             bdfRecorder.addBdfDataListener(new BdfDataListener() {
                 @Override
@@ -217,7 +215,7 @@ public class BdfRecorderApp1  {
         }
     }
 
-    public synchronized void stopRecording() throws BdfRecorderRuntimeException {
+    public void stopRecording() throws BdfRecorderRuntimeException {
         try {
             if(bdfRecorder != null) {
                 bdfRecorder.stop();
@@ -227,6 +225,7 @@ public class BdfRecorderApp1  {
             }
 
             isRecording = false;
+            loffBitMask = null;
         } catch (Exception ex) {
             log.error(ex);
             String errMSg = MessageFormat.format(APP_ERR, ex.getMessage());
@@ -274,7 +273,7 @@ public class BdfRecorderApp1  {
         }
     }
 
-    private static synchronized String[] getAvailableComportNames() {
+    private static String[] getAvailableComportNames() {
         return BdfRecorder1.getAvailableComportNames();
     }
 
@@ -344,27 +343,22 @@ public class BdfRecorderApp1  {
     }
 
 
-
-
-    private long getNumberOfWrittenDataRecords() {
-        return numberOfWrittenDataRecords;
-    }
-
-
     private void closeApplication(int status) {
         try {
+            notificationTimer.stop();
+            connectionTimer.cancel();
+            if(bdfRecorder != null) {
+                bdfRecorder.stop();
+                bdfRecorder.disconnect();
+            }
             if(recordingSettings != null) {
                 try{
-                    preferences.saveConfig(recordingSettings);
+                    appConfig.saveConfig(recordingSettings);
                 } catch (Exception ex) {
-                    String errMsg = "Error during saving preferences";
+                    String errMsg = "Error during saving appConfig";
                     log.error(errMsg, ex);
                 }
             }
-            bdfRecorder.stop();
-            notificationTimer.stop();
-            connectionTimer.cancel();
-            bdfRecorder.disconnect();
             System.exit(status);
         } catch (Exception e) {
             String errMsg = "Error during closing application";
@@ -373,7 +367,7 @@ public class BdfRecorderApp1  {
         }
     }
 
-    public synchronized void closeApplication(AppConfig1 recordingSettings) {
+    public void closeApplication(AppConfig1 recordingSettings) {
         this.recordingSettings = recordingSettings;
         closeApplication(SUCCESS_STATUS);
     }

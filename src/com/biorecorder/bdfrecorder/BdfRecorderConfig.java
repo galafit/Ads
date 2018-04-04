@@ -61,7 +61,7 @@ public class BdfRecorderConfig {
     }
 
     public int[] getChannelsAvailableDividers() {
-        return adsConfig.getChannelsAvailableDividers();
+        return adsConfig.getAdsChannelsAvailableDividers();
     }
 
     public int[] getAccelerometerAvailableDividers() {

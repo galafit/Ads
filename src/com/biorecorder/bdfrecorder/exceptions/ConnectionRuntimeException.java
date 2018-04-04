@@ -31,6 +31,11 @@ public class ConnectionRuntimeException extends BdfRecorderRuntimeException {
         super(message, cause);
     }
 
+    public ConnectionRuntimeException(Throwable cause) {
+        super(cause);
+    }
+
+
     public ConnectionRuntimeException(SerialPortRuntimeException ex) {
         super(ex.getMessage());
         this.portName = ex.getPortName();

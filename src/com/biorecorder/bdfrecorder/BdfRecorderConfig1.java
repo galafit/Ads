@@ -1,9 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.edflib.base.DefaultEdfConfig;
-import com.biorecorder.edflib.base.EdfConfig;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,42 +8,19 @@ import java.util.List;
  *
  */
 public class BdfRecorderConfig1 {
-    public static final int GAIN_1 = 1;
-    public static final int GAIN_2 = 2;
-    public static final int GAIN_3 = 3;
-    public static final int GAIN_4 = 4;
-    public static final int GAIN_6 = 6;
-    public static final int GAIN_8 = 8;
-    public static final int GAIN_12 = 12;
-
+    private AdsConfig adsConfig = new AdsConfig();
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    private boolean isDurationOfDataRecordComputable = true;
-    private AdsConfig adsConfig = new AdsConfig();
+
     private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
 
     AdsConfig getAdsConfig() {
         return adsConfig;
     }
 
-    public boolean isDurationOfDataRecordComputable() {
-        return isDurationOfDataRecordComputable;
+    public void setAdsConfig(AdsConfig adsConfig) {
+        this.adsConfig = adsConfig;
     }
-
-    public Boolean is50HzFilterEnabled(int channelNumber) {
-        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
-            filter50HzMask.add(true);
-        }
-        return filter50HzMask.get(channelNumber);
-    }
-
-    public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
-        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
-            filter50HzMask.add(true);
-        }
-        filter50HzMask.set(channelNumber, is50HzFilterEnabled);
-    }
-
 
     public String getPatientIdentification() {
         return patientIdentification;
@@ -64,8 +38,22 @@ public class BdfRecorderConfig1 {
         this.recordingIdentification = recordingIdentification;
     }
 
+    public Boolean is50HzFilterEnabled(int channelNumber) {
+        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+            filter50HzMask.add(true);
+        }
+        return filter50HzMask.get(channelNumber);
+    }
+
+    public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
+        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+            filter50HzMask.add(true);
+        }
+        filter50HzMask.set(channelNumber, is50HzFilterEnabled);
+    }
+
     public int[] getChannelsAvailableDividers() {
-        return adsConfig.getChannelsAvailableDividers();
+        return adsConfig.getAdsChannelsAvailableDividers();
     }
 
     public int[] getAccelerometerAvailableDividers() {
@@ -80,12 +68,21 @@ public class BdfRecorderConfig1 {
         return adsConfig.getAccelerometerSampleRate();
     }
 
-    public void setChannelDivider(int channelNumber, Divider divider) {
-        adsConfig.setAdsChannelDivider(channelNumber, divider);
+    /**
+     * for channels possible values are dividers of 10: {1, 2, 5, 10}
+     * @param channelNumber
+     * @param divider
+     */
+    public void setChannelDivider(int channelNumber, int divider) {
+        adsConfig.setAdsChannelDivider(channelNumber, Divider.valueOf(divider));
     }
 
-    public void setAccelerometerDivider(Divider divider) {
-        adsConfig.setAccelerometerDivider(divider);
+    /**
+     * for accelerometer possible values: 10
+     * @param divider = 10
+     */
+    public void setAccelerometerDivider(int divider) {
+        adsConfig.setAccelerometerDivider(Divider.valueOf(divider));
     }
 
 
@@ -97,12 +94,12 @@ public class BdfRecorderConfig1 {
         return adsConfig.getNumberOfAdsChannels();
     }
 
-    public int getSampleRate() {
-        return adsConfig.getSampleRate().getValue();
+    public RecorderSampleRate getRecorderSampleRate() {
+        return RecorderSampleRate.valueOf(adsConfig.getSampleRate());
     }
 
-    public void setSampleRate(Sps sampleRate) {
-        adsConfig.setSampleRate(sampleRate);
+    public void setRecorderSampleRate(RecorderSampleRate sampleRate) {
+        adsConfig.setSampleRate(sampleRate.getAdsSps());
     }
 
     public boolean isAccelerometerEnabled() {
@@ -122,11 +119,11 @@ public class BdfRecorderConfig1 {
     }
 
     public RecorderType getDeviceType() {
-        return RecorderType.valueOf(adsConfig.getAdsType().getAdsChannelsCount());
+        return RecorderType.valueOf(adsConfig.getAdsType());
     }
 
     public void setDeviceType(RecorderType recorderType) {
-        adsConfig.setAdsType(AdsType.valueOf(recorderType.getChannelsCount()));
+        adsConfig.setAdsType(recorderType.getAdsType());
     }
 
     public boolean isAccelerometerOneChannelMode() {
@@ -161,29 +158,20 @@ public class BdfRecorderConfig1 {
         return adsConfig.isAdsChannelRldSenseEnabled(channelNumber);
     }
 
-    public int getChannelGain(int channelNumber) {
-        return adsConfig.getAdsChannelGain(channelNumber).getValue();
+    public RecorderGain getChannelGain(int channelNumber) {
+        return RecorderGain.valueOf(adsConfig.getAdsChannelGain(channelNumber));
     }
 
-    public void setChannelGain(int channelNumber, int gain) {
-        adsConfig.setAdsChannelGain(channelNumber, Gain.valueOf(gain));
+    public void setChannelGain(int channelNumber, RecorderGain recorderGain) {
+        adsConfig.setAdsChannelGain(channelNumber, recorderGain.getAdsGain());
     }
 
-    public Integer[] getAvailableGaines() {
-        Gain[] gains = Gain.values();
-        Integer[] gainsValues = new Integer[gains.length];
-        for (int i = 0; i < gains.length; i++) {
-            gainsValues[i] = gains[i].getValue();
-        }
-        return gainsValues;
+    public RecordingMode getChannelRecordingMode(int channelNumber) {
+        return RecordingMode.valueOf(adsConfig.getAdsChannelCommutatorState(channelNumber));
     }
 
-    public String getChannelRecordingMode(int channelNumber) {
-        return adsConfig.getAdsChannelCommutatorState(channelNumber).name();
-    }
-
-    public void setChannelRecordinMode(int channelNumber, RecordingMode recordingMode) {
-        adsConfig.setAdsChannelCommutatorState(channelNumber, CommutatorState.valueOf(recordingMode.name()));
+    public void setChannelRecordingMode(int channelNumber, RecordingMode recordingMode) {
+        adsConfig.setAdsChannelCommutatorState(channelNumber, recordingMode.getAdsCommutatorState());
     }
 
     public boolean isChannelEnabled(int channelNumber) {

@@ -20,11 +20,22 @@ class Comport1 implements SerialPortEventListener {
     private String comportName;
 
     public Comport1(String comportName, int speed) throws SerialPortRuntimeException {
-        this.comportName = comportName;
-        serialPort = new SerialPort(comportName);
         try {
-            serialPort.openPort();//Open serial port
-            log.info(Thread.currentThread() + " opened comport: "+comportName);
+            /*
+             * This block is synchronized on the Class object
+             *  to avoid its simultaneous execution with the static method
+             *  getAvailableComportNames()!!!
+             */
+            synchronized (Comport1.class) {
+                serialPort = new SerialPort(comportName);
+                serialPort.openPort();//Open serial port
+            }
+        } catch (SerialPortException ex) {
+            throw new SerialPortRuntimeException(ex);
+        }
+        log.info(Thread.currentThread() + " opened comport: "+comportName);
+        this.comportName = comportName;
+        try {
             serialPort.setParams(speed,
                     SerialPort.DATABITS_8,
                     SerialPort.STOPBITS_1,
@@ -45,11 +56,19 @@ class Comport1 implements SerialPortEventListener {
 
     public void close() throws SerialPortRuntimeException {
         try {
-            serialPort.closePort();
+             /*
+             * This block is synchronized on the Class object
+             *  to avoid its simultaneous execution with the static method
+             *  getAvailableComportNames()!!!
+             */
+            synchronized (Comport1.class) {
+                serialPort.closePort();
+            }
         } catch (SerialPortException ex) {
             throw new SerialPortRuntimeException(ex);
         }
     }
+
 
     public boolean writeBytes(byte[] bytes) throws SerialPortRuntimeException {
         try {
@@ -58,7 +77,6 @@ class Comport1 implements SerialPortEventListener {
             throw new SerialPortRuntimeException(ex);
         }
     }
-
 
     public boolean writeByte(byte b) throws SerialPortRuntimeException {
         try {
@@ -93,4 +111,21 @@ class Comport1 implements SerialPortEventListener {
             }
         }
     }
+
+    /**
+     * Attention! This method is DENGAROUS!!!
+     * Serial port lib (jssc) en Mac and Linux to create portNames list
+     * actually OPENS and CLOSES every port (suppose to be sure it is exist). So
+     * this operation can course serious bugs...
+     * Like possibility to have multiple connections with the same  port
+     * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
+     * <br>
+     * That is why this method is SYNCHRONIZED (on the Class object)
+     *
+     * @return array of names of all comports or empty array.
+     */
+    public synchronized static String[] getAvailableComportNames() {
+        return SerialPortList.getPortNames();
+    }
+
 }
