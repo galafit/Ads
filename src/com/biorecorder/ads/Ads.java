@@ -130,10 +130,10 @@ public class Ads {
             @Override
             public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
                 if (adsMessage == AdsMessage.LOW_BATTERY && eventsListener != null) {
-                    eventsListener.handleAdsLowButtery();
+                    eventsListener.handleLowButtery();
                 }
                 if (adsMessage == AdsMessage.FRAME_BROKEN && eventsListener != null) {
-                    eventsListener.handleAdsFrameBroken(additionalInfo);
+                    eventsListener.handleFrameBroken(additionalInfo);
                 }
 
             }

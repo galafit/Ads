@@ -4,6 +4,6 @@ package com.biorecorder;
  * Created by galafit on 2/6/17.
  */
 public interface MessageListener {
-    public void onMessageReceived(String message);
-    public boolean onConfirmationAsked(String message);
+    public void showMessage(String message);
+    public boolean askConfirmation(String message);
 }

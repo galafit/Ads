@@ -156,7 +156,6 @@ public class BdfRecorderWindow1 extends JFrame  {
             @Override
             public void actionPerformed(ActionEvent e) {
                 recordingSettings.setDeviceType(getDeviceType());
-                bdfRecorderApp.changeRecorder();
                 init();
                 pack();
             }
@@ -164,12 +163,12 @@ public class BdfRecorderWindow1 extends JFrame  {
 
         bdfRecorderApp.setMessageListener(new MessageListener() {
             @Override
-            public void onMessageReceived(String message) {
+            public void showMessage(String message) {
                 JOptionPane.showMessageDialog(BdfRecorderWindow1.this, message);
 
             }
             @Override
-            public boolean onConfirmationAsked(String message) {
+            public boolean askConfirmation(String message) {
                 int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow1.this, message, null, JOptionPane.YES_NO_OPTION);
                 if(answer == JOptionPane.YES_OPTION) {
                     return true;
@@ -181,7 +180,7 @@ public class BdfRecorderWindow1 extends JFrame  {
         bdfRecorderApp.setNotificationListener(new NotificationListener() {
             @Override
             public void update() {
-                updateLeadOffStatus(bdfRecorderApp.getLoffMask());
+                updateLeadOffStatus(bdfRecorderApp.getLeadOffMask());
                 Color activeColor = Color.GREEN;
                 Color nonActiveColor = Color.GRAY;
                 Color stateColor = nonActiveColor;
@@ -205,7 +204,7 @@ public class BdfRecorderWindow1 extends JFrame  {
         comport.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                comport.setModel(new DefaultComboBoxModel(bdfRecorderApp.getComportNames()));
+                comport.setModel(new DefaultComboBoxModel(bdfRecorderApp.getComportNames(recordingSettings.getComportName())));
                 BdfRecorderWindow1.this.pack();
             }
 
@@ -232,7 +231,7 @@ public class BdfRecorderWindow1 extends JFrame  {
         comport.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                bdfRecorderApp.setComportName(getComPortName());
+                bdfRecorderApp.setComport(getComPortName());
             }
         });
 
@@ -275,7 +274,7 @@ public class BdfRecorderWindow1 extends JFrame  {
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                bdfRecorderApp.stopRecording();
+                bdfRecorderApp.stop();
             }
         });
 
@@ -494,7 +493,7 @@ public class BdfRecorderWindow1 extends JFrame  {
 
 
     private void loadDataFromModel() {
-        comport.setModel(new DefaultComboBoxModel(bdfRecorderApp.getComportNames()));
+        comport.setModel(new DefaultComboBoxModel(bdfRecorderApp.getComportNames(recordingSettings.getComportName())));
         selectComport();
         spsField.setModel(new DefaultComboBoxModel(RecorderSampleRate.values()));
         spsField.setSelectedItem(recordingSettings.getSampleRate());

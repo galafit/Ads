@@ -1,13 +1,14 @@
 package com.biorecorder;
 
+import com.biorecorder.ads.Comport1;
+import com.biorecorder.ads.SerialPortRuntimeException;
 import jssc.SerialPort;
 import jssc.SerialPortException;
-import jssc.SerialPortList;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
 import java.util.TimerTask;
-import java.util.Vector;
+
 
 /**
  * Created by galafit on 6/6/17.
@@ -17,54 +18,52 @@ public class TestSerialPort1 {
     java.util.Timer connectionTimer;
     int i= 0;
 
-    public TestSerialPort1(String name) {
+    public TestSerialPort1() {
        connectionTimer = new java.util.Timer();
         connectionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                // System.out.println(Thread.currentThread()+ ": start get port names.");
-                System.out.println(Thread.currentThread()+ ": creating port list "+ getPortNames()[0]);
+                System.out.println(Thread.currentThread()+ ": creating port list "+ Comport1.getAvailableComportNames()[0]);
                 System.out.println("\n");
 
                 i++;
                 if(i>2) {
                     connectionTimer.cancel();
+                    System.out.println("Timer canceled \n");
+                    printThreads();
                 }
 
             }
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
     }
 
-    public synchronized  SerialPort openPort(String name) {
-        synchronized (TestSerialPort1.class) {
-            try {
-                SerialPort comPort = new SerialPort(name);
-                // System.out.println(Thread.currentThread() + ": comport "+name+" created");
-                comPort.openPort();
-                System.out.println(Thread.currentThread() + ": comport "+name+" openned");
-                comPort.setParams(460800,
-                        SerialPort.DATABITS_8,
-                        SerialPort.STOPBITS_1,
-                        SerialPort.PARITY_NONE);
-                return comPort;
+    public Comport1 openPort(String name) {
+        try {
+            int speed = 460800;
+            Comport1 comPort = new Comport1(name, speed);
+            System.out.println(Thread.currentThread() + ": comport "+name+" openned");
+            return comPort;
 
-            } catch (SerialPortException e) {
-                System.out.println("!!!Exceprion!!!!  ");
-                // throw new RuntimeException("runtime exception ");
-                return null;
-            }
+        } catch (SerialPortRuntimeException e) {
+            System.out.println("!!!Exceprion!!!!  ");
+            // throw new RuntimeException("runtime exception ");
+            return null;
         }
     }
 
-
-    private synchronized static String[] getPortNames() {
-        return SerialPortList.getPortNames();
+    public static void printThreads() {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        Thread[] threadArray = threadSet.toArray(new Thread[threadSet.size()]);
+        for (int i = 0; i < threadArray.length; i++) {
+            System.out.println(i+" Thread: " + threadArray[i].getName());
+        }
     }
 
     public static void main(String[] args) {
-        String portName = "/dev/tty.usbserial-A906FEFV";//SerialPortList.getPortNames()[0];
-        TestSerialPort1 comportTest = new TestSerialPort1(portName);
-        ArrayList<SerialPort> ports = new ArrayList<>();
+        String portName = Comport1.getAvailableComportNames()[0];
+        TestSerialPort1 comportTest = new TestSerialPort1();
+        ArrayList<Comport1> ports = new ArrayList<>();
         ports.add(comportTest.openPort(portName));
         System.out.println("1 added.");
         ports.add(comportTest.openPort(portName));
@@ -73,10 +72,11 @@ public class TestSerialPort1 {
         System.out.println("3 added.");
         for (int i = 0; i < ports.size(); i++) {
             if(ports.get(i) != null) {
-                System.out.println(i+" port :"+ports.get(i).getPortName()+ " isOpened "+ports.get(i).isOpened());
                 try {
-                    ports.get(i).writeInt(i);
-                } catch (SerialPortException e) {
+                    ports.get(i).writeByte((byte)i);
+                    System.out.println(i + " open port: "+ports.get(i).getComportName());
+                    ports.get(i).close();
+                } catch (SerialPortRuntimeException e) {
                     System.out.println("Exception");
                     e.printStackTrace();
                 }

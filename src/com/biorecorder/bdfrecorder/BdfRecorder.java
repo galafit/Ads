@@ -27,7 +27,7 @@ public class BdfRecorder implements AdsEventsListener {
 
     private volatile Ads ads = new Ads();
     private List<BdfDataListener> dataListeners = new ArrayList<BdfDataListener>();
-    private List<LowButteryEventListener> butteryEventListeners = new ArrayList<LowButteryEventListener>();
+    private List<RecorderEventsListener> butteryEventListeners = new ArrayList<RecorderEventsListener>();
 
     private volatile boolean isRecording = false;
     private double resultantDataRecordDuration = 1; // sec
@@ -39,11 +39,16 @@ public class BdfRecorder implements AdsEventsListener {
         ads.setAdsEventsListener(this);
     }
 
+    @Override
+    public void handleStartCanceled() {
+
+    }
+
     public void addBdfDataListener(BdfDataListener listener) {
         dataListeners.add(listener);
     }
 
-    public void addLowButteryEventListener(LowButteryEventListener listener) {
+    public void addLowButteryEventListener(RecorderEventsListener listener) {
         butteryEventListeners.add(listener);
     }
 
@@ -250,14 +255,14 @@ public class BdfRecorder implements AdsEventsListener {
     }
 
     @Override
-    public void handleAdsLowButtery() {
-        for (LowButteryEventListener listener : butteryEventListeners) {
-            listener.handleLowButteryEvent();
+    public void handleLowButtery() {
+        for (RecorderEventsListener listener : butteryEventListeners) {
+            listener.handleLowButtery();
         }
     }
 
     @Override
-    public void handleAdsFrameBroken(String eventInfo) {
+    public void handleFrameBroken(String eventInfo) {
         log.info(eventInfo);
     }
 

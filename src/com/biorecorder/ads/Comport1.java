@@ -13,11 +13,11 @@ import org.apache.commons.logging.LogFactory;
  * https://code.google.com/p/java-simple-serial-connector/
  * http://www.quizful.net/post/java-serial-ports
  */
-class Comport1 implements SerialPortEventListener {
+public class Comport1 implements SerialPortEventListener {
     private static Log log = LogFactory.getLog(Comport1.class);
-    private SerialPort serialPort;
+    private final SerialPort serialPort;
+    private final String comportName;
     private ComPortListener comPortListener;
-    private String comportName;
 
     public Comport1(String comportName, int speed) throws SerialPortRuntimeException {
         try {
@@ -34,7 +34,7 @@ class Comport1 implements SerialPortEventListener {
             throw new SerialPortRuntimeException(ex);
         }
         log.info(Thread.currentThread() + " opened comport: "+comportName);
-        this.comportName = comportName;
+
         try {
             serialPort.setParams(speed,
                     SerialPort.DATABITS_8,
@@ -48,13 +48,26 @@ class Comport1 implements SerialPortEventListener {
         } catch (SerialPortException ex) {
             throw new SerialPortRuntimeException(ex);
         }
+
+        this.comportName = comportName;
+        comPortListener = createNullComPortListener();
     }
 
     public String getComportName() {
         return comportName;
     }
 
-    public void close() throws SerialPortRuntimeException {
+    public boolean isOpenned() {
+        return serialPort.isOpened();
+    }
+
+
+    public boolean close() {
+        removeComPortListener();
+        // if port already closed we do nothing
+        if(!serialPort.isOpened()) {
+            return true;
+        }
         try {
              /*
              * This block is synchronized on the Class object
@@ -62,36 +75,58 @@ class Comport1 implements SerialPortEventListener {
              *  getAvailableComportNames()!!!
              */
             synchronized (Comport1.class) {
-                serialPort.closePort();
+                return serialPort.closePort();
             }
         } catch (SerialPortException ex) {
-            throw new SerialPortRuntimeException(ex);
+            return false;
         }
     }
 
-
-    public boolean writeBytes(byte[] bytes) throws SerialPortRuntimeException {
+    /**
+     * Write array of bytes to the port.
+     * @param bytes array of bytes to write to the port
+     * @return true if writing was successfull and false otherwise
+     * @throws IllegalStateException if the port was close
+     */
+    public boolean writeBytes(byte[] bytes) throws IllegalStateException {
         try {
             return serialPort.writeBytes(bytes);
         } catch (SerialPortException ex) {
-            throw new SerialPortRuntimeException(ex);
+            throw new IllegalStateException("Serial Port "+ getComportName() + " was finalised and closed", ex);
         }
     }
 
-    public boolean writeByte(byte b) throws SerialPortRuntimeException {
+    /**
+     * Write one byte to the port.
+     * @param b byte to write to the port
+     * @return true if writing was successfull and false otherwise
+     * @throws IllegalStateException if the port was close
+     */
+    public boolean writeByte(byte b) throws IllegalStateException {
         try {
             return serialPort.writeByte(b);
         } catch (SerialPortException ex) {
-            throw new SerialPortRuntimeException(ex);
+            throw new IllegalStateException("Serial Port "+ getComportName() + " was finalised and closed", ex);
         }
     }
 
     public void setComPortListener(ComPortListener comPortListener) {
-        this.comPortListener = comPortListener;
+        if(comPortListener != null) {
+            this.comPortListener = comPortListener;
+        }
     }
 
     public void removeComPortListener() {
-        comPortListener = null;
+        comPortListener = createNullComPortListener();
+    }
+
+    private ComPortListener createNullComPortListener() {
+        return new ComPortListener() {
+            @Override
+            public void onByteReceived(byte inByte) {
+                // do nothing!
+            }
+        };
     }
 
     @Override
@@ -100,9 +135,7 @@ class Comport1 implements SerialPortEventListener {
             try {
                 byte[] buffer = serialPort.readBytes();
                 for (int i = 0; i < buffer.length; i++) {
-                    if (comPortListener != null) {
-                        comPortListener.onByteReceived((buffer[i]));
-                    }
+                    comPortListener.onByteReceived((buffer[i]));
                 }
             } catch (SerialPortException ex) {
                 String errMsg = "Error during receiving serial port data: " + ex.getMessage();
@@ -113,14 +146,13 @@ class Comport1 implements SerialPortEventListener {
     }
 
     /**
-     * Attention! This method is DENGAROUS!!!
+     * Attention! This method can be DENGAROUS!!!
      * Serial port lib (jssc) en Mac and Linux to create portNames list
-     * actually OPENS and CLOSES every port (suppose to be sure it is exist). So
-     * this operation can course serious bugs...
-     * Like possibility to have multiple connections with the same  port
+     * actually OPENS and CLOSES every port.
+     * That is why this method is SYNCHRONIZED (on the Class object).
+     * Without synchronization it becomes possible
+     * to have multiple connections with the same port
      * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
-     * <br>
-     * That is why this method is SYNCHRONIZED (on the Class object)
      *
      * @return array of names of all comports or empty array.
      */

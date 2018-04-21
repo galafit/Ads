@@ -2,7 +2,6 @@ package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.bdfrecorder.exceptions.ConnectionRuntimeException;
-import com.biorecorder.bdfrecorder.exceptions.InvalidDeviceTypeRuntimeException;
 import com.biorecorder.edflib.base.DefaultEdfConfig;
 import com.biorecorder.edflib.base.EdfConfig;
 import com.biorecorder.edflib.base.EdfWriter;
@@ -13,9 +12,6 @@ import com.biorecorder.edflib.filters.EdfSignalsRemover;
 import com.biorecorder.edflib.filters.signalfilters.SignalFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Wrapper class that does some transformations with Ads data-frames:
@@ -31,39 +27,46 @@ import java.util.List;
  */
 public class BdfRecorder1 {
     private static final Log log = LogFactory.getLog(BdfRecorder1.class);
+    private double resultantDataRecordDuration = 1; // sec
 
     private final Ads1 ads;
-    private List<BdfDataListener> dataListeners = new ArrayList<BdfDataListener>();
-    private List<LoffListener> loffListeners = new ArrayList<LoffListener>();
-    private List<LowButteryEventListener> butteryEventListeners = new ArrayList<LowButteryEventListener>();
-    private double resultantDataRecordDuration = 1; // sec
+    private volatile BdfDataListener dataListener;
+    private volatile LeadOffListener leadOffListener;
+    private volatile RecorderEventsListener recorderEventsListener;
     private EdfSignalsFilter edfSignalsFilter;
 
     public BdfRecorder1(String comportName) throws ConnectionRuntimeException {
         try {
             ads = new Ads1(comportName);
-            ads.setLowButteryListener(new AdsLowButteryListener() {
+            ads.setAdsEventsListener(new AdsEventsListener() {
                 @Override
                 public void handleLowButtery() {
-                    for (LowButteryEventListener listener : butteryEventListeners) {
-                        listener.handleLowButteryEvent();
-                    }
+                    recorderEventsListener.handleLowButtery();
                 }
 
+                @Override
+                public void handleStartCanceled() {
+                    recorderEventsListener.handleStartCanceled();
+                }
+
+                @Override
+                public void handleFrameBroken(String eventInfo) {
+                    // do nothing
+                }
             });
             edfSignalsFilter = createChannelsFilter();
+            ads.startMonitoring();
         } catch (SerialPortRuntimeException ex) {
             throw new ConnectionRuntimeException(ex);
         }
     }
 
+
     private EdfSignalsFilter createChannelsFilter() {
         EdfWriter dataReceiver = new EdfWriter() {
             @Override
             public void writeDigitalSamples(int[] ints, int i, int i1) {
-                for (BdfDataListener dataListener : dataListeners) {
-                    dataListener.onDataRecordReceived(ints);
-                }
+                dataListener.onDataRecordReceived(ints);
             }
 
             @Override
@@ -73,6 +76,65 @@ public class BdfRecorder1 {
         };
 
         return new EdfSignalsFilter(dataReceiver);
+    }
+
+    /**
+     * Start Recorder measurements.
+     * @param bdfRecorderConfig
+     * @throws IllegalStateException if Recorder was disconnected and its work is finalised
+     */
+    public RecorderStartResult startRecording(BdfRecorderConfig1 bdfRecorderConfig) throws IllegalStateException {
+        ads.setDataListener(new AdsDataHandler(bdfRecorderConfig));
+        AdsStartResult adsResult = ads.startRecording(bdfRecorderConfig.getAdsConfig());
+        return RecorderStartResult.valueOf(adsResult);
+    }
+
+
+    public boolean stop() throws IllegalStateException {
+        ads.removeDataListener();
+        ads.removeEventsListener();
+        ads.startMonitoring();
+        return ads.stopRecording();
+    }
+
+    public boolean disconnect()  {
+        ads.removeDataListener();
+        ads.removeEventsListener();
+        return ads.disconnect();
+    }
+
+    public boolean isActive() {
+        return ads.isActive();
+    }
+
+    public String getComportName() {
+        return ads.getComportName();
+    }
+
+    public RecorderState getRecorderState() {
+        return RecorderState.valueOf(ads.getAdsState());
+    }
+
+
+    /**
+     * Get the info describing the structure of resultant dataRecords
+     * that BdfRecorder sends to its listeners and write to the Edf/Bdf file
+     *
+     * @return object with info about recording process and dataRecords structure
+     */
+    public EdfConfig getResultantRecordingInfo(BdfRecorderConfig1 bdfRecorderConfig) {
+        AdsDataHandler adsDataHandler = new AdsDataHandler(bdfRecorderConfig);
+        return adsDataHandler.getResultantEdfConfig();
+    }
+
+
+    public static String[] getAvailableComportNames() {
+        return Ads1.getAvailableComportNames();
+    }
+
+
+    public RecorderType getDeviceType() {
+        return RecorderType.valueOf(ads.getAdsType());
     }
 
     public void addChannelFilter(int channelNumber, DigitalFilter filter, String filterName) {
@@ -95,90 +157,67 @@ public class BdfRecorder1 {
         edfSignalsFilter = createChannelsFilter();
     }
 
-    public void startRecording(BdfRecorderConfig1 bdfRecorderConfig) throws ConnectionRuntimeException, InvalidDeviceTypeRuntimeException {
-        try {
-            ads.startRecording(bdfRecorderConfig.getAdsConfig());
-            ads.setDataListener(new AdsDataHandler(bdfRecorderConfig));
 
-        } catch (SerialPortRuntimeException ex) {
-            throw new ConnectionRuntimeException(ex);
-        } catch (InvalidAdsTypeRuntimeException ex) {
-            throw new InvalidDeviceTypeRuntimeException(ex);
-        }
+    private BdfDataListener createNullDataListener() {
+        return new BdfDataListener() {
+            @Override
+            public void onDataRecordReceived(int[] dataFrame) {
+                // Do nothing !!!
+            }
+        };
     }
 
-    public void startMonitoring() {
-        ads.startMonitoring();
-    }
-
-    public void stop() throws ConnectionRuntimeException {
-        try {
-            ads.stop();
-            ads.setDataListener(null); // remove ads data listener
-            ads.setLowButteryListener(null); // remove ads low buttery listener
-
-        } catch (SerialPortRuntimeException ex) {
-            throw new ConnectionRuntimeException(ex);
-        }
-    }
-
-    public boolean isActive() {
-        if(ads!= null && ads.isActive()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Get the info describing the structure of resultant dataRecords
-     * that BdfRecorder sends to its listeners and write to the Edf/Bdf file
-     *
-     * @return object with info about recording process and dataRecords structure
-     */
-    public EdfConfig getResultantRecordingInfo(BdfRecorderConfig1 bdfRecorderConfig) {
-        AdsDataHandler adsDataHandler = new AdsDataHandler(bdfRecorderConfig);
-        return adsDataHandler.getResultantEdfConfig();
+    private LeadOffListener createNullLeadOffListener() {
+        return new LeadOffListener() {
+            @Override
+            public void onLeadOffDataReceived(Boolean[] leadOffMask) {
+                // Do nothing !!!
+            }
+        };
     }
 
 
-    public void disconnect() throws ConnectionRuntimeException {
-        try {
-            stop();
-            ads.disconnect();
-        } catch (SerialPortRuntimeException ex) {
-            throw new ConnectionRuntimeException(ex);
-        }
+    private RecorderEventsListener createNullEventsListener() {
+        return new RecorderEventsListener() {
+            @Override
+            public void handleLowButtery() {
+                // Do nothing !!!
+            }
+
+            @Override
+            public void handleStartCanceled() {
+                // Do nothing !!!
+            }
+        };
     }
 
-    /**
-     * Attention! This method is DENGAROUS!!!
-     * Serial port lib (jssc) en Mac and Linux to create portNames list
-     * actually OPENS and CLOSES every port (suppose to be sure it is exist). So
-     * this operation can course serious bugs...
-     * Like possibility to have multiple connections with the same  port
-     * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
-     *
-     * @return array of names of all comports or empty array.
-     */
-    public static String[] getAvailableComportNames() {
-        return Ads1.getAvailableComportNames();
+
+    public void setDataListener(BdfDataListener listener) {
+        dataListener = listener;
     }
 
-    public void addBdfDataListener(BdfDataListener listener) {
-        dataListeners.add(listener);
+    public void setEventsListener(RecorderEventsListener listener) {
+        recorderEventsListener = listener;
     }
 
-    public void addLowButteryEventListener(LowButteryEventListener listener) {
-        butteryEventListeners.add(listener);
+    public void setLeadOffListener(LeadOffListener listener) {
+        leadOffListener = listener;
     }
 
-    public void addLoffListener(LoffListener listener) {
-        loffListeners.add(listener);
+    public void removeDataListener() {
+        dataListener = createNullDataListener();
     }
 
+    public void removeEventsListener() {
+        recorderEventsListener = createNullEventsListener();
+    }
+
+    public void removeLeadOffListener() {
+        leadOffListener = createNullLeadOffListener();
+    }
 
     class AdsDataHandler implements AdsDataListener {
-        private EdfFilter dataReceiver;
+        private final EdfFilter dataReceiver;
         private final BdfRecorderConfig1 bdfRecorderConfig;
 
         public AdsDataHandler(BdfRecorderConfig1 bdfRecorderConfig) {
@@ -215,20 +254,17 @@ public class BdfRecorder1 {
             dataReceiver.writeDigitalSamples(dataFrame);
 
             if (bdfRecorderConfig.isLeadOffEnabled()) {
-                boolean[] loffMask = Ads1.lofDetectionIntToBitMask(dataFrame[dataFrame.length - 1], bdfRecorderConfig.getNumberOfChannels());
+                boolean[] loffMask = Ads1.leadOffIntToBitMask(dataFrame[dataFrame.length - 1], bdfRecorderConfig.getNumberOfChannels());
                 Boolean[] resultantLoffMask = new Boolean[loffMask.length];
                 for (int i = 0; i < bdfRecorderConfig.getNumberOfChannels(); i++) {
                     if (bdfRecorderConfig.isChannelEnabled(i) && bdfRecorderConfig.isChannelLeadOffEnable(i)
-                            && bdfRecorderConfig.getChannelRecordingMode(i).equals(RecordingMode.INPUT.name())) {
+                            && bdfRecorderConfig.getChannelRecordingMode(i).equals(RecordingMode.INPUT)) {
                         resultantLoffMask[2 * i] = loffMask[2 * i];
                         resultantLoffMask[2 * i + 1] = loffMask[2 * i + 1];
                     }
 
                 }
-
-                for (LoffListener loffListener : loffListeners) {
-                    loffListener.onLoffDataReceived(resultantLoffMask);
-                }
+                leadOffListener.onLeadOffDataReceived(resultantLoffMask);
             }
         }
 

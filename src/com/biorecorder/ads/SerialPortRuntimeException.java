@@ -18,6 +18,8 @@ public class SerialPortRuntimeException extends RuntimeException {
     public static final String TYPE_PORT_NOT_FOUND = "Port not found";
     public static final String TYPE_PERMISSION_DENIED = "Permission denied";
     public static final String TYPE_INCORRECT_SERIAL_PORT = "Incorrect serial port";
+    public static final String TYPE_FAILED_TO_WRITE_TO_PORT = "Failed to write to serial port";
+
     private String portName;
     private String exceptionType;
 
@@ -31,6 +33,12 @@ public class SerialPortRuntimeException extends RuntimeException {
         super(msg, ex);
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();
+    }
+
+    public SerialPortRuntimeException(String portName, String exceptionType) {
+        super(portName + ": "+exceptionType);
+        this.portName = portName;
+        this.exceptionType = exceptionType;
     }
 
     public String getPortName() {

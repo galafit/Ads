@@ -1,7 +1,7 @@
 package com.biorecorder;
 
 import com.biorecorder.bdfrecorder.BdfRecorder;
-import com.biorecorder.bdfrecorder.LowButteryEventListener;
+import com.biorecorder.bdfrecorder.RecorderEventsListener;
 import com.biorecorder.bdfrecorder.exceptions.*;
 
 import com.sun.istack.internal.Nullable;
@@ -12,9 +12,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.TimerTask;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -23,7 +21,7 @@ import java.util.concurrent.Future;
 /**
  * Created by galafit on 2/6/17.
  */
-public class BdfRecorderApp implements LowButteryEventListener {
+public class BdfRecorderApp implements RecorderEventsListener {
     private static final Log log = LogFactory.getLog(BdfRecorderApp.class);
 
     private static final int SUCCESS_STATUS = 0;
@@ -78,6 +76,11 @@ public class BdfRecorderApp implements LowButteryEventListener {
                daemonConnect();
             }
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+    }
+
+    @Override
+    public void handleStartCanceled() {
+        // TO DO
     }
 
     private void checkStartFuture() {
@@ -151,7 +154,7 @@ public class BdfRecorderApp implements LowButteryEventListener {
 
 
     @Override
-    public void handleLowButteryEvent() {
+    public void handleLowButtery() {
         stopRecording();
         sendMessage(LOW_BUTTERY_MSG);
     }
@@ -202,7 +205,7 @@ public class BdfRecorderApp implements LowButteryEventListener {
 
     private void sendMessage(String message) {
         if(messageListener != null) {
-            messageListener.onMessageReceived(message);
+            messageListener.showMessage(message);
         }
     }
 
@@ -245,7 +248,7 @@ public class BdfRecorderApp implements LowButteryEventListener {
         File dir = new File(dirToSave);
         if(!dir.exists()) {
             String msg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
-            boolean isConfirmed = messageListener.onConfirmationAsked(msg);
+            boolean isConfirmed = messageListener.askConfirmation(msg);
             if(isConfirmed) {
                 dir.mkdir();
             }
@@ -387,5 +390,4 @@ public class BdfRecorderApp implements LowButteryEventListener {
         this.recordingSettings = recordingSettings;
         closeApplication(SUCCESS_STATUS);
     }
-
 }
