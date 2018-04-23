@@ -149,12 +149,8 @@ public class AppConfig1 {
         return bdfRecorderConfig.getNumberOfChannels();
     }
 
-    public RecorderSampleRate getSampleRate() {
-        return bdfRecorderConfig.getRecorderSampleRate();
-    }
-
-    public void setSampleRate(RecorderSampleRate sampleRate) {
-        bdfRecorderConfig.setRecorderSampleRate(sampleRate);
+    public int getSampleRate() {
+        return bdfRecorderConfig.getRecorderSampleRate().getValue();
     }
 
     public boolean isAccelerometerEnabled() {
@@ -173,12 +169,12 @@ public class AppConfig1 {
         bdfRecorderConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
     }
 
-    public RecorderType getDeviceType() {
-        return bdfRecorderConfig.getDeviceType();
+    public String getDeviceType() {
+        return bdfRecorderConfig.getDeviceType().name();
     }
 
-    public void setDeviceType(RecorderType recorderType) {
-        bdfRecorderConfig.setDeviceType(recorderType);
+    public void setDeviceType(String recorderTypeName) {
+        bdfRecorderConfig.setDeviceType(RecorderType.valueOf(recorderTypeName));
     }
 
     public boolean isAccelerometerOneChannelMode() {
@@ -213,21 +209,21 @@ public class AppConfig1 {
         return bdfRecorderConfig.isChannelRldSenseEnabled(channelNumber);
     }
 
-    public RecorderGain getChannelGain(int channelNumber) {
-        return bdfRecorderConfig.getChannelGain(channelNumber);
+    public int getChannelGain(int channelNumber) {
+        return bdfRecorderConfig.getChannelGain(channelNumber).getValue();
     }
 
-    public void setChannelGain(int channelNumber, RecorderGain gain) {
-        bdfRecorderConfig.setChannelGain(channelNumber, gain);
+    public void setChannelGain(int channelNumber, int gainValue) {
+        bdfRecorderConfig.setChannelGain(channelNumber, RecorderGain.valueOf(gainValue));
     }
 
 
-    public RecordingMode getChannelRecordingMode(int channelNumber) {
-        return bdfRecorderConfig.getChannelRecordingMode(channelNumber);
+    public String getChannelRecordingMode(int channelNumber) {
+        return bdfRecorderConfig.getChannelRecordingMode(channelNumber).name();
     }
 
-    public void setChannelRecordinMode(int channelNumber, RecordingMode recordingMode) {
-        bdfRecorderConfig.setChannelRecordingMode(channelNumber, recordingMode);
+    public void setChannelRecordinMode(int channelNumber, String recordingModeName) {
+        bdfRecorderConfig.setChannelRecordingMode(channelNumber, RecordingMode.valueOf(recordingModeName));
     }
 
     public boolean isChannelEnabled(int channelNumber) {
@@ -238,20 +234,20 @@ public class AppConfig1 {
         bdfRecorderConfig.setChannelEnabled(channelNumber, enabled);
     }
 
-    public Integer[] getChannelsAvailableFrequencies(RecorderSampleRate sampleRate) {
+    public Integer[] getChannelsAvailableFrequencies(int sampleRate) {
         int[] dividers = bdfRecorderConfig.getChannelsAvailableDividers();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
-            frequencies[i] = sampleRate.getValue() / dividers[i];
+            frequencies[i] = sampleRate / dividers[i];
         }
         return frequencies;
     }
 
-    public Integer[] getAccelerometerAvailableFrequencies(RecorderSampleRate sampleRate) {
+    public Integer[] getAccelerometerAvailableFrequencies(int sampleRate) {
         int[] dividers = bdfRecorderConfig.getAccelerometerAvailableDividers();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
-            frequencies[i] = sampleRate.getValue() / dividers[i];
+            frequencies[i] = sampleRate / dividers[i];
         }
         return frequencies;
     }
@@ -263,5 +259,41 @@ public class AppConfig1 {
         for (int i = 0; i < adsChannelsFrequencies.length; i++) {
             bdfRecorderConfig.setChannelDivider(i, (sampleRate / adsChannelsFrequencies[i]));
         }
+    }
+
+    public static Integer[] getAvailableGains() {
+        RecorderGain[] gains = RecorderGain.values();
+        Integer[] values = new Integer[gains.length];
+        for (int i = 0; i < gains.length; i++) {
+            values[i] = gains[i].getValue();
+        }
+        return values;
+    }
+
+    public static Integer[] getAvailableFrequencies() {
+        RecorderSampleRate[] sampleRates = RecorderSampleRate.values();
+        Integer[] values = new Integer[sampleRates.length];
+        for (int i = 0; i < sampleRates.length; i++) {
+            values[i] = sampleRates[i].getValue();
+        }
+        return values;
+    }
+
+    public static String[] getAvailableRecordingModes() {
+        RecordingMode[] modes = RecordingMode.values();
+        String[] names = new String[modes.length];
+        for (int i = 0; i < modes.length; i++) {
+            names[i] = modes[i].name();
+        }
+        return names;
+    }
+
+    public static String[] getAvailableDeviseTypes() {
+        RecorderType[] devises = RecorderType.values();
+        String[] names = new String[devises.length];
+        for (int i = 0; i < devises.length; i++) {
+            names[i] = devises[i].name();
+        }
+        return names;
     }
 }

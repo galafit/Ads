@@ -119,13 +119,16 @@ public class BdfRecorderApp1  {
                     bdfRecorder.removeDataListener();
                     bdfRecorder.removeLeadOffListener();
                     leadOffBitMask = null;
-                    if(edfFileWriter != null) {
-                        try {
-                            edfFileWriter.close();
-                        } catch (Exception ex) {
-                            log.error(ex);
-                        }
+
+                    try {
+                        edfFileWriter.close();
+                        edfFile.delete();
+                    } catch (Exception ex) {
+                        log.error(ex);
                     }
+                    edfFileWriter = null;
+                    edfFile = null;
+                    sendMessage(START_CANCELLED_MSG);
                 }
             });
         }
@@ -233,7 +236,9 @@ public class BdfRecorderApp1  {
                 @Override
                 public void onDataRecordReceived(int[] dataRecord) {
                     try{
-                        edfFileWriter.writeDigitalSamples(dataRecord);
+                        synchronized (BdfRecorderApp1.this) {
+                            edfFileWriter.writeDigitalSamples(dataRecord);
+                        }
                         numberOfWrittenDataRecords.incrementAndGet();
                     } catch (Exception ex) {
                         // although stop() will be called from not-GUI thread
@@ -278,7 +283,9 @@ public class BdfRecorderApp1  {
             }
             if(edfFileWriter != null) {
                 try {
-                    edfFileWriter.close();
+                    synchronized (this) {
+                        edfFileWriter.close();
+                    }
                     edfFileWriter = null;
                 } catch (Exception ex) {
                     isFileCloseSuccess = false;

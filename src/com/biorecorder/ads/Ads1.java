@@ -61,7 +61,7 @@ public class Ads1 {
     private static final int MONITORING_TIMER_PERIOD_MS = 500;
     private static final int ACTIVE_PERIOD_MS = 1000;
 
-    private static final int MAX_START_TIMEOUT_SEC = 30;
+    private static final int MAX_START_TIMEOUT_SEC = 20;
 
     String DISCONNECTED_ERROR_MSG = "Ads is disconnected and its work is finalised";
 
@@ -193,7 +193,6 @@ public class Ads1 {
      */
     public void startMonitoring() throws IllegalStateException  {
         stopRecording();
-
         monitoringTask.cancel();
 
         monitoringTask = createMonitoringTask();
@@ -250,7 +249,7 @@ public class Ads1 {
             public void run(){
                 try {
                     Thread.sleep(MAX_START_TIMEOUT_SEC * 1000);
-                    if(isConnected && !isDataReceived) {
+                    if(!isDataReceived) {
                         pingTask.cancel();
 
                         // we need try block course Ads can be disconnected in other thread
@@ -283,8 +282,6 @@ public class Ads1 {
             throw new IllegalStateException(DISCONNECTED_ERROR_MSG);
         }
         pingTask.cancel();
-
-        comport.setComPortListener(createFrameDecoder(null));
         adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
 
         // deactivate the thread that should cancel startRecording if data will not be received
@@ -315,7 +312,7 @@ public class Ads1 {
             cancelStartingThread.interrupt();
         }
 
-        if(comport.isOpenned()) {
+        if(comport.isOpened()) {
             comport.writeByte(STOP_REQUEST);
             return comport.close();
         } else {

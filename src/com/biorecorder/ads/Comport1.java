@@ -30,12 +30,6 @@ public class Comport1 implements SerialPortEventListener {
                 serialPort = new SerialPort(comportName);
                 serialPort.openPort();//Open serial port
             }
-        } catch (SerialPortException ex) {
-            throw new SerialPortRuntimeException(ex);
-        }
-        log.info(Thread.currentThread() + " opened comport: "+comportName);
-
-        try {
             serialPort.setParams(speed,
                     SerialPort.DATABITS_8,
                     SerialPort.STOPBITS_1,
@@ -48,6 +42,7 @@ public class Comport1 implements SerialPortEventListener {
         } catch (SerialPortException ex) {
             throw new SerialPortRuntimeException(ex);
         }
+        log.info(Thread.currentThread() + " opened comport: "+comportName);
 
         this.comportName = comportName;
         comPortListener = createNullComPortListener();
@@ -57,7 +52,7 @@ public class Comport1 implements SerialPortEventListener {
         return comportName;
     }
 
-    public boolean isOpenned() {
+    public boolean isOpened() {
         return serialPort.isOpened();
     }
 
@@ -90,6 +85,10 @@ public class Comport1 implements SerialPortEventListener {
      */
     public boolean writeBytes(byte[] bytes) throws IllegalStateException {
         try {
+            System.out.println("\nwrite " + bytes.length + " bytes:");
+            for (byte aByte : bytes) {
+                System.out.println(aByte);
+            }
             return serialPort.writeBytes(bytes);
         } catch (SerialPortException ex) {
             throw new IllegalStateException("Serial Port "+ getComportName() + " was finalised and closed", ex);
@@ -104,6 +103,7 @@ public class Comport1 implements SerialPortEventListener {
      */
     public boolean writeByte(byte b) throws IllegalStateException {
         try {
+            System.out.println("\nwrite 1 byte: "+b);
             return serialPort.writeByte(b);
         } catch (SerialPortException ex) {
             throw new IllegalStateException("Serial Port "+ getComportName() + " was finalised and closed", ex);
@@ -134,8 +134,10 @@ public class Comport1 implements SerialPortEventListener {
         if (event.isRXCHAR() && event.getEventValue() > 0) {
             try {
                 byte[] buffer = serialPort.readBytes();
+                System.out.println("\nbuffer length "+buffer.length);
                 for (int i = 0; i < buffer.length; i++) {
                     comPortListener.onByteReceived((buffer[i]));
+                    //System.out.println(buffer[i]);
                 }
             } catch (SerialPortException ex) {
                 String errMsg = "Error during receiving serial port data: " + ex.getMessage();

@@ -47,6 +47,7 @@ public class BdfRecorder1 {
                 @Override
                 public void handleStartCanceled() {
                     recorderEventsListener.handleStartCanceled();
+                    ads.startMonitoring();
                 }
 
                 @Override
