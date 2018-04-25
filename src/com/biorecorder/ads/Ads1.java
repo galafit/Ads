@@ -61,7 +61,7 @@ public class Ads1 {
     private static final int MONITORING_TIMER_PERIOD_MS = 500;
     private static final int ACTIVE_PERIOD_MS = 1000;
 
-    private static final int MAX_START_TIMEOUT_SEC = 20;
+    private static final int MAX_STARTING_TIME_SEC = 20;
 
     String DISCONNECTED_ERROR_MSG = "Ads is disconnected and its work is finalised";
 
@@ -71,12 +71,12 @@ public class Ads1 {
     private final Timer monitoringTimer = new Timer("Monitoring Timer");
     private volatile TimerTask pingTask;
     private volatile TimerTask monitoringTask;
-
-    private volatile Thread cancelStartingThread;
-
+    
     private volatile long lastEventTime;
+    private volatile long startTime;
     private volatile boolean isDataReceived;
     private volatile boolean isConnected = true;
+    private volatile Thread startingThread;
 
     private volatile AdsType adsType;
 
@@ -95,8 +95,8 @@ public class Ads1 {
         comport.writeByte(HARDWARE_REQUEST);
         dataListener = createNullDataListener();
         eventsListener = createNullEventsListener();
-        pingTask = createPingTask();
-        monitoringTask = createMonitoringTask();
+        pingTask = new PingTask();
+        monitoringTask = new MonitoringTask();
     }
 
     private AdsDataListener createNullDataListener() {
@@ -126,25 +126,6 @@ public class Ads1 {
             }
         };
     }
-
-    private  TimerTask createPingTask() {
-        return new TimerTask() {
-            @Override
-            public void run() {
-                comport.writeByte(PING_COMMAND);
-            }
-        };
-    }
-
-    private TimerTask createMonitoringTask() {
-        return new TimerTask() {
-            @Override
-            public void run() {
-                comport.writeByte(HARDWARE_REQUEST);
-            }
-        };
-    }
-
 
     private FrameDecoder createFrameDecoder(@Nullable AdsConfig adsConfig) {
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
@@ -195,7 +176,7 @@ public class Ads1 {
         stopRecording();
         monitoringTask.cancel();
 
-        monitoringTask = createMonitoringTask();
+        monitoringTask = new MonitoringTask();
         monitoringTimer.schedule(monitoringTask, MONITORING_TIMER_PERIOD_MS, MONITORING_TIMER_PERIOD_MS);
     }
 
@@ -215,7 +196,8 @@ public class Ads1 {
         if(adsType != null && adsConfig.getAdsType() != adsType) {
             return AdsStartResult.WRONG_DEVICE_TYPE;
         }
-
+        monitoringTask.cancel();
+        startTime = System.currentTimeMillis();
 
         if(adsStateAtomicReference.get() == AdsState1.UNDEFINED) {
             if(comport.writeByte(STOP_REQUEST)) {
@@ -232,44 +214,79 @@ public class Ads1 {
         isDataReceived = false;
         comport.setComPortListener(createFrameDecoder(adsConfig));
 
+
         if(!comport.writeBytes(adsConfig.getAdsConfigurationCommand())) {
             adsStateAtomicReference.set(AdsState1.UNDEFINED);
             return AdsStartResult.FAILED_TO_SEND_COMMAND;
         }
 
-        pingTask.cancel();
-        monitoringTask.cancel();
-
         // ping timer permits Ads to detect bluetooth connection problems
         // and restart connection when it is necessary
-        pingTask = createPingTask();
+        pingTask.cancel();
+        pingTask = new PingTask();
         pingTimer.schedule(pingTask, PING_TIMER_PERIOD_MS, PING_TIMER_PERIOD_MS);
 
-        cancelStartingThread = new Thread("Cancel «starting» thread"){
-            public void run(){
+        startingThread = new StartingThread(adsConfig);
+        startingThread.start();
+        return AdsStartResult.SUCCESS;
+    }
+
+    class StartingThread extends Thread {
+        private AdsConfig config;
+        int sleepTimeMs = 1000;
+
+        public StartingThread(AdsConfig config) {
+            super("«Starting» thread");
+            this.config = config;
+
+        }
+        @Override
+        public void run() {
+            while (adsStateAtomicReference.get() == AdsState1.RECORDING && adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
+                // we need try block course Ads can be disconnected in other thread
                 try {
-                    Thread.sleep(MAX_START_TIMEOUT_SEC * 1000);
-                    if(!isDataReceived) {
-                        pingTask.cancel();
-
-                        // we need try block course Ads can be disconnected in other thread
-                        try {
-                            comport.writeByte(STOP_REQUEST);
-                        } catch (Exception ex) {
-                            // do nothing
-                        }
-
-                        adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
-                        comport.setComPortListener(createFrameDecoder(null));
-                        eventsListener.handleStartCanceled();
-                    }
+                    comport.writeByte(HARDWARE_REQUEST);
+                } catch (Exception ex) {
+                    // do nothing
+                }
+                try {
+                    Thread.sleep(sleepTimeMs);
                 } catch (InterruptedException e) {
+                    // do nothing;
+                }
+            }
+
+            boolean startSentOk = false;
+            if (adsStateAtomicReference.get() == AdsState1.RECORDING && config.getAdsType() == adsType) { // send start command
+                // we need try block course Ads can be disconnected in other thread
+                try {
+                    startSentOk = comport.writeBytes(config.getAdsConfigurationCommand());
+                } catch (Exception ex) {
                     // do nothing
                 }
             }
-        };
-        cancelStartingThread.start();
-        return AdsStartResult.SUCCESS;
+            if (startSentOk) { // waiting for data
+                while (adsStateAtomicReference.get() == AdsState1.RECORDING && !isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
+                    try {
+                        Thread.sleep(sleepTimeMs);
+                    } catch (InterruptedException e) {
+                        // do nothing;
+                    }
+                }
+            }
+
+            if (adsStateAtomicReference.get() == AdsState1.RECORDING && (!startSentOk || !isDataReceived)) {
+                // cancel Start
+                adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
+                pingTask.cancel();
+                try {
+                    comport.writeByte(STOP_REQUEST);
+                } catch (Exception ex) {
+                    // do nothing
+                }
+                eventsListener.handleStartCanceled();
+            }
+        }
     }
 
     /**
@@ -281,14 +298,12 @@ public class Ads1 {
         if(!isConnected) {
             throw new IllegalStateException(DISCONNECTED_ERROR_MSG);
         }
-        pingTask.cancel();
-        adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
-
-        // deactivate the thread that should cancel startRecording if data will not be received
-        if(cancelStartingThread != null) {
-            cancelStartingThread.interrupt();
+        if(startingThread != null) {
+            startingThread.interrupt();
         }
 
+        pingTask.cancel();
+        adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
         return comport.writeByte(STOP_REQUEST);
     }
 
@@ -306,11 +321,6 @@ public class Ads1 {
         pingTask.cancel();
         monitoringTimer.cancel();
         pingTimer.cancel();
-
-        // deactivate the thread that should cancel startRecording if data will not be received
-        if(cancelStartingThread != null) {
-            cancelStartingThread.interrupt();
-        }
 
         if(comport.isOpened()) {
             comport.writeByte(STOP_REQUEST);
@@ -423,6 +433,20 @@ public class Ads1 {
 
         String msg = "Invalid Ads channels count: "+adsChannelsCount+ ". Number of Ads channels should be 2 or 8";
         throw new IllegalArgumentException(msg);
+    }
+
+    class PingTask extends TimerTask {
+        @Override
+        public void run() {
+            comport.writeByte(PING_COMMAND);
+        }
+    }
+
+    class MonitoringTask extends TimerTask {
+        @Override
+        public void run() {
+            comport.writeByte(HARDWARE_REQUEST);
+        }
     }
 
 }
