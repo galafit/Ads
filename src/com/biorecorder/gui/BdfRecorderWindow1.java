@@ -14,7 +14,7 @@ import java.util.ArrayList;
 /**
  *
  */
-public class BdfRecorderWindow1 extends JFrame  {
+public class BdfRecorderWindow1 extends JFrame implements NotificationListener {
 
     private BdfRecorderApp1 recorder;
     private AppConfig1 config;
@@ -146,8 +146,37 @@ public class BdfRecorderWindow1 extends JFrame  {
     }
 
 
-    private void setActions() {
 
+    @Override
+    public void update() {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                // Here, we can safely update the GUI
+                // because we'll be called from the
+                // event dispatch thread
+                updateLeadOffStatus(recorder.getLeadOffMask());
+                Color activeColor = Color.GREEN;
+                Color nonActiveColor = Color.GRAY;
+                Color stateColor = nonActiveColor;
+                if(recorder.isActive()) {
+                    stateColor = activeColor;
+                }
+                if(recorder.isRecording()) {
+                    stateColor = activeColor;
+                    stopButton.setVisible(true);
+                    startButton.setVisible(false);
+                    disableFields();
+                } else {
+                    stopButton.setVisible(false);
+                    startButton.setVisible(true);
+                    enableFields();
+                }
+                setReport(recorder.getStateReport(), stateColor);
+            }
+        });
+    }
+
+    private void setActions() {
         deviceTypeField.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -173,29 +202,7 @@ public class BdfRecorderWindow1 extends JFrame  {
             }
         });
 
-        recorder.setNotificationListener(new NotificationListener() {
-            @Override
-            public void update() {
-                updateLeadOffStatus(recorder.getLeadOffMask());
-                Color activeColor = Color.GREEN;
-                Color nonActiveColor = Color.GRAY;
-                Color stateColor = nonActiveColor;
-                if(recorder.isActive()) {
-                    stateColor = activeColor;
-                }
-                if(recorder.isRecording()) {
-                    stateColor = activeColor;
-                    stopButton.setVisible(true);
-                    startButton.setVisible(false);
-                    disableFields();
-                } else {
-                    stopButton.setVisible(false);
-                    startButton.setVisible(true);
-                    enableFields();
-                }
-                setReport(recorder.getStateReport(), stateColor);
-            }
-        });
+        recorder.setNotificationListener(this);
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
         comport.addPopupMenuListener(new PopupMenuListener() {
             @Override

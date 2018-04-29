@@ -165,7 +165,7 @@ public class Ads {
     }
 
     /**
-     * Send command to stop ads measurements and work
+     * Send command to stopRecording ads measurements and work
      *
      * @return true if command was successfully written, and false - otherwise
      * @throws IllegalStateException if ads is not connected to comport
@@ -185,7 +185,7 @@ public class Ads {
         try {
             isWriteOk = comport.writeByte(STOP_REQUEST);
         } catch (SerialPortException e) {
-            String errMsg = "Error during writing «stop command» to serial port.";
+            String errMsg = "Error during writing «stopRecording command» to serial port.";
             log.error(errMsg, e);
             isWriteOk = false;
         }

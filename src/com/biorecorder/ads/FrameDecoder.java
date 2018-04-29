@@ -83,14 +83,13 @@ class FrameDecoder implements ComPortListener {
             }
         } else if (frameIndex > 2 && frameIndex < (frameSize - 1)) {
             rawFrame[frameIndex] = inByte;
-           // System.out.println("index: "+frameIndex+ "size: "+ frameSize);
             frameIndex++;
         } else if (frameIndex == (frameSize - 1)) {
             rawFrame[frameIndex] = inByte;
             if (inByte == STOP_FRAME_MARKER) {
                 onFrameReceived();
             }else {
-                String infoMsg = "Frame broken. No stop frame marker. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                String infoMsg = "Frame broken. No stopRecording frame marker. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
                 notifyMessageListeners(AdsMessage.FRAME_BROKEN, infoMsg);
             }
             frameIndex = 0;
@@ -117,7 +116,7 @@ class FrameDecoder implements ComPortListener {
      // START_FRAME|MESSAGE_MARKER|number_of_bytes|HARDWARE_CONFIG|number_of_ads_channels|???|STOP_FRAME
      //  - reserved, power button, 2ADS channels, 1 accelerometer
 
-     // stop recording message: \xAA\xA5\x05\xA5\x55
+     // stopRecording recording message: \xAA\xA5\x05\xA5\x55
      // hello message: \xAA\xA5\x05\xA0\x55
         AdsMessage adsMessage = null;
         String info = "";

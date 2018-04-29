@@ -5,5 +5,4 @@ package com.biorecorder.bdfrecorder;
  */
 public interface RecorderEventsListener {
     public void handleLowButtery();
-    public void handleStartCanceled();
 }

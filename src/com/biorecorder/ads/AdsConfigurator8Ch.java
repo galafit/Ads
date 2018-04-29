@@ -16,7 +16,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         result.add((byte)51);       //длина пакета
 
         result.add((byte)0xF0);     //ads1292 command
-        result.add((byte)0x11);     //ads1292 stop continuous
+        result.add((byte)0x11);     //ads1292 stopRecording continuous
 
         result.add((byte)0xF1);     //запись регистров ads1298
         result.add((byte)0x01);     //адрес первого регистра

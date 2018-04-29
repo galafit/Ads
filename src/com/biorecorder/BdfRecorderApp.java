@@ -78,11 +78,6 @@ public class BdfRecorderApp implements RecorderEventsListener {
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
     }
 
-    @Override
-    public void handleStartCanceled() {
-        // TO DO
-    }
-
     private void checkStartFuture() {
         if(startFuture != null) {
             if (startFuture.isDone()) {

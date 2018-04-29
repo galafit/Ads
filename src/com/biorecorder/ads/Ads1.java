@@ -6,6 +6,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -60,11 +61,12 @@ public class Ads1 {
     private static final int PING_TIMER_PERIOD_MS = 1000;
     private static final int MONITORING_TIMER_PERIOD_MS = 500;
     private static final int ACTIVE_PERIOD_MS = 1000;
+    private static final int SLEEP_TIME_MS = 1000;
 
-    private static final int MAX_STARTING_TIME_SEC = 20;
+    private static final int MAX_STARTING_TIME_SEC = 30;
 
-    String DISCONNECTED_ERROR_MSG = "Ads is disconnected and its work is finalised";
-
+    private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
+    private static final String ALREADY_RECORDING_MSG = "Device is already recording. Stop it first";
 
     private final Comport1 comport;
     private final Timer pingTimer = new Timer("Ping Timer");
@@ -73,16 +75,17 @@ public class Ads1 {
     private volatile TimerTask monitoringTask;
     
     private volatile long lastEventTime;
-    private volatile long startTime;
     private volatile boolean isDataReceived;
     private volatile boolean isConnected = true;
-    private volatile Thread startingThread;
 
     private volatile AdsType adsType;
 
     // we use AtomicReference to do atomic "compare and set"
-    AtomicReference<AdsState1> adsStateAtomicReference =
+    private AtomicReference<AdsState1> adsStateAtomicReference =
             new AtomicReference<AdsState1>(AdsState1.UNDEFINED);
+
+    private ExecutorService startExecutor;
+    private volatile Future<Boolean> startFuture;
 
     private volatile AdsDataListener dataListener;
     private volatile AdsEventsListener eventsListener;
@@ -97,6 +100,15 @@ public class Ads1 {
         eventsListener = createNullEventsListener();
         pingTask = new PingTask();
         monitoringTask = new MonitoringTask();
+
+        ThreadFactory namedThreadFactory = new ThreadFactory() {
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "«Starting» thread");
+            }
+        };
+
+        startExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
+
     }
 
     private AdsDataListener createNullDataListener() {
@@ -112,11 +124,6 @@ public class Ads1 {
         return new AdsEventsListener() {
             @Override
             public void handleLowButtery() {
-                // do nothing;
-            }
-
-            @Override
-            public void handleStartCanceled() {
                 // do nothing;
             }
 
@@ -168,123 +175,108 @@ public class Ads1 {
     /**
      * Start "monitoring timer" which every second sends to
      * Ads some request (HARDWARE_REQUEST or HELLO request ) to check that
-     * Ads is connected and ok. If Ads is "measuring" it first will be stopped.
+     * Ads is connected and ok.
      *
      * @throws IllegalStateException if Ads was disconnected and its work is finalised
      */
     public void startMonitoring() throws IllegalStateException  {
-        stopRecording();
         monitoringTask.cancel();
 
         monitoringTask = new MonitoringTask();
         monitoringTimer.schedule(monitoringTask, MONITORING_TIMER_PERIOD_MS, MONITORING_TIMER_PERIOD_MS);
     }
 
+    public void stopMonitoring() {
+        monitoringTask.cancel();
+    }
+
 
     /**
      * Start Ads measurements.
      *
-     * @throws IllegalStateException if Ads was disconnected and its work is finalised
+     * @param adsConfig object with ads config info
+     * @return Future<Boolean> that get true if starting  was successful
+     * and false otherwise. Throws IllegalArgumentException if device type specified in config
+     * does not coincide with the really connected device type.
+     * @throws IllegalStateException if Ads was disconnected and its work was finalised
+     * or if it is already recording and should be stopped first
      */
-    public AdsStartResult startRecording(AdsConfig adsConfig) throws IllegalStateException {
+    public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException {
         if(!isConnected) {
-            throw new IllegalStateException(DISCONNECTED_ERROR_MSG);
+            throw new IllegalStateException(DISCONNECTED_MSG);
         }
+
         if(adsStateAtomicReference.get() == AdsState1.RECORDING) {
-            return AdsStartResult.ALREADY_RECORDING;
-        }
-        if(adsType != null && adsConfig.getAdsType() != adsType) {
-            return AdsStartResult.WRONG_DEVICE_TYPE;
-        }
-        monitoringTask.cancel();
-        startTime = System.currentTimeMillis();
-
-        if(adsStateAtomicReference.get() == AdsState1.UNDEFINED) {
-            if(comport.writeByte(STOP_REQUEST)) {
-                // just in case... to give the ads time to stop
-                try {
-                    Thread.currentThread().sleep(1000);
-                } catch (InterruptedException e) {
-                    // do nothing!
-                }
-            }
+            throw new IllegalStateException(ALREADY_RECORDING_MSG);
         }
 
+        AdsState1 stateBeforeStart = adsStateAtomicReference.get();
         adsStateAtomicReference.set(AdsState1.RECORDING);
         isDataReceived = false;
-        comport.setComPortListener(createFrameDecoder(adsConfig));
-
-
-        if(!comport.writeBytes(adsConfig.getAdsConfigurationCommand())) {
-            adsStateAtomicReference.set(AdsState1.UNDEFINED);
-            return AdsStartResult.FAILED_TO_SEND_COMMAND;
-        }
-
-        // ping timer permits Ads to detect bluetooth connection problems
-        // and restart connection when it is necessary
-        pingTask.cancel();
-        pingTask = new PingTask();
-        pingTimer.schedule(pingTask, PING_TIMER_PERIOD_MS, PING_TIMER_PERIOD_MS);
-
-        startingThread = new StartingThread(adsConfig);
-        startingThread.start();
-        return AdsStartResult.SUCCESS;
+        startFuture = startExecutor.submit(new StartingTask(adsConfig, stateBeforeStart));
+        return startFuture;
     }
 
-    class StartingThread extends Thread {
+    class StartingTask implements Callable<Boolean> {
         private AdsConfig config;
-        int sleepTimeMs = 1000;
+        private AdsState1 stateBeforeStart;
 
-        public StartingThread(AdsConfig config) {
-            super("«Starting» thread");
+        public StartingTask(AdsConfig config, AdsState1 stateBeforeStart) {
             this.config = config;
+            this.stateBeforeStart = stateBeforeStart;
 
         }
+
         @Override
-        public void run() {
-            while (adsStateAtomicReference.get() == AdsState1.RECORDING && adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
-                // we need try block course Ads can be disconnected in other thread
-                try {
-                    comport.writeByte(HARDWARE_REQUEST);
-                } catch (Exception ex) {
-                    // do nothing
-                }
-                try {
-                    Thread.sleep(sleepTimeMs);
-                } catch (InterruptedException e) {
-                    // do nothing;
-                }
+        public Boolean call() throws Exception {
+            long startTime = System.currentTimeMillis();
+            // 1) to correctly tart we need to be sure that the specified in config adsType is ok
+            while (adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
+                comport.writeByte(HARDWARE_REQUEST);
+                Thread.sleep(SLEEP_TIME_MS);
             }
 
-            boolean startSentOk = false;
-            if (adsStateAtomicReference.get() == AdsState1.RECORDING && config.getAdsType() == adsType) { // send start command
-                // we need try block course Ads can be disconnected in other thread
-                try {
-                    startSentOk = comport.writeBytes(config.getAdsConfigurationCommand());
-                } catch (Exception ex) {
-                    // do nothing
-                }
-            }
-            if (startSentOk) { // waiting for data
-                while (adsStateAtomicReference.get() == AdsState1.RECORDING && !isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
-                    try {
-                        Thread.sleep(sleepTimeMs);
-                    } catch (InterruptedException e) {
-                        // do nothing;
+            if(adsType == null) {
+                adsStateAtomicReference.set(AdsState1.UNDEFINED);
+                return false;
+            } else if(adsType != config.getAdsType()) {
+                String errMsg = "Device type specified in the config " +
+                        "\ndoes not coincide with the really connected device type";
+                adsStateAtomicReference.set(AdsState1.UNDEFINED);
+                throw new IllegalArgumentException(errMsg);
+            } else { // if adsType is ok
+                // 2) try to stopRecording ads first if it was not stopped before
+                if(stateBeforeStart == AdsState1.UNDEFINED) {
+                    if(comport.writeByte(STOP_REQUEST)) {
+                        // give the ads time to stopRecording
+                        Thread.currentThread().sleep(SLEEP_TIME_MS);
                     }
                 }
-            }
 
-            if (adsStateAtomicReference.get() == AdsState1.RECORDING && (!startSentOk || !isDataReceived)) {
-                // cancel Start
-                adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
-                pingTask.cancel();
-                try {
-                    comport.writeByte(STOP_REQUEST);
-                } catch (Exception ex) {
-                    // do nothing
+                // 3) send "start" command
+                boolean startSentOk = comport.writeBytes(config.getAdsConfigurationCommand());
+                if(startSentOk) {
+                    // create frame decoder corresponding to the configuration
+                    // and set is as listener to comport
+                    comport.setComPortListener(createFrameDecoder(config));
+
+                    // waiting for data
+                    while (!isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
+                        Thread.sleep(SLEEP_TIME_MS);
+                    }
+                    if(isDataReceived) { // if data comes
+                        // 4) start ping timer
+
+                        // ping timer permits Ads to detect bluetooth connection problems
+                        // and restart connection when it is necessary
+                        pingTask.cancel();
+                        pingTask = new PingTask();
+                        pingTimer.schedule(pingTask, PING_TIMER_PERIOD_MS, PING_TIMER_PERIOD_MS);
+                        return true;
+                    }
                 }
-                eventsListener.handleStartCanceled();
+                adsStateAtomicReference.set(AdsState1.UNDEFINED);
+                return false;
             }
         }
     }
@@ -296,26 +288,41 @@ public class Ads1 {
      */
     public boolean stopRecording() throws IllegalStateException {
         if(!isConnected) {
-            throw new IllegalStateException(DISCONNECTED_ERROR_MSG);
+            throw new IllegalStateException(DISCONNECTED_MSG);
         }
-        if(startingThread != null) {
-            startingThread.interrupt();
+        // cancel starting
+        if(startFuture != null) {
+            startFuture.cancel(true);
         }
 
         pingTask.cancel();
         adsStateAtomicReference.compareAndSet(AdsState1.RECORDING, AdsState1.UNDEFINED);
-        return comport.writeByte(STOP_REQUEST);
+        if(comport.writeByte(STOP_REQUEST)) {
+            try {
+                Thread.sleep(SLEEP_TIME_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return true;
+        }
+
+        return false;
     }
 
-    public void stopMonitoring() {
-        monitoringTask.cancel();
-    }
 
     public boolean isConnected() {
         return isConnected;
     }
 
     public boolean disconnect() {
+        // cancel starting
+        if(startFuture != null) {
+            startFuture.cancel(true);
+        }
+        if(!startExecutor.isShutdown()) {
+            startExecutor.shutdownNow();
+        }
+
         isConnected = false;
         monitoringTask.cancel();
         pingTask.cancel();

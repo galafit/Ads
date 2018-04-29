@@ -39,11 +39,6 @@ public class BdfRecorder implements AdsEventsListener {
         ads.setAdsEventsListener(this);
     }
 
-    @Override
-    public void handleStartCanceled() {
-
-    }
-
     public void addBdfDataListener(BdfDataListener listener) {
         dataListeners.add(listener);
     }
@@ -206,7 +201,7 @@ public class BdfRecorder implements AdsEventsListener {
             }
             isRecording = false;
         } catch (Exception e) {
-            String errMsg = "Error during BdfRecorder stop recording: "+e.getMessage();
+            String errMsg = "Error during BdfRecorder stopRecording recording: "+e.getMessage();
             throw new BdfRecorderRuntimeException(errMsg, e);
         }
     }

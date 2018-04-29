@@ -85,10 +85,10 @@ public class Comport1 implements SerialPortEventListener {
      */
     public boolean writeBytes(byte[] bytes) throws IllegalStateException {
         try {
-            System.out.println("\nwrite " + bytes.length + " bytes:");
+          /*  System.out.println("\nwrite " + bytes.length + " bytes:");
             for (byte aByte : bytes) {
                 System.out.println(aByte);
-            }
+            }*/
             return serialPort.writeBytes(bytes);
         } catch (SerialPortException ex) {
             throw new IllegalStateException("Serial Port "+ getComportName() + " was finalised and closed", ex);
@@ -103,7 +103,7 @@ public class Comport1 implements SerialPortEventListener {
      */
     public boolean writeByte(byte b) throws IllegalStateException {
         try {
-            System.out.println("\nwrite 1 byte: "+b);
+           // System.out.println("\nwrite 1 byte: "+b);
             return serialPort.writeByte(b);
         } catch (SerialPortException ex) {
             throw new IllegalStateException("Serial Port "+ getComportName() + " was finalised and closed", ex);
@@ -134,7 +134,7 @@ public class Comport1 implements SerialPortEventListener {
         if (event.isRXCHAR() && event.getEventValue() > 0) {
             try {
                 byte[] buffer = serialPort.readBytes();
-                System.out.println("\nbuffer length "+buffer.length);
+               // System.out.println("\nbuffer length "+buffer.length);
                 for (int i = 0; i < buffer.length; i++) {
                     comPortListener.onByteReceived((buffer[i]));
                     //System.out.println(buffer[i]);

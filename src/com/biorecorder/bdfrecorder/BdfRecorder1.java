@@ -13,6 +13,11 @@ import com.biorecorder.edflib.filters.signalfilters.SignalFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 /**
  * Wrapper class that does some transformations with Ads data-frames:
  * <ul>
@@ -45,18 +50,11 @@ public class BdfRecorder1 {
                 }
 
                 @Override
-                public void handleStartCanceled() {
-                    recorderEventsListener.handleStartCanceled();
-                    ads.startMonitoring();
-                }
-
-                @Override
                 public void handleFrameBroken(String eventInfo) {
                     // do nothing
                 }
             });
             edfSignalsFilter = createChannelsFilter();
-            ads.startMonitoring();
         } catch (SerialPortRuntimeException ex) {
             throw new ConnectionRuntimeException(ex);
         }
@@ -81,20 +79,22 @@ public class BdfRecorder1 {
 
     /**
      * Start Recorder measurements.
-     * @param bdfRecorderConfig
-     * @throws IllegalStateException if Recorder was disconnected and its work is finalised
+     *
+     * @param bdfRecorderConfig object with ads config info
+     * @return Future<Boolean> that get true if starting  was successful
+     * and false otherwise. Throws IllegalArgumentException if device type specified in config
+     * does not coincide with the really connected device type.
+     * @throws IllegalStateException if Recorder was disconnected and
+     * its work was finalised or if it is already recording and should be stopped first
      */
-    public RecorderStartResult startRecording(BdfRecorderConfig1 bdfRecorderConfig) throws IllegalStateException {
+    public Future<Boolean> startRecording(BdfRecorderConfig1 bdfRecorderConfig) throws IllegalStateException {
         ads.setDataListener(new AdsDataHandler(bdfRecorderConfig));
-        AdsStartResult adsResult = ads.startRecording(bdfRecorderConfig.getAdsConfig());
-        return RecorderStartResult.valueOf(adsResult);
+        return ads.startRecording(bdfRecorderConfig.getAdsConfig());
     }
 
-
-    public boolean stop() throws IllegalStateException {
+    public boolean stopRecording() throws IllegalStateException {
         ads.removeDataListener();
         ads.removeEventsListener();
-        ads.startMonitoring();
         return ads.stopRecording();
     }
 
@@ -103,6 +103,15 @@ public class BdfRecorder1 {
         ads.removeEventsListener();
         return ads.disconnect();
     }
+
+    public void startMonitoring() throws IllegalStateException  {
+        ads.startMonitoring();
+    }
+
+    public void stopMonitoring() {
+        ads.stopMonitoring();
+    }
+
 
     public boolean isActive() {
         return ads.isActive();
@@ -182,11 +191,6 @@ public class BdfRecorder1 {
         return new RecorderEventsListener() {
             @Override
             public void handleLowButtery() {
-                // Do nothing !!!
-            }
-
-            @Override
-            public void handleStartCanceled() {
                 // Do nothing !!!
             }
         };
