@@ -200,15 +200,7 @@ class FrameDecoder implements ComPortListener {
             }
         }
 
-        int counter
-
-
-
-
-
-
-
-                ё= bytesToSignedInt(rawFrame[2], rawFrame[3]);
+        int counter = bytesToSignedInt(rawFrame[2], rawFrame[3]);
         int numberOfLostFrames = getNumberOfLostFrames(counter);
         for (int i = 0; i < numberOfLostFrames; i++) {
             notifyDataListeners(decodedFrame);
