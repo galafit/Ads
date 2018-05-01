@@ -153,8 +153,6 @@ class FrameDecoder implements ComPortListener {
     }
 
     private void onDataRecordReceived() {
-        int counter = bytesToSignedInt(rawFrame[2], rawFrame[3]);
-
         int[] decodedFrame = new int[decodedFrameSize];
         int rawFrameOffset = 4;
         int decodedFrameOffset = 0;
@@ -202,6 +200,15 @@ class FrameDecoder implements ComPortListener {
             }
         }
 
+        int counter
+
+
+
+
+
+
+
+                ё= bytesToSignedInt(rawFrame[2], rawFrame[3]);
         int numberOfLostFrames = getNumberOfLostFrames(counter);
         for (int i = 0; i < numberOfLostFrames; i++) {
             notifyDataListeners(decodedFrame);
