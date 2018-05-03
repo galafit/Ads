@@ -30,14 +30,14 @@ public class BdfRecorderConfig {
     }
     
     public Boolean is50HzFilterEnabled(int adsChannelNumber) {
-        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
             filter50HzMask.add(true);
         }
         return filter50HzMask.get(adsChannelNumber);
     }
 
     public void setIs50HzFilterEnabled(int adsChannelNumber, boolean is50HzFilterEnabled) {
-        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
             filter50HzMask.add(true);
         }
         filter50HzMask.set(adsChannelNumber, is50HzFilterEnabled);
@@ -90,7 +90,7 @@ public class BdfRecorderConfig {
     }
 
     public int getNumberOfAdsChannels() {
-        return adsConfig.getNumberOfAdsChannels();
+        return adsConfig.getAdsChannelsCount();
     }
 
     public int getSampleRate() {
@@ -187,7 +187,7 @@ public class BdfRecorderConfig {
         edfConfig.setRecordingIdentification(getRecordingIdentification());
         edfConfig.setPatientIdentification(getPatientIdentification());
         edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
-        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {
                 edfConfig.addSignal();
                 int signalNumber = edfConfig.getNumberOfSignals() - 1;

@@ -188,7 +188,7 @@ class FrameDecoder implements ComPortListener {
         }
 
         if (adsConfig.isLeadOffEnabled()) {
-            if (adsConfig.getNumberOfAdsChannels() == 8) {
+            if (adsConfig.getAdsChannelsCount() == 8) {
                 // 2 bytes for 8 channels
                 decodedFrame[decodedFrameOffset++] = bytesToSignedInt(rawFrame[rawFrameOffset], rawFrame[rawFrameOffset + 1]);
                 rawFrameOffset += 2;
@@ -222,7 +222,7 @@ class FrameDecoder implements ComPortListener {
             result += 2;
         }
         if (adsConfig.isLeadOffEnabled()) {
-            if (adsConfig.getNumberOfAdsChannels() == 8) {
+            if (adsConfig.getAdsChannelsCount() == 8) {
                 result += 2;
             } else {
                 result += 1;
@@ -245,7 +245,7 @@ class FrameDecoder implements ComPortListener {
             result += 1;
         }
         if(adsConfig.isLeadOffEnabled()) {
-            if (adsConfig.getNumberOfAdsChannels() == 8) {
+            if (adsConfig.getAdsChannelsCount() == 8) {
                 result += 2;
             } else {
                 result += 1;
@@ -260,7 +260,7 @@ class FrameDecoder implements ComPortListener {
             return 0;
         }
         int result = 0;
-        for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {
                 int divider = adsConfig.getAdsChannelDivider(i);
                 int maxDiv = adsConfig.getMaxDiv();

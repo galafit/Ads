@@ -51,7 +51,7 @@ public class AdsConfig {
     }
 
     public boolean isLeadOffEnabled() {
-        for (int i = 0; i < getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < getAdsChannelsCount(); i++) {
             if (adsChannels.get(i).isEnabled() && adsChannels.get(i).isLoffEnable()) {
                 return true;
             }
@@ -59,7 +59,7 @@ public class AdsConfig {
         return false;
     }
 
-    public int getNumberOfAdsChannels() {
+    public int getAdsChannelsCount() {
         return adsType.getAdsChannelsCount();
     }
 

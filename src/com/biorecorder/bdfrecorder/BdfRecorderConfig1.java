@@ -39,14 +39,14 @@ public class BdfRecorderConfig1 {
     }
 
     public Boolean is50HzFilterEnabled(int channelNumber) {
-        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
             filter50HzMask.add(true);
         }
         return filter50HzMask.get(channelNumber);
     }
 
     public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
-        while(filter50HzMask.size() < adsConfig.getNumberOfAdsChannels()) {
+        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
             filter50HzMask.add(true);
         }
         filter50HzMask.set(channelNumber, is50HzFilterEnabled);
@@ -91,7 +91,7 @@ public class BdfRecorderConfig1 {
     }
 
     public int getNumberOfChannels() {
-        return adsConfig.getNumberOfAdsChannels();
+        return adsConfig.getAdsChannelsCount();
     }
 
     public RecorderSampleRate getRecorderSampleRate() {

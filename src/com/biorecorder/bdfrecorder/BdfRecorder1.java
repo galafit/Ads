@@ -13,10 +13,7 @@ import com.biorecorder.edflib.filters.signalfilters.SignalFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Wrapper class that does some transformations with Ads data-frames:
@@ -283,7 +280,7 @@ public class BdfRecorder1 {
             edfConfig.setRecordingIdentification(bdfRecorderConfig.getRecordingIdentification());
             edfConfig.setPatientIdentification(bdfRecorderConfig.getPatientIdentification());
             edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
-            for (int i = 0; i < adsConfig.getNumberOfAdsChannels(); i++) {
+            for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
                 if (adsConfig.isAdsChannelEnabled(i)) {
                     edfConfig.addSignal();
                     int signalNumber = edfConfig.getNumberOfSignals() - 1;
