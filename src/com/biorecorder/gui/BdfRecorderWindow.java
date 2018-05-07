@@ -8,17 +8,17 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 
 
 /**
  *
  */
-public class BdfRecorderWindow extends JFrame  {
+public class BdfRecorderWindow extends JFrame implements NotificationListener, MessageListener{
 
-    private BdfRecorderApp bdfRecorder;
-    private AppConfig recordingSettings;
+    private final BdfRecorderApp recorder;
+    private final AppConfig config;
 
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
@@ -72,14 +72,15 @@ public class BdfRecorderWindow extends JFrame  {
             new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Lead Off Detection"), new JLabel(" "),new JLabel("50 Hz Filter")};
 
 
-    public BdfRecorderWindow(BdfRecorderApp bdfRecorder, AppConfig recordingSettings) {
-        this.recordingSettings = recordingSettings;
-        this.bdfRecorder = bdfRecorder;
+    public BdfRecorderWindow(BdfRecorderApp recorder, AppConfig config) {
+        this.config = config;
+        this.recorder = recorder;
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent windowEvent) {
                 saveDataToModel();
-                bdfRecorder.closeApplication(recordingSettings);
+                recorder.closeApplication(config);
             }
         });
         init();
@@ -99,7 +100,7 @@ public class BdfRecorderWindow extends JFrame  {
     }
 
     private void createFields() {
-        int numberOfAdsChannels = recordingSettings.getNumberOfAdsChannels();
+        int numberOfAdsChannels = config.getNumberOfChannels();
 
         startButton = new JButton(start);
         stopButton = new JButton(stop);
@@ -146,38 +147,38 @@ public class BdfRecorderWindow extends JFrame  {
         accelerometerName.setEnabled(false);
     }
 
+    private boolean confirm(String message) {
+        int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow.this, message, null, JOptionPane.YES_NO_OPTION);
+        if(answer == JOptionPane.YES_OPTION) {
+            return true;
+        }
+        return false;
+    }
 
-    private void setActions() {
+    private void showMessage(String msg) {
+        JOptionPane.showMessageDialog(BdfRecorderWindow.this, msg);
+    }
 
-        deviceTypeField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                recordingSettings.setDeviceType(getDeviceType());
-                bdfRecorder.changeRecorder();
-                init();
-                pack();
-            }
-        });
+    @Override
+    public void onMessage(String message) {
+        showMessage(message);
+    }
 
-        bdfRecorder.setMessageListener(new MessageListener() {
-            @Override
-            public void onMessage(String message) {
-                JOptionPane.showMessageDialog(BdfRecorderWindow.this, message);
-
-            }
-        });
-
-        bdfRecorder.setNotificationListener(new NotificationListener() {
-            @Override
-            public void update() {
-                updateLeadOffStatus(bdfRecorder.getLeadOfDetectionMask());
+    @Override
+    public void update() {
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                // Here, we can safely update the GUI
+                // because we'll be called from the
+                // event dispatch thread
+                updateLeadOffStatus(recorder.getLeadOffMask());
                 Color activeColor = Color.GREEN;
                 Color nonActiveColor = Color.GRAY;
                 Color stateColor = nonActiveColor;
-                if(bdfRecorder.isActive()) {
+                if(recorder.isActive()) {
                     stateColor = activeColor;
                 }
-                if(bdfRecorder.isRecording()) {
+                if(recorder.isRecording()) {
                     stateColor = activeColor;
                     stopButton.setVisible(true);
                     startButton.setVisible(false);
@@ -187,33 +188,45 @@ public class BdfRecorderWindow extends JFrame  {
                     startButton.setVisible(true);
                     enableFields();
                 }
-                setReport(bdfRecorder.getStateReport(), stateColor);
+                setReport(recorder.getStateReport(), stateColor);
             }
         });
+    }
+
+    private void setActions() {
+        deviceTypeField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                config.setDeviceType(getDeviceType());
+                init();
+                pack();
+            }
+        });
+
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
-       comport.addPopupMenuListener(new PopupMenuListener() {
-           @Override
-           public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-               comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
-               BdfRecorderWindow.this.pack();
-           }
+        comport.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                comport.setModel(new DefaultComboBoxModel(recorder.getComportNames(config.getComportName())));
+                BdfRecorderWindow.this.pack();
+            }
 
-           @Override
-           public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
 
-           }
+            }
 
-           @Override
-           public void popupMenuCanceled(PopupMenuEvent e) {
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
 
-           }
-       });
-       // another way to do the same
+            }
+        });
+        // another way to do the same
         /*JButton comportButton = comport.getButton();
         comportButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                comport.setModel(new DefaultComboBoxModel(bdfRecorder.getAvailableComports()));
+                comport.setModel(new DefaultComboBoxModel(recorder.getAvailableComports()));
                 BdfRecorderWindow.this.pack();
               }
         });*/
@@ -221,12 +234,12 @@ public class BdfRecorderWindow extends JFrame  {
         comport.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                bdfRecorder.connect(getComPortName());
+                recorder.setComport(getComPortName());
             }
         });
 
 
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
             channelEnable[i].addActionListener(new AdsChannelEnableListener(i));
         }
 
@@ -247,24 +260,46 @@ public class BdfRecorderWindow extends JFrame  {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 JComboBox comboBox = (JComboBox) actionEvent.getSource();
-                int sps = (Integer) comboBox.getSelectedItem();
-                setChannelsFrequencies(sps);
+                int sampleRate = (Integer) comboBox.getSelectedItem();
+                setChannelsFrequencies(sampleRate);
             }
         });
 
 
         startButton.addActionListener(new ActionListener() {
+            private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
+
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                saveDataToModel();
-                bdfRecorder.startRecording(recordingSettings);
+               // saveDataToModel();
+                String dirToSave = getDirectory();
+                OperationResult actionResult = null;
+
+                if(!recorder.isDirectoryExist(dirToSave)) {
+                    String confirmMsg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
+                    if(confirm(confirmMsg)) {
+                        actionResult = recorder.createDirectory(dirToSave);
+                        if(actionResult.isSuccess()) {
+                            actionResult = recorder.startRecording(config);
+                        }
+                    }
+                } else {
+                    actionResult = recorder.startRecording(config);
+                }
+
+                if(actionResult != null && !actionResult.isMessageEmpty()) {
+                    showMessage(actionResult.getMessage());
+                }
             }
         });
 
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                bdfRecorder.stopRecording();
+                OperationResult actionResult = recorder.stop();
+                if(!actionResult.isMessageEmpty()) {
+                    showMessage(actionResult.getMessage());
+                }
             }
         });
 
@@ -331,7 +366,7 @@ public class BdfRecorderWindow extends JFrame  {
             channelsPanel.add(component);
         }
 
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
             channelsPanel.add(new JLabel(" " + (i + 1) + " "));
             channelsPanel.add(channelEnable[i]);
             channelsPanel.add(channelName[i]);
@@ -344,11 +379,11 @@ public class BdfRecorderWindow extends JFrame  {
             loffPanel.add(channelLoffStatNegative[i]);
             channelsPanel.add(loffPanel);
             channelsPanel.add(new JLabel(" "));
-                        channelsPanel.add(channel50Hz[i]);
+            channelsPanel.add(channel50Hz[i]);
         }
 
         // Add line of accelerometer
-        channelsPanel.add(new JLabel(" " + (1 + recordingSettings.getNumberOfAdsChannels()) + " "));
+        channelsPanel.add(new JLabel(" " + (1 + config.getNumberOfChannels()) + " "));
         channelsPanel.add(accelerometerEnable);
         channelsPanel.add(accelerometerName);
         channelsPanel.add(accelerometerFrequency);
@@ -420,7 +455,7 @@ public class BdfRecorderWindow extends JFrame  {
 
 
     private void selectComport() {
-        String comportName = recordingSettings.getComportName();
+        String comportName = config.getComportName();
         if(comportName != null && !comportName.isEmpty()) {
             comport.setSelectedItem(comportName);
         } else if(comport.getItemCount() > 0) {
@@ -438,7 +473,7 @@ public class BdfRecorderWindow extends JFrame  {
         accelerometerFrequency.setEnabled(isEnable);
         accelerometerCommutator.setEnabled(isEnable);
 
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
             channelEnable[i].setEnabled(isEnable);
             channel50Hz[i].setEnabled(isEnable);
             channelName[i].setEnabled(isEnable);
@@ -460,7 +495,7 @@ public class BdfRecorderWindow extends JFrame  {
     private void enableFields() {
         boolean isEnable = true;
         disableEnableFields(isEnable);
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
             if (!isChannelEnable(i)) {
                 enableAdsChannel(i, false);
             }
@@ -483,129 +518,129 @@ public class BdfRecorderWindow extends JFrame  {
 
 
     private void loadDataFromModel() {
-        comport.setModel(new DefaultComboBoxModel(bdfRecorder.getComportNames()));
+        comport.setModel(new DefaultComboBoxModel(recorder.getComportNames(config.getComportName())));
         selectComport();
-        spsField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableSampleRates()));
-        spsField.setSelectedItem(recordingSettings.getSampleRate());
-        deviceTypeField.setModel(new DefaultComboBoxModel(recordingSettings.getAvailableDeviceTypes()));
-        deviceTypeField.setSelectedItem(recordingSettings.getDeviceType());
-        fileToSaveUI.setDirectory(recordingSettings.getDirToSave());
-        patientIdentification.setText(recordingSettings.getPatientIdentification());
-        recordingIdentification.setText(recordingSettings.getRecordingIdentification());
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-            channelName[i].setText(recordingSettings.getAdsChannelName(i));
-            channelEnable[i].setSelected(recordingSettings.isAdsChannelEnabled(i));
-            if (!recordingSettings.isAdsChannelEnabled(i)) {
+        spsField.setModel(new DefaultComboBoxModel(AppConfig.getAvailableFrequencies()));
+        spsField.setSelectedItem(config.getSampleRate());
+        deviceTypeField.setModel(new DefaultComboBoxModel(AppConfig.getAvailableDeviseTypes()));
+        deviceTypeField.setSelectedItem(config.getDeviceType());
+        fileToSaveUI.setDirectory(config.getDirToSave());
+        patientIdentification.setText(config.getPatientIdentification());
+        recordingIdentification.setText(config.getRecordingIdentification());
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
+            channelName[i].setText(config.getChannelName(i));
+            channelEnable[i].setSelected(config.isChannelEnabled(i));
+            if (!config.isChannelEnabled(i)) {
                 enableAdsChannel(i, false);
             }
-            channel50Hz[i].setSelected(recordingSettings.is50HzFilterEnabled(i));
-            channelLoffEnable[i].setSelected(recordingSettings.isAdsChannelLeadOffEnable(i));
+            channel50Hz[i].setSelected(config.is50HzFilterEnabled(i));
+            channelLoffEnable[i].setSelected(config.isChannelLeadOffEnable(i));
         }
 
-        accelerometerEnable.setSelected(recordingSettings.isAccelerometerEnabled());
-        if (!recordingSettings.isAccelerometerEnabled()) {
+        accelerometerEnable.setSelected(config.isAccelerometerEnabled());
+        if (!config.isAccelerometerEnabled()) {
             enableAccelerometer(false);
         }
-        setChannelsFrequencies(recordingSettings.getSampleRate());
+        setChannelsFrequencies(config.getSampleRate());
         setChannelsGain();
-        setChannelsCommutatorState();
+        setChannelsRecordingMode();
         setAccelerometerCommutator();
     }
 
 
     private AppConfig saveDataToModel() {
-        recordingSettings.setDeviceType(getDeviceType());
-        recordingSettings.setComportName(getComPortName());
-        recordingSettings.setPatientIdentification(getPatientIdentification());
-        recordingSettings.setRecordingIdentification(getRecordingIdentification());
-        int[] adsChannelsFrequencies = new int[recordingSettings.getNumberOfAdsChannels()];
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-            recordingSettings.setAdsChannelName(i, getChannelName(i));
-            recordingSettings.setAdsChannelEnabled(i, isChannelEnable(i));
-            recordingSettings.setIs50HzFilterEnabled(i, is50HzFilterEnable(i));
-            recordingSettings.setAdsChannelGain(i, getChannelGain(i));
-            recordingSettings.setAdsChannelCommutatorState(i, getChannelCommutatorState(i));
-            recordingSettings.setAdsChannelLeadOffEnable(i, isChannelLoffEnable(i));
+        config.setDeviceType(getDeviceType());
+        config.setComportName(getComPortName());
+        config.setPatientIdentification(getPatientIdentification());
+        config.setRecordingIdentification(getRecordingIdentification());
+        int[] adsChannelsFrequencies = new int[config.getNumberOfChannels()];
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
+            config.setChannelName(i, getChannelName(i));
+            config.setChannelEnabled(i, isChannelEnable(i));
+            config.setIs50HzFilterEnabled(i, is50HzFilterEnable(i));
+            config.setChannelGain(i, getChannelGain(i));
+            config.setChannelRecordinMode(i, getChannelRecordingMode(i));
+            config.setChannelLeadOffEnable(i, isChannelLoffEnable(i));
             adsChannelsFrequencies[i] = getChannelFrequency(i);
         }
-        recordingSettings.setFrequencies(getSampleRate(), getAccelerometerFrequency(), adsChannelsFrequencies);
-        recordingSettings.setAccelerometerEnabled(isAccelerometerEnable());
-        recordingSettings.setAccelerometerOneChannelMode(getAccelerometerCommutator());
-        recordingSettings.setFileName(getFilename());
-        recordingSettings.setDirToSave(getDirectory());
-        return recordingSettings;
+        config.setFrequencies(getSampleRate(), getAccelerometerFrequency(), adsChannelsFrequencies);
+        config.setAccelerometerEnabled(isAccelerometerEnable());
+        config.setAccelerometerOneChannelMode(getAccelerometerCommutator());
+        config.setFileName(getFilename());
+        config.setDirToSave(getDirectory());
+        return config;
     }
 
 
-   private boolean isChannelLoffEnable(int i) {
-      return channelLoffEnable[i].isSelected();
-   }
+    private boolean isChannelLoffEnable(int i) {
+        return channelLoffEnable[i].isSelected();
+    }
 
-   private String getDeviceType() {
-        return (String) deviceTypeField.getSelectedItem();
-   }
+    private String getDeviceType() {
+        return  (String) deviceTypeField.getSelectedItem();
+    }
 
     private String getDirectory() {
-       return fileToSaveUI.getDirectory();
+        return fileToSaveUI.getDirectory();
     }
     private String getFilename() {
         return fileToSaveUI.getFilename();
     }
 
     private void setChannelsFrequencies(int sampleRate) {
-        Integer[] adsChannelsAvilableFrequencies = recordingSettings.getAdsChannelsAvailableFrequencies(sampleRate);
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-            channelFrequency[i].setModel(new DefaultComboBoxModel(adsChannelsAvilableFrequencies));
-            channelFrequency[i].setSelectedItem(recordingSettings.getAdsChannelFrequency(i));
+        Integer[] adsChannelsAvailableFrequencies = config.getChannelsAvailableFrequencies(sampleRate);
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
+            channelFrequency[i].setModel(new DefaultComboBoxModel(adsChannelsAvailableFrequencies));
+            channelFrequency[i].setSelectedItem(config.getChannelFrequency(i));
         }
 
-        accelerometerFrequency.setModel(new DefaultComboBoxModel(recordingSettings.getAccelerometerAvailableFrequencies(sampleRate)));
-        accelerometerFrequency.setSelectedItem(recordingSettings.getAccelerometerFrequency());
+        accelerometerFrequency.setModel(new DefaultComboBoxModel(config.getAccelerometerAvailableFrequencies(sampleRate)));
+        accelerometerFrequency.setSelectedItem(config.getAccelerometerFrequency());
 
         // put the size if field   accelerometerFrequency equal to the size of fields  channelFrequency
         accelerometerFrequency.setPreferredSize(channelFrequency[0].getPreferredSize());
     }
 
     private void updateLeadOffStatus(Boolean[] leadOffDetectionMask) {
-         for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-             if (leadOffDetectionMask[2 * i] == null) {
-                 channelLoffStatPositive[i].setIcon(iconDisabled);
-             } else if (leadOffDetectionMask[2 * i] == true) {
-                 channelLoffStatPositive[i].setIcon(iconDisconnected);
-             }else if (leadOffDetectionMask[2 * i] == false) {
-                 channelLoffStatPositive[i].setIcon(iconConnected);
-             }
+        if(leadOffDetectionMask != null) {
+            for (int i = 0; i < config.getNumberOfChannels(); i++) {
+                if (leadOffDetectionMask[2 * i] == null) {
+                    channelLoffStatPositive[i].setIcon(iconDisabled);
+                } else if (leadOffDetectionMask[2 * i] == true) {
+                    channelLoffStatPositive[i].setIcon(iconDisconnected);
+                }else if (leadOffDetectionMask[2 * i] == false) {
+                    channelLoffStatPositive[i].setIcon(iconConnected);
+                }
 
-             if (leadOffDetectionMask[2 * i + 1] == null) {
-                 channelLoffStatNegative[i].setIcon(iconDisabled);
-             } else if (leadOffDetectionMask[2 * i +1] == true) {
-                 channelLoffStatNegative[i].setIcon(iconDisconnected);
-             }else if (leadOffDetectionMask[2 * i + 1] == false) {
-                 channelLoffStatNegative[i].setIcon(iconConnected);
-             }
-         }
-    }
-
-    private void setChannelsGain(){
-        Integer[] availableGains = recordingSettings.getAvailableGaines();
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-            channelGain[i].setModel(new DefaultComboBoxModel(availableGains));
-            channelGain[i].setSelectedItem(recordingSettings.getAdsChannelGain(i));
+                if (leadOffDetectionMask[2 * i + 1] == null) {
+                    channelLoffStatNegative[i].setIcon(iconDisabled);
+                } else if (leadOffDetectionMask[2 * i +1] == true) {
+                    channelLoffStatNegative[i].setIcon(iconDisconnected);
+                }else if (leadOffDetectionMask[2 * i + 1] == false) {
+                    channelLoffStatNegative[i].setIcon(iconConnected);
+                }
+            }
         }
     }
 
-    private void setChannelsCommutatorState(){
-        String[] availableStates = recordingSettings.getAvailableCommutatorStates();
-        for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-            channelCommutatorState[i].setModel(new DefaultComboBoxModel(availableStates));
-            channelCommutatorState[i].setSelectedItem(recordingSettings.getAdsChannelCommutatorState(i));
+    private void setChannelsGain(){
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
+            channelGain[i].setModel(new DefaultComboBoxModel(AppConfig.getAvailableGains()));
+            channelGain[i].setSelectedItem(config.getChannelGain(i));
+        }
+    }
+
+    private void setChannelsRecordingMode(){
+        for (int i = 0; i < config.getNumberOfChannels(); i++) {
+            channelCommutatorState[i].setModel(new DefaultComboBoxModel(AppConfig.getAvailableRecordingModes()));
+            channelCommutatorState[i].setSelectedItem(config.getChannelRecordingMode(i));
         }
     }
 
     private void setAccelerometerCommutator(){
         accelerometerCommutator.addItem("1 Channel");
         accelerometerCommutator.addItem("3 Channels");
-        if(recordingSettings.isAccelerometerOneChannelMode()){
+        if(config.isAccelerometerOneChannelMode()){
             accelerometerCommutator.setSelectedIndex(0);
         }else {
             accelerometerCommutator.setSelectedIndex(1);
@@ -635,16 +670,20 @@ public class BdfRecorderWindow extends JFrame  {
         return (accelerometerCommutator.getSelectedIndex() == 0)? true :false;
     }
 
+    private int getAccelerometerFrequency() {
+        return (Integer) accelerometerFrequency.getSelectedItem();
+    }
+
 
     private int getChannelFrequency(int channelNumber) {
         return (Integer) channelFrequency[channelNumber].getSelectedItem();
     }
 
     private int getChannelGain(int channelNumber) {
-        return (Integer)channelGain[channelNumber].getSelectedItem();
+        return (Integer) channelGain[channelNumber].getSelectedItem();
     }
 
-    private String getChannelCommutatorState(int channelNumber) {
+    private String getChannelRecordingMode(int channelNumber) {
         return (String) channelCommutatorState[channelNumber].getSelectedItem();
     }
 
@@ -676,12 +715,8 @@ public class BdfRecorderWindow extends JFrame  {
         return accelerometerEnable.isSelected();
     }
 
-    private int getAccelerometerFrequency() {
-        return (Integer) accelerometerFrequency.getSelectedItem();
-    }
-
     private int getSampleRate() {
-        return (Integer)spsField.getSelectedItem();
+        return (Integer) spsField.getSelectedItem();
     }
 
 

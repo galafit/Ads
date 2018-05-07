@@ -1,9 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.ads.Comport1;
+import com.biorecorder.ads.Comport;
 import com.biorecorder.ads.SerialPortRuntimeException;
-import jssc.SerialPort;
-import jssc.SerialPortException;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -24,7 +22,7 @@ public class TestSerialPort1 {
             @Override
             public void run() {
                // System.out.println(Thread.currentThread()+ ": start get port names.");
-                System.out.println(Thread.currentThread()+ ": creating port list "+ Comport1.getAvailableComportNames()[0]);
+                System.out.println(Thread.currentThread()+ ": creating port list "+ Comport.getAvailableComportNames()[0]);
                 System.out.println("\n");
 
                 i++;
@@ -38,10 +36,10 @@ public class TestSerialPort1 {
         }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
     }
 
-    public Comport1 openPort(String name) {
+    public Comport openPort(String name) {
         try {
             int speed = 460800;
-            Comport1 comPort = new Comport1(name, speed);
+            Comport comPort = new Comport(name, speed);
             System.out.println(Thread.currentThread() + ": comport "+name+" openned");
             return comPort;
 
@@ -61,9 +59,9 @@ public class TestSerialPort1 {
     }
 
     public static void main(String[] args) {
-        String portName = Comport1.getAvailableComportNames()[0];
+        String portName = Comport.getAvailableComportNames()[0];
         TestSerialPort1 comportTest = new TestSerialPort1();
-        ArrayList<Comport1> ports = new ArrayList<>();
+        ArrayList<Comport> ports = new ArrayList<>();
         ports.add(comportTest.openPort(portName));
         System.out.println("1 added.");
         ports.add(comportTest.openPort(portName));

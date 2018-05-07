@@ -1,9 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.edflib.base.DefaultEdfConfig;
-import com.biorecorder.edflib.base.EdfConfig;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,38 +8,19 @@ import java.util.List;
  *
  */
 public class BdfRecorderConfig {
+    private AdsConfig adsConfig = new AdsConfig();
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    private boolean isDurationOfDataRecordComputable = true;
-    private AdsConfig adsConfig = new AdsConfig();
+
     private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
 
     AdsConfig getAdsConfig() {
         return adsConfig;
     }
 
-    void setAdsConfig(AdsConfig adsConfig) {
+    public void setAdsConfig(AdsConfig adsConfig) {
         this.adsConfig = adsConfig;
     }
-
-    public boolean isDurationOfDataRecordComputable() {
-        return isDurationOfDataRecordComputable;
-    }
-    
-    public Boolean is50HzFilterEnabled(int adsChannelNumber) {
-        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
-            filter50HzMask.add(true);
-        }
-        return filter50HzMask.get(adsChannelNumber);
-    }
-
-    public void setIs50HzFilterEnabled(int adsChannelNumber, boolean is50HzFilterEnabled) {
-        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
-            filter50HzMask.add(true);
-        }
-        filter50HzMask.set(adsChannelNumber, is50HzFilterEnabled);
-    }
-
 
     public String getPatientIdentification() {
         return patientIdentification;
@@ -60,6 +38,20 @@ public class BdfRecorderConfig {
         this.recordingIdentification = recordingIdentification;
     }
 
+    public Boolean is50HzFilterEnabled(int channelNumber) {
+        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
+            filter50HzMask.add(true);
+        }
+        return filter50HzMask.get(channelNumber);
+    }
+
+    public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
+        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
+            filter50HzMask.add(true);
+        }
+        filter50HzMask.set(channelNumber, is50HzFilterEnabled);
+    }
+
     public int[] getChannelsAvailableDividers() {
         return adsConfig.getAdsChannelsAvailableDividers();
     }
@@ -68,20 +60,29 @@ public class BdfRecorderConfig {
         return adsConfig.getAccelerometerAvailableDividers();
     }
 
-    public int getAdsChannelFrequency(int adsChannelNumber){
-        return adsConfig.getAdsChannelSampleRate(adsChannelNumber);
+    public int getChannelFrequency(int channelNumber){
+        return adsConfig.getAdsChannelSampleRate(channelNumber);
     }
 
     public int getAccelerometerFrequency(){
         return adsConfig.getAccelerometerSampleRate();
     }
 
-    public void setAdsChannelDivider(int adsChannelNumber, Divider divider) {
-        adsConfig.setAdsChannelDivider(adsChannelNumber, divider);
+    /**
+     * for channels possible values are dividers of 10: {1, 2, 5, 10}
+     * @param channelNumber
+     * @param divider
+     */
+    public void setChannelDivider(int channelNumber, int divider) {
+        adsConfig.setAdsChannelDivider(channelNumber, Divider.valueOf(divider));
     }
 
-    public void setAccelerometerDivider(Divider divider) {
-        adsConfig.setAccelerometerDivider(divider);
+    /**
+     * for accelerometer possible values: 10
+     * @param divider = 10
+     */
+    public void setAccelerometerDivider(int divider) {
+        adsConfig.setAccelerometerDivider(Divider.valueOf(divider));
     }
 
 
@@ -89,16 +90,16 @@ public class BdfRecorderConfig {
         return adsConfig.isLeadOffEnabled();
     }
 
-    public int getNumberOfAdsChannels() {
+    public int getNumberOfChannels() {
         return adsConfig.getAdsChannelsCount();
     }
 
-    public int getSampleRate() {
-        return adsConfig.getSampleRate().getValue();
+    public RecorderSampleRate getRecorderSampleRate() {
+        return RecorderSampleRate.valueOf(adsConfig.getSampleRate());
     }
 
-    public void setSampleRate(Sps sampleRate) {
-        adsConfig.setSampleRate(sampleRate);
+    public void setRecorderSampleRate(RecorderSampleRate sampleRate) {
+        adsConfig.setSampleRate(sampleRate.getAdsSps());
     }
 
     public boolean isAccelerometerEnabled() {
@@ -117,12 +118,12 @@ public class BdfRecorderConfig {
         adsConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
     }
 
-    public AdsType getDeviceType() {
-        return adsConfig.getAdsType();
+    public RecorderType getDeviceType() {
+        return RecorderType.valueOf(adsConfig.getAdsType());
     }
 
-    public void setDeviceType(AdsType adsType) {
-        adsConfig.setAdsType(adsType);
+    public void setDeviceType(RecorderType recorderType) {
+        adsConfig.setAdsType(recorderType.getAdsType());
     }
 
     public boolean isAccelerometerOneChannelMode() {
@@ -133,129 +134,51 @@ public class BdfRecorderConfig {
         adsConfig.setAccelerometerOneChannelMode(accelerometerOneChannelMode);
     }
 
-    public String getAdsChannelName(int adsChannelNumber) {
-        return adsConfig.getAdsChannelName(adsChannelNumber);
+    public String getChannelName(int channelNumber) {
+        return adsConfig.getAdsChannelName(channelNumber);
     }
 
-    public void setAdsChannelName(int adsChannelNumber, String name) {
-        adsConfig.setAdsChannelName(adsChannelNumber, name);
+    public void setChannelName(int channelNumber, String name) {
+        adsConfig.setAdsChannelName(channelNumber, name);
     }
 
-    public void setAdsChannelLeadOffEnable(int adsChannelNumber, boolean leadOffEnable) {
-        adsConfig.setAdsChannelLeadOffEnable(adsChannelNumber, leadOffEnable);
+    public void setChannelLeadOffEnable(int channelNumber, boolean leadOffEnable) {
+        adsConfig.setAdsChannelLeadOffEnable(channelNumber, leadOffEnable);
     }
 
-    public void setAdsChannelRldSenseEnabled(int adsChannelNumber, boolean rldSenseEnabled) {
-        adsConfig.setAdsChannelRldSenseEnabled(adsChannelNumber, rldSenseEnabled);
+    public void setChannelRldSenseEnabled(int channelNumber, boolean rldSenseEnabled) {
+        adsConfig.setAdsChannelRldSenseEnabled(channelNumber, rldSenseEnabled);
     }
 
-    public boolean isAdsChannelLeadOffEnable(int adsChannelNumber) {
-        return adsConfig.isAdsChannelLeadOffEnable(adsChannelNumber);
+    public boolean isChannelLeadOffEnable(int channelNumber) {
+        return adsConfig.isAdsChannelLeadOffEnable(channelNumber);
     }
 
-    public boolean isAdsChannelRldSenseEnabled(int adsChannelNumber) {
-        return adsConfig.isAdsChannelRldSenseEnabled(adsChannelNumber);
+    public boolean isChannelRldSenseEnabled(int channelNumber) {
+        return adsConfig.isAdsChannelRldSenseEnabled(channelNumber);
     }
 
-    public int getAdsChannelGain(int adsChannelNumber) {
-        return adsConfig.getAdsChannelGain(adsChannelNumber).getValue();
+    public RecorderGain getChannelGain(int channelNumber) {
+        return RecorderGain.valueOf(adsConfig.getAdsChannelGain(channelNumber));
     }
 
-    public void setAdsChannelGain(int adsChannelNumber, Gain gain) {
-        adsConfig.setAdsChannelGain(adsChannelNumber, gain);
+    public void setChannelGain(int channelNumber, RecorderGain recorderGain) {
+        adsConfig.setAdsChannelGain(channelNumber, recorderGain.getAdsGain());
     }
 
-    public CommutatorState getAdsChannelCommutatorState(int adsChannelNumber) {
-        return adsConfig.getAdsChannelCommutatorState(adsChannelNumber);
+    public RecordingMode getChannelRecordingMode(int channelNumber) {
+        return RecordingMode.valueOf(adsConfig.getAdsChannelCommutatorState(channelNumber));
     }
 
-    public void setAdsChannelCommutatorState(int adsChannelNumber, CommutatorState commutatorState) {
-        adsConfig.setAdsChannelCommutatorState(adsChannelNumber, commutatorState);
+    public void setChannelRecordingMode(int channelNumber, RecordingMode recordingMode) {
+        adsConfig.setAdsChannelCommutatorState(channelNumber, recordingMode.getAdsCommutatorState());
     }
 
-
-    public boolean isAdsChannelEnabled(int adsChannelNumber) {
-        return adsConfig.isAdsChannelEnabled(adsChannelNumber);
+    public boolean isChannelEnabled(int channelNumber) {
+        return adsConfig.isAdsChannelEnabled(channelNumber);
     }
 
-    public void setAdsChannelEnabled(int adsChannelNumber, boolean enabled) {
-        adsConfig.setAdsChannelEnabled(adsChannelNumber, enabled);
+    public void setChannelEnabled(int channelNumber, boolean enabled) {
+        adsConfig.setAdsChannelEnabled(channelNumber, enabled);
     }
-
-    EdfConfig getAdsDataRecordConfig() {
-        DefaultEdfConfig edfConfig = new DefaultEdfConfig();
-        edfConfig.setRecordingIdentification(getRecordingIdentification());
-        edfConfig.setPatientIdentification(getPatientIdentification());
-        edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
-        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-            if (adsConfig.isAdsChannelEnabled(i)) {
-                edfConfig.addSignal();
-                int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                edfConfig.setTransducer(signalNumber, "Unknown");
-                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
-                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
-                edfConfig.setDigitalRange(signalNumber, adsConfig.getAdsChannelsDigitalMin(), adsConfig.getAdsChannelsDigitalMax());
-                edfConfig.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAdsChannelSampleRate(i));
-                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                edfConfig.setLabel(signalNumber, adsConfig.getAdsChannelName(i));
-            }
-        }
-
-        if (adsConfig.isAccelerometerEnabled()) {
-            if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
-                edfConfig.addSignal();
-                int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                edfConfig.setLabel(signalNumber, "Accelerometer");
-                edfConfig.setTransducer(signalNumber, "None");
-                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
-                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
-                edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
-                edfConfig.setPrefiltering(signalNumber, "None");
-                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
-                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-            } else {
-                String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
-                for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
-                    edfConfig.addSignal();
-                    int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                    edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
-                    edfConfig.setTransducer(signalNumber, "None");
-                    edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
-                    edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
-                    edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
-                    edfConfig.setPrefiltering(signalNumber, "None");
-                    int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
-                    edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-                }
-            }
-        }
-        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-            edfConfig.addSignal();
-            int signalNumber = edfConfig.getNumberOfSignals() - 1;
-            edfConfig.setLabel(signalNumber, "Battery voltage");
-            edfConfig.setTransducer(signalNumber, "None");
-            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getBatteryVoltageDimension());
-            edfConfig.setPhysicalRange(signalNumber, adsConfig.getBatteryVoltagePhysicalMin(), adsConfig.getBatteryVoltagePhysicalMax());
-            edfConfig.setDigitalRange(signalNumber, adsConfig.getBatteryVoltageDigitalMin(), adsConfig.getBatteryVoltageDigitalMax());
-            edfConfig.setPrefiltering(signalNumber, "None");
-            int nrOfSamplesInEachDataRecord = 1;
-            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-        }
-        if (adsConfig.isLeadOffEnabled()) {
-            edfConfig.addSignal();
-            int signalNumber = edfConfig.getNumberOfSignals() - 1;
-            edfConfig.setLabel(signalNumber, "Loff Status");
-            edfConfig.setTransducer(signalNumber, "None");
-            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());
-            edfConfig.setPhysicalRange(signalNumber, adsConfig.getLeadOffStatusPhysicalMin(), adsConfig.getLeadOffStatusPhysicalMax());
-            edfConfig.setDigitalRange(signalNumber, adsConfig.getLeadOffStatusDigitalMin(), adsConfig.getLeadOffStatusDigitalMax());
-            edfConfig.setPrefiltering(signalNumber, "None");
-            int nrOfSamplesInEachDataRecord = 1;
-            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
-        }
-        return edfConfig;
-    }
-
-
 }

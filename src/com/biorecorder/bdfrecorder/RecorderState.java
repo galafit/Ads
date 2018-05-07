@@ -1,27 +1,27 @@
 package com.biorecorder.bdfrecorder;
 
-import com.biorecorder.ads.AdsState1;
+import com.biorecorder.ads.AdsState;
 
 
 /**
  * Created by galafit on 12/4/18.
  */
 public enum RecorderState {
-    RECORDING(AdsState1.RECORDING),
-    STOPPED(AdsState1.STOPPED),
-    UNDEFINED(AdsState1.UNDEFINED);
+    RECORDING(AdsState.RECORDING),
+    STOPPED(AdsState.STOPPED),
+    UNDEFINED(AdsState.UNDEFINED);
 
-    private AdsState1 adsState;
+    private AdsState adsState;
 
-    RecorderState(AdsState1 adsState) {
+    RecorderState(AdsState adsState) {
         this.adsState = adsState;
     }
 
-    AdsState1 getAdsState() {
+    AdsState getAdsState() {
         return adsState;
     }
 
-    public static RecorderState valueOf(AdsState1 adsState) throws IllegalArgumentException {
+    public static RecorderState valueOf(AdsState adsState) throws IllegalArgumentException {
         for (RecorderState recorderState : RecorderState.values()) {
             if(recorderState.getAdsState() == adsState) {
                 return recorderState;

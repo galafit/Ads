@@ -1,18 +1,13 @@
 package com.biorecorder.ads;
 
 
-import com.biorecorder.ads.exceptions.PortBusyRuntimeException;
-import com.biorecorder.ads.exceptions.PortNotFoundRuntimeException;
-import com.biorecorder.ads.exceptions.PortRuntimeException;
 import com.sun.istack.internal.Nullable;
-import jssc.SerialPortException;
-import jssc.SerialPortList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-
-import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Ads packs samples from all channels received during the
@@ -63,185 +58,336 @@ public class Ads {
     private final byte STOP_REQUEST = (byte) (0xFF & 0xFF);
     private final byte HARDWARE_REQUEST = (byte) (0xFA & 0xFF);
 
-    private final String CONNECTION_ERROR_MESSAGE = "Ads must be connected to some serial port";
+    private static final int PING_TIMER_PERIOD_MS = 1000;
+    private static final int MONITORING_TIMER_PERIOD_MS = 500;
+    private static final int ACTIVE_PERIOD_MS = 1000;
+    private static final int SLEEP_TIME_MS = 1000;
 
-    private static final int PING_TIMER_DELAY_MS = 1000;
-    private static final int WATCHDOG_TIMER_PERIOD_MS = 500;
+    private static final int MAX_STARTING_TIME_SEC = 30;
 
-    private AdsDataListener dataListener;
-    private AdsEventsListener eventsListener;
-    private volatile Comport comport;
-    private volatile Timer pingTimer;
-    private volatile Timer monitoringTimer = new Timer();
-    private final AdsState adsState = new AdsState();
+    private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
+    private static final String ALREADY_RECORDING_MSG = "Device is already recording. Stop it first";
+
+    private final Comport comport;
+    private final Timer pingTimer = new Timer("Ping Timer");
+    private final Timer monitoringTimer = new Timer("Monitoring Timer");
+    private volatile TimerTask pingTask;
+    private volatile TimerTask monitoringTask;
+    
+    private volatile long lastEventTime;
+    private volatile boolean isDataReceived;
+    private volatile boolean isConnected = true;
+
+    private volatile AdsType adsType;
+
+    // we use AtomicReference to do atomic "compare and set"
+    private AtomicReference<AdsState> adsStateAtomicReference =
+            new AtomicReference<AdsState>(AdsState.UNDEFINED);
+
+    private ExecutorService startExecutor;
+    private volatile Future<Boolean> startFuture;
+
+    private volatile AdsDataListener dataListener;
+    private volatile AdsEventsListener eventsListener;
 
 
-    public synchronized void connect(String comportName) throws PortNotFoundRuntimeException, PortBusyRuntimeException, PortRuntimeException {
-        if (comport != null && comport.getComportName().equals(comportName)) {
-            return;
-        }
-        if (comport != null && !comport.getComportName().equals(comportName)) {
-            try {
-                comport.removeComPortListener();
-                comport.close();
-            } catch (SerialPortException e) {
-                String msg = MessageFormat.format("Error while closing serial port: \"{0}\"", comport.getComportName());
-                log.error(msg, e);
-            }
-        }
+    public Ads(String comportName) throws SerialPortRuntimeException {
         comport = new Comport(comportName, COMPORT_SPEED);
-        FrameDecoder frameDecoder = new FrameDecoder(null);
-        startMonitoringTimer(frameDecoder, null,  true);
-        comport.setComPortListener(frameDecoder);
+        comport.setComPortListener(createFrameDecoder(null));
+        dataListener = createNullDataListener();
+        eventsListener = createNullEventsListener();
+        comport.writeByte(STOP_REQUEST);
+        comport.writeByte(HARDWARE_REQUEST);
+        pingTask = new PingTask();
+        monitoringTask = new MonitoringTask();
+
+        ThreadFactory namedThreadFactory = new ThreadFactory() {
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "«Starting» thread");
+            }
+        };
+
+        startExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
+
     }
 
-
-    public synchronized boolean isConnected() {
-        if (comport != null) {
-            return true;
-        } else {
-            return false;
-        }
-
+    private AdsDataListener createNullDataListener() {
+        return new AdsDataListener() {
+            @Override
+            public void onDataReceived(int[] dataFrame) {
+                // Do nothing !!!
+            }
+        };
     }
 
-    /**
-     * Send command to start ads measurements
-     *
-     * @return true if command was successfully written, and false - otherwise
-     * @throws IllegalStateException if ads is not connected to comport
-     */
-    public synchronized boolean sendStartCommand(AdsConfig adsConfig) throws IllegalStateException {
-        if (comport == null) {
-            throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
-        }
+    private AdsEventsListener createNullEventsListener() {
+        return new AdsEventsListener() {
+            @Override
+            public void handleLowButtery() {
+                // do nothing;
+            }
 
+            @Override
+            public void handleFrameBroken(String eventInfo) {
+                // do nothing;
+            }
+        };
+    }
+
+    private FrameDecoder createFrameDecoder(@Nullable AdsConfig adsConfig) {
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         frameDecoder.addDataListener(new AdsDataListener() {
             @Override
             public void onDataReceived(int[] dataFrame) {
-                if(dataListener != null) {
-                    dataListener.onDataReceived(dataFrame);
-                }
-
+                isDataReceived = true;
+                lastEventTime = System.currentTimeMillis();
+                dataListener.onDataReceived(dataFrame);
             }
         });
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
-                if (adsMessage == AdsMessage.LOW_BATTERY && eventsListener != null) {
+                if (adsMessage == AdsMessage.ADS_2_CHANNELS) {
+                    adsType = AdsType.ADS_2;
+                    lastEventTime = System.currentTimeMillis();
+                }
+                if (adsMessage == AdsMessage.ADS_8_CHANNELS) {
+                    adsType = AdsType.ADS_8;
+                    lastEventTime = System.currentTimeMillis();
+                }
+                if (adsMessage == AdsMessage.STOP_RECORDING) {
+                    adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
+                    lastEventTime = System.currentTimeMillis();
+                }
+                if (adsMessage == AdsMessage.FRAME_BROKEN) {
+                    log.info(additionalInfo);
+                }
+                if (adsMessage == AdsMessage.LOW_BATTERY) {
                     eventsListener.handleLowButtery();
                 }
-                if (adsMessage == AdsMessage.FRAME_BROKEN && eventsListener != null) {
-                    eventsListener.handleFrameBroken(additionalInfo);
-                }
-
             }
         });
-        startMonitoringTimer(frameDecoder, adsConfig,  false);
-        comport.setComPortListener(frameDecoder);
-        //---------------------------
-        pingTimer = new Timer();
-        pingTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    comport.writeByte(PING_COMMAND);
-                } catch (SerialPortException e) {
-                   // do nothing;
+       return frameDecoder;
+    }
+
+
+
+    /**
+     * Start "monitoring timer" which every second sends to
+     * Ads some request (HARDWARE_REQUEST or HELLO request ) to check that
+     * Ads is connected and ok.
+     *
+     * @throws IllegalStateException if Ads was disconnected and its work is finalised
+     */
+    public void startMonitoring() throws IllegalStateException  {
+        monitoringTask.cancel();
+
+        monitoringTask = new MonitoringTask();
+        monitoringTimer.schedule(monitoringTask, MONITORING_TIMER_PERIOD_MS, MONITORING_TIMER_PERIOD_MS);
+    }
+
+    public void stopMonitoring() {
+        monitoringTask.cancel();
+    }
+
+
+    /**
+     * Start Ads measurements.
+     *
+     * @param adsConfig object with ads config info
+     * @return Future<Boolean> that get true if starting  was successful
+     * and false otherwise. Throws IllegalArgumentException if device type specified in config
+     * does not coincide with the really connected device type.
+     * @throws IllegalStateException if Ads was disconnected and its work was finalised
+     * or if it is already recording and should be stopped first
+     */
+    public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException {
+        if(!isConnected) {
+            throw new IllegalStateException(DISCONNECTED_MSG);
+        }
+
+        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
+            throw new IllegalStateException(ALREADY_RECORDING_MSG);
+        }
+
+        AdsState stateBeforeStart = adsStateAtomicReference.get();
+        adsStateAtomicReference.set(AdsState.RECORDING);
+        isDataReceived = false;
+        startFuture = startExecutor.submit(new StartingTask(adsConfig, stateBeforeStart));
+        return startFuture;
+    }
+
+    class StartingTask implements Callable<Boolean> {
+        private AdsConfig config;
+        private AdsState stateBeforeStart;
+
+        public StartingTask(AdsConfig config, AdsState stateBeforeStart) {
+            this.config = config;
+            this.stateBeforeStart = stateBeforeStart;
+
+        }
+
+        @Override
+        public Boolean call() throws Exception {
+            long startTime = System.currentTimeMillis();
+            // 1) to correctly tart we need to be sure that the specified in config adsType is ok
+            while (adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
+                comport.writeByte(HARDWARE_REQUEST);
+                Thread.sleep(SLEEP_TIME_MS);
+            }
+
+            if(adsType == null) {
+                adsStateAtomicReference.set(AdsState.UNDEFINED);
+                return false;
+            } else if(adsType != config.getAdsType()) {
+                String errMsg = "Device type specified in the config " +
+                        "\ndoes not coincide with the really connected device type";
+                adsStateAtomicReference.set(AdsState.UNDEFINED);
+                throw new IllegalArgumentException(errMsg);
+            } else { // if adsType is ok
+                // 2) try to stopRecording ads first if it was not stopped before
+                if(stateBeforeStart == AdsState.UNDEFINED) {
+                    if(comport.writeByte(STOP_REQUEST)) {
+                        // give the ads time to stopRecording
+                        Thread.currentThread().sleep(SLEEP_TIME_MS);
+                    }
                 }
-            }
-        }, PING_TIMER_DELAY_MS, PING_TIMER_DELAY_MS);
 
-        boolean isWriteOk;
-        try {
-            isWriteOk = comport.writeBytes(adsConfig.getAdsType().getAdsConfigurationCommand(adsConfig));
-        } catch (SerialPortException e) {
-            String errMsg = "Error during writing «start command» to serial port.";
-            log.error(errMsg, e);
-            isWriteOk = false;
+                // 3) send "start" command
+                boolean startSentOk = comport.writeBytes(config.getAdsConfigurationCommand());
+                if(startSentOk) {
+                    // create frame decoder corresponding to the configuration
+                    // and set is as listener to comport
+                    comport.setComPortListener(createFrameDecoder(config));
+
+                    // waiting for data
+                    while (!isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
+                        Thread.sleep(SLEEP_TIME_MS);
+                    }
+                    if(isDataReceived) { // if data comes
+                        // 4) start ping timer
+
+                        // ping timer permits Ads to detect bluetooth connection problems
+                        // and restart connection when it is necessary
+                        pingTask.cancel();
+                        pingTask = new PingTask();
+                        pingTimer.schedule(pingTask, PING_TIMER_PERIOD_MS, PING_TIMER_PERIOD_MS);
+                        return true;
+                    }
+                }
+                adsStateAtomicReference.set(AdsState.UNDEFINED);
+                return false;
+            }
         }
-        return isWriteOk;
     }
 
     /**
-     * Send command to stopRecording ads measurements and work
+     * Stop ads measurements
      *
-     * @return true if command was successfully written, and false - otherwise
-     * @throws IllegalStateException if ads is not connected to comport
+     * @throws IllegalStateException if Ads was disconnected and its work is finalised
      */
-    public synchronized boolean sendStopRecordingCommand() throws IllegalStateException {
-        if (comport == null) {
-            throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
+    public boolean stopRecording() throws IllegalStateException {
+        if(!isConnected) {
+            throw new IllegalStateException(DISCONNECTED_MSG);
         }
-        if (pingTimer != null) {
-            pingTimer.cancel();
+        // cancel starting
+        if(startFuture != null) {
+            startFuture.cancel(true);
         }
-        FrameDecoder frameDecoder = new FrameDecoder(null);
-        startMonitoringTimer(frameDecoder, null, true);
-        comport.setComPortListener(frameDecoder);
 
-        boolean isWriteOk;
-        try {
-            isWriteOk = comport.writeByte(STOP_REQUEST);
-        } catch (SerialPortException e) {
-            String errMsg = "Error during writing «stopRecording command» to serial port.";
-            log.error(errMsg, e);
-            isWriteOk = false;
-        }
-        for (int i = 0; i < 10; i++) {
+        pingTask.cancel();
+        adsStateAtomicReference.compareAndSet(AdsState.RECORDING, AdsState.UNDEFINED);
+        if(comport.writeByte(STOP_REQUEST)) {
             try {
-                Thread.sleep(100);
+                Thread.sleep(SLEEP_TIME_MS);
             } catch (InterruptedException e) {
-                log.warn(e);
+                e.printStackTrace();
             }
-            if (adsState.isStoped()) {
-                return isWriteOk;
-            }
-        }
-        return isWriteOk;
-    }
-
-    /**
-     * Sends request for hardware config. If receive ads_type return it.
-     * Otherwise return null
-     *
-     * @return ads type (2 or 8 channel) or null if ads not contests for some reasons
-     * @throws IllegalStateException if ads is not connected to comport
-     */
-    public synchronized AdsType sendDeviceTypeRequest() throws IllegalStateException {
-        if (comport == null) {
-            throw new IllegalStateException(CONNECTION_ERROR_MESSAGE);
-        }
-        if(adsState.getAdsType() != null) {
-            return adsState.getAdsType();
+            return true;
         }
 
-        try {
-            comport.writeByte(HARDWARE_REQUEST);
-        } catch (SerialPortException e) {
-            String errMsg = "Error during writing «hardware request command» to serial port.";
-            log.error(errMsg, e);
-        }
-
-        for (int i = 0; i < 5; i++) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                log.warn(e);
-            }
-            if (adsState.getAdsType() != null) {
-                return adsState.getAdsType();
-            }
-        }
-        return null;
+        return false;
     }
 
 
+    public boolean isConnected() {
+        return isConnected;
+    }
+
+    public boolean disconnect() {
+        // cancel starting
+        if(startFuture != null) {
+            startFuture.cancel(true);
+        }
+        if(!startExecutor.isShutdown()) {
+            startExecutor.shutdownNow();
+        }
+
+        isConnected = false;
+        monitoringTask.cancel();
+        pingTask.cancel();
+        monitoringTimer.cancel();
+        pingTimer.cancel();
+
+        if(comport.isOpened()) {
+            comport.writeByte(STOP_REQUEST);
+            return comport.close();
+        } else {
+            return true;
+        }
+    }
+
+    public AdsType getAdsType() {
+        return adsType;
+    }
+
+    public void setDataListener(AdsDataListener listener) {
+        dataListener = listener;
+    }
+
+    public void setAdsEventsListener(AdsEventsListener listener) {
+        this.eventsListener = listener;
+    }
+
+    public void removeDataListener() {
+        dataListener = createNullDataListener();
+    }
+
+    public void removeEventsListener() {
+        eventsListener = createNullEventsListener();
+    }
+
     /**
+     * This method return true ff last ads monitoring message (device_type)
+     * or data_frame was received less then ACTIVE_PERIOD_MS (1 sec) ago
+     */
+    public boolean isActive() {
+        if((System.currentTimeMillis() - lastEventTime) <= ACTIVE_PERIOD_MS) {
+            return true;
+        }
+        return false;
+    }
+
+    public AdsState getAdsState() {
+        return adsStateAtomicReference.get();
+    }
+
+    public String getComportName() {
+        return comport.getComportName();
+    }
+
+    public static String[] getAvailableComportNames() {
+        return Comport.getAvailableComportNames();
+    }
+
+
+    /**
+     * Helper method to convert integer with lead-off info (last integer of data frame) to the bit-mask.
+     * <p>
      * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
      * contact or disconnecting. Therefore in Lead-Off detection mask TRUE means DISCONNECTED and
-     * FALSE means CONNECTED.
+     * FALSE means CONNECTED (or if the channel is disabled or its lead-off detection disabled or
+     * its commutator state != "INPUT").
      * <p>
      * Every ads-channel has 2 electrodes (Positive and Negative) so in leadOff detection mask:
      * <br>
@@ -250,88 +396,65 @@ public class Ads {
      * ...
      * element-14 and element-15 correspond to Positive and Negative electrodes of ads channel 8.
      * <p>
+     * @param leadOffInt - integer with lead-off info
+     * @param adsChannelsCount - number of ads channels (2 or 8)
      * @return leadOff detection mask or null if ads is stopped or
      * leadOff detection is disabled
      */
-    public boolean[] getLeadOfDetectionMask() {
-        return adsState.getLeadOffMask();
-    }
+    public static boolean[] leadOffIntToBitMask(int leadOffInt, int adsChannelsCount) {
+        int maskLength = 2 * adsChannelsCount; // 2 electrodes for every channel
+        if(adsChannelsCount == 2) {
 
-    public boolean isActive() {
-        return adsState.isActive();
-    }
-
-    public void setAdsDataListener(AdsDataListener adsDataListener) {
-        dataListener = adsDataListener;
-    }
-
-    public void setAdsEventsListener(AdsEventsListener adsEventsListener) {
-        eventsListener = adsEventsListener;
-    }
-
-    public void removeAdsEventsListener() {
-        eventsListener = null;
-    }
-
-    public void removeAdsDataListener( ) {
-        dataListener = null;
-    }
-
-    public synchronized void disconnect() throws PortRuntimeException {
-        if (comport != null) {
-            try {
-                comport.writeByte(STOP_REQUEST);
-                comport.close();
-                if(pingTimer != null) {
-                    pingTimer.cancel();
+            boolean[] bm = new boolean[maskLength];
+            for (int k = 0; k < bm.length; k++) {
+                bm[k] = false;
+                if (((leadOffInt >> k) & 1) == 1) {
+                    bm[k] = true;
                 }
-                if(monitoringTimer != null) {
-                    monitoringTimer.cancel();
-                }
-            } catch (SerialPortException e) {
-                String msg = MessageFormat.format("Error while disconnecting from serial port: \"{0}\"", comport.getComportName());
-                throw new PortRuntimeException(msg, e);
-            } finally {
-                comport.removeComPortListener();
-                comport = null;
             }
+            return bm;
         }
-    }
 
-    /**
-     * Serial port lib (jssc) en Mac and linux to create portNames list
-     * actually OPENS and CLOSES every port (suppose to be sure it is exist). So
-     * this operation is really DANGEROUS and can course serious bugs...
-     * Like possibility to have multiple connections with the same  port
-     * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
-     * That is why the method is synchronized.
-     *
-     * @return array of names of all comports or empty array.
-     */
-    public synchronized String[] getAvailableComportNames() {
-        return SerialPortList.getPortNames();
-    }
-
-
-    private void startMonitoringTimer(FrameDecoder frameDecoder, @Nullable AdsConfig adsConfig, boolean isHelloRequestsActivated) {
-        monitoringTimer.cancel();
-        monitoringTimer = new Timer();
-        MonitoringTask monitoringTask = new MonitoringTask(adsState, adsConfig);
-        frameDecoder.addMessageListener(monitoringTask);
-        frameDecoder.addDataListener(monitoringTask);
-        monitoringTimer.schedule(monitoringTask, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
-
-        if (isHelloRequestsActivated) {
-            monitoringTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        comport.writeByte(HARDWARE_REQUEST);
-                    } catch (SerialPortException e) {
-                        // do nothing!
+        if(adsChannelsCount == 8) {
+        /*
+         * ads_8channel send lead-off status in different manner:
+         * first byte - states of all negative electrodes from 8 channels
+         * second byte - states of all positive electrodes from 8 channels
+         */
+            boolean[] bm = new boolean[maskLength];
+            for (int k = 0; k < bm.length; k++) {
+                bm[k] = false;
+                if(k < 8) { // first byte
+                    if (((leadOffInt >> k) & 1) == 1) {
+                        bm[2 * k + 1] = true;
+                    }
+                } else { // second byte
+                    if (((leadOffInt >> k) & 1) == 1) {
+                        bm[2 * (k - 8)] = true;
                     }
                 }
-            }, WATCHDOG_TIMER_PERIOD_MS, WATCHDOG_TIMER_PERIOD_MS);
+
+            }
+            return bm;
+        }
+
+        String msg = "Invalid Ads channels count: "+adsChannelsCount+ ". Number of Ads channels should be 2 or 8";
+        throw new IllegalArgumentException(msg);
+    }
+
+    class PingTask extends TimerTask {
+        @Override
+        public void run() {
+            comport.writeByte(PING_COMMAND);
         }
     }
+
+    class MonitoringTask extends TimerTask {
+        @Override
+        public void run() {
+            comport.writeByte(HARDWARE_REQUEST);
+        }
+    }
+
 }
+

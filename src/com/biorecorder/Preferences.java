@@ -1,8 +1,7 @@
 package com.biorecorder;
 
-
 /**
- * Created by gala on 11/05/17.
+ * Created by galafit on 30/3/18.
  */
 public interface Preferences {
     public void saveConfig(AppConfig appConfig);

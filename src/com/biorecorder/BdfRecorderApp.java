@@ -1,103 +1,446 @@
 package com.biorecorder;
 
-import com.biorecorder.bdfrecorder.BdfRecorder;
-import com.biorecorder.bdfrecorder.RecorderEventsListener;
-import com.biorecorder.bdfrecorder.exceptions.*;
+import com.biorecorder.bdfrecorder.*;
 
+import com.biorecorder.edflib.EdfFileWriter;
+import com.biorecorder.edflib.FileType;
+import com.biorecorder.edflib.base.EdfConfig;
+import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by galafit on 2/6/17.
  */
-public class BdfRecorderApp implements RecorderEventsListener {
+public class BdfRecorderApp {
     private static final Log log = LogFactory.getLog(BdfRecorderApp.class);
 
     private static final int SUCCESS_STATUS = 0;
     private static final int ERROR_STATUS = 1;
 
-    private static final String FILE_NOT_ACCESSIBLE_ERR = "File: {0} could not be created or accessed.";
-    private static final String COMPORT_BUSY_ERR = "ComPort: {0} is busy.";
-    private static final String COMPORT_NOT_FOUND_ERR = "ComPort: {0} is not found.";
-    private static final String APP_ERR = "Error: {0}";
+
+    private static final String FILE_NOT_ACCESSIBLE_MSG = "File: {0}\ncould not be created or accessed.";
+    private static final String COMPORT_BUSY_MSG = "ComPort: {0} is busy.";
+    private static final String COMPORT_NOT_FOUND_MSG = "ComPort: {0} is not found.";
+    private static final String COMPORT_NULL_MSG = "Comport name can not be null or empty";
+
+     private static final String ALREADY_RECORDING_MSG = "Recorder is already recording. Stop it first";
+
     private static final String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped.";
-    private static final String START_CANCELLED_MSG = "Start cancelled.";
-    private static final String START_FAILED_MSG = "Start failed. Check whether the device is connected" +
+
+    private static final String FAILED_CREATE_DIR_MSG = "Directory: {0}\ncan not be created.";
+    private static final String DIRECTORY_EXIST_MSG = "Directory: {0}\nalready exist.";
+    private static final String DIRECTORY_NOT_EXIST_MSG = "Directory: {0}\ndoes not exist.";
+
+    private static final String FAILED_WRITE_DATA_MSG = "Failed to write data record {0} to the file:\n{1}";
+
+    private static final String FAILED_STOP_MSG = "Failed to stop recorder.";
+    private static final String FAILED_CLOSE_FILE_MSG = "File: {0} was not correctly saved";
+    private static final String FAILED_DISCONNECT_MSG = "Failed to disconnect from comport {0}";
+
+    private static final String START_FAILED_MSG = "Start failed!\nCheck whether the Recorder is on" +
             "\nand selected ComPort is correct and try again.";
-    private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
+    private static final String START_CANCELLED_MSG = "Start cancelled";
+    private static final String WRONG_DEVICE_TYPE_MSG = "Start cancelled.\nSpecified Recorder type is invalid: {0}.\nConnected: {1}";
 
 
     private Preferences preferences;
-    private BdfRecorder bdfRecorder = new BdfRecorder();
+    private BdfRecorder bdfRecorder;
+    private volatile EdfFileWriter edfFileWriter;
+    private volatile File edfFile;
+    private volatile Boolean[] leadOffBitMask;
+
+    private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
     private int NOTIFICATION_PERIOD_MS = 1000;
     private int CONNECTION_PERIOD_MS = 2000;
-    javax.swing.Timer notificationTimer;
-    java.util.Timer connectionTimer;
-    private volatile String selectedComportName;
-    private AppConfig recordingSettings;
+    private final Timer notificationTimer = new Timer("Notification timer");
+    private final Timer connectionTimer = new Timer("ComPort connection timer");
+    private volatile TimerTask connectionTask;
+    private final ExecutorService futureHandlingExecutor;
 
-    private Future startFuture;
+    private final MessageSender messageSender = new MessageSender();
+    private volatile NotificationListener notificationListener;
 
-    private NotificationListener notificationListener;
-    private MessageListener messageListener;
 
-    public BdfRecorderApp(Preferences preferences, String selectedComportName) {
+    public BdfRecorderApp(Preferences preferences, String comportName) {
         this.preferences = preferences;
-        this.selectedComportName = selectedComportName;
-        bdfRecorder.addLowButteryEventListener(this);
+        notificationListener = new NullNotificationListener();
 
-        notificationTimer = new javax.swing.Timer(NOTIFICATION_PERIOD_MS, new ActionListener() {
+        ThreadFactory namedThreadFactory = new ThreadFactory() {
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "«Future handling» thread");
+            }
+        };
+
+        futureHandlingExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
+
+
+        notificationTimer.schedule(new TimerTask() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                checkStartFuture();
-                if(notificationListener != null) {
-                    notificationListener.update();
+            public void run() {
+                fireNotification();
+            }
+        }, NOTIFICATION_PERIOD_MS, NOTIFICATION_PERIOD_MS);
+
+        if(comportName != null && !comportName.isEmpty()) {
+            connectionTask = new ConnectionTask(comportName);
+            connectionTimer.schedule(connectionTask, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+        }
+    }
+
+    private void fireNotification() {
+        notificationListener.update();
+    }
+
+    private void sendMessage(String msg) {
+        messageSender.sendMessage(msg);
+    }
+
+    class ConnectionTask extends TimerTask {
+        private final String comportName;
+
+        public ConnectionTask(String comportName) {
+            this.comportName = comportName;
+        }
+
+        @Override
+        public void run() {
+            try {
+                createRecorder(comportName);
+                bdfRecorder.startMonitoring();
+                cancel();
+            } catch (Exception e) {
+                // do nothing;
+            }
+        }
+    }
+
+    private synchronized void createRecorder(String comportName) throws ConnectionRuntimeException {
+        if (bdfRecorder == null) {
+            bdfRecorder = new BdfRecorder(comportName);
+            bdfRecorder.setEventsListener(new RecorderEventsListener() {
+                @Override
+                public void handleLowButtery() {
+                    stop();
+                    fireNotification();
+                    sendMessage(LOW_BUTTERY_MSG);
+                }
+            });
+        }
+    }
+
+    // will be called only from GUI
+    public OperationResult startRecording(AppConfig appConfig) {
+        String comportName = appConfig.getComportName();
+        BdfRecorderConfig bdfRecorderConfig = appConfig.getBdfRecorderConfig();
+
+        if(isRecording()) {
+            return new OperationResult(false, ALREADY_RECORDING_MSG);
+        }
+
+        if(comportName == null || comportName.isEmpty()) {
+            return new OperationResult(false, COMPORT_NULL_MSG);
+        }
+
+        String dirToSave = appConfig.getDirToSave();
+        if(!isDirectoryExist(dirToSave)) {
+            String errMSg = MessageFormat.format(DIRECTORY_NOT_EXIST_MSG, dirToSave);
+            return new OperationResult(false, errMSg);
+        }
+
+
+        if(bdfRecorder != null) {
+            bdfRecorder.stopMonitoring();
+
+            if(!bdfRecorder.getComportName().equals(comportName)) {
+                disconnect();
+            }
+        }
+
+        if(bdfRecorder == null) {
+            try {
+                createRecorder(comportName);
+            } catch (ConnectionRuntimeException ex) {
+                if(ex.getExceptionType() == ConnectionRuntimeException.TYPE_PORT_BUSY) {
+                    log.error(ex);
+                    String errMSg = MessageFormat.format(COMPORT_BUSY_MSG, comportName);
+                    return new OperationResult(false, errMSg);
+                } else if(ex.getExceptionType() == ConnectionRuntimeException.TYPE_PORT_NOT_FOUND) {
+                    log.error(ex);
+                    String errMSg = MessageFormat.format(COMPORT_NOT_FOUND_MSG, comportName);
+                    return new OperationResult(false, errMSg);
+                } else {
+                    log.error(ex);
+                    return new OperationResult(false, ex.getMessage());
+                }
+            }
+        }
+
+        // remove all previously added filters
+        bdfRecorder.removeAllChannelsFilters();
+
+        // Apply MovingAverage filters to to ads channels to reduce 50Hz noise
+        int enableSignalsCounter = 0;
+        for (int i = 0; i < bdfRecorderConfig.getNumberOfChannels(); i++) {
+            if (bdfRecorderConfig.isChannelEnabled(i)) {
+                if (bdfRecorderConfig.is50HzFilterEnabled(i)) {
+                    int numberOfAveragingPoints = bdfRecorderConfig.getChannelFrequency(i) / 50;
+                    bdfRecorder.addChannelFilter(enableSignalsCounter, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:"+ numberOfAveragingPoints);
+                }
+                enableSignalsCounter++;
+            }
+        }
+
+
+
+        File fileToWrite = new File(appConfig.getDirToSave(), normalizeFilename(appConfig.getFileName()));
+        boolean isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
+        EdfConfig edfConfig = bdfRecorder.getResultantRecordingInfo(bdfRecorderConfig);
+        try {
+            edfFileWriter = new EdfFileWriter(fileToWrite, FileType.BDF_24BIT);
+            edfFileWriter.setDurationOfDataRecordsComputable(isDurationOfDataRecordComputable);
+            edfFileWriter.setConfig(edfConfig);
+
+        } catch (FileNotFoundRuntimeException ex) {
+            log.error(ex);
+            String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_MSG, fileToWrite);
+            return new OperationResult(false, errMSg);
+        }
+        edfFile = fileToWrite;
+
+        Future<Boolean> startFuture = bdfRecorder.startRecording(bdfRecorderConfig);
+        futureHandlingExecutor.submit(new FutureHandlerTask(startFuture, bdfRecorderConfig));
+
+        numberOfWrittenDataRecords.set(0);
+        bdfRecorder.setDataListener(new BdfDataListener() {
+            @Override
+            public void onDataRecordReceived(int[] dataRecord) {
+                try{
+                    synchronized (BdfRecorderApp.this) {
+                        edfFileWriter.writeDigitalSamples(dataRecord);
+                    }
+                    numberOfWrittenDataRecords.incrementAndGet();
+                } catch (Exception ex) {
+                    // although stopRecording() will be called from not-GUI thread
+                    // it could not coincide with startRecording() course
+                    // DataListener works only when recorder is already "recording".
+                    // And if it coincide with another stopRecording() called from GUI or
+                    // it will not course any problem
+                    stop1();
+                    String errMsg = MessageFormat.format(FAILED_WRITE_DATA_MSG, numberOfWrittenDataRecords.get() + 1, edfFile);
+                    log.error(errMsg + "\n"+ex.getMessage());
+                    sendMessage(errMsg + "\n"+ex.getMessage());
                 }
             }
         });
-        notificationTimer.start();
-
-        connectionTimer = new java.util.Timer();
-        connectionTimer.schedule(new TimerTask() {
+        bdfRecorder.setLeadOffListener(new LeadOffListener() {
             @Override
-            public void run() {
-               daemonConnect();
+            public void onLeadOffDataReceived(Boolean[] leadOffMask) {
+                leadOffBitMask = leadOffMask;
             }
-        }, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+        });
+        return new OperationResult(true);
     }
 
-    private void checkStartFuture() {
-        if(startFuture != null) {
-            if (startFuture.isDone()) {
-                try {
-                    startFuture.get();
-                } catch (ExecutionException ex) {
-                    if(ex.getCause() instanceof InvalidDeviceTypeRuntimeException) {
-                        sendMessage(ex.getCause().getMessage());
+    class FutureHandlerTask implements Runnable {
+        private Future<Boolean> future;
+        private BdfRecorderConfig config;
 
-                    } else {
-                        sendMessage(START_FAILED_MSG);
-                    }
-                } catch (CancellationException ex) {
-                    sendMessage(START_CANCELLED_MSG);
-                } catch (InterruptedException ie) {
-                    sendMessage(START_FAILED_MSG);
-                } finally {
-                    startFuture = null;
+        public FutureHandlerTask(Future future, BdfRecorderConfig config) {
+            this.future = future;
+            this.config = config;
+        }
+
+        @Override
+        public void run() {
+            while (!future.isDone()) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    // do nothing
                 }
             }
+            try {
+                if(!future.get()) {
+                    cancelStart();
+                    fireNotification();
+                    sendMessage(START_FAILED_MSG);
+                }
+            } catch (ExecutionException e) {
+                cancelStart();
+                if(e.getCause() instanceof IllegalArgumentException) {
+                    String errMSg = MessageFormat.format(WRONG_DEVICE_TYPE_MSG, config.getDeviceType(), bdfRecorder.getDeviceType());
+                    fireNotification();
+                    sendMessage(errMSg);
+                } else {
+                    log.error(e.getCause());
+                    fireNotification();
+                    sendMessage(e.getCause().getMessage());
+                }
+            } catch (CancellationException e) {
+                cancelStart();
+                fireNotification();
+                sendMessage(START_CANCELLED_MSG);
+            } catch (InterruptedException e) {
+                cancelStart();
+                fireNotification();
+                sendMessage(START_CANCELLED_MSG);
+            }
+        }
+
+        private void cancelStart() {
+            bdfRecorder.removeDataListener();
+            bdfRecorder.removeLeadOffListener();
+            leadOffBitMask = null;
+            if(edfFileWriter != null) {
+                try {
+                    edfFileWriter.close();
+                } catch (Exception ex) {
+                    log.error(ex);
+                }
+            }
+            if(edfFile != null) {
+                try {
+                    edfFile.delete();
+                } catch (Exception ex) {
+                    log.error(ex);
+                }
+            }
+            edfFileWriter = null;
+            edfFile = null;
+            bdfRecorder.startMonitoring();
+        }
+    }
+
+    private OperationResult stop1() {
+        boolean isStopSuccess = true;
+        boolean isFileCloseSuccess = true;
+        String errMSg = "";
+        if(bdfRecorder != null) {
+            bdfRecorder.removeDataListener();
+            bdfRecorder.removeLeadOffListener();
+            leadOffBitMask = null;
+            isStopSuccess = bdfRecorder.stopRecording();
+            if(!isStopSuccess) {
+                log.error(FAILED_STOP_MSG);
+                errMSg = FAILED_STOP_MSG;
+            }
+            if(edfFileWriter != null) {
+                try {
+                    synchronized (this) {
+                        edfFileWriter.close();
+                    }
+                    edfFileWriter = null;
+                } catch (Exception ex) {
+                    isFileCloseSuccess = false;
+                    log.error(ex);
+                    errMSg = errMSg + "\n" + MessageFormat.format(FAILED_CLOSE_FILE_MSG, edfFile)+"\n" + ex.getMessage();
+                }
+            }
+        }
+        return new OperationResult(isStopSuccess && isFileCloseSuccess, errMSg);
+    }
+
+    // may be called from different threads (GUI and not-GUI (DataListener thread))
+    public OperationResult stop() {
+        OperationResult stopResult = stop1();
+        if(bdfRecorder != null) {
+            bdfRecorder.startMonitoring();
+        }
+        return stopResult;
+    }
+
+
+    private OperationResult disconnect()  {
+        if(bdfRecorder != null) {
+            bdfRecorder.stopMonitoring();
+            OperationResult stopResult = stop1();
+            boolean isDisconnectedOk = true;
+            String errMsg = stopResult.getMessage();
+            bdfRecorder.removeEventsListener();
+            isDisconnectedOk = bdfRecorder.disconnect();
+            if(!isDisconnectedOk) {
+               String disconnectionErrMsg = MessageFormat.format(FAILED_DISCONNECT_MSG, bdfRecorder.getComportName());
+               log.error(disconnectionErrMsg);
+               if(errMsg.isEmpty()) {
+                   errMsg = disconnectionErrMsg;
+               } else {
+                   errMsg = errMsg + "\n"+disconnectionErrMsg;
+               }
+            }
+            edfFile = null;
+            leadOffBitMask = null;
+            bdfRecorder = null;
+            return new OperationResult(stopResult.isSuccess && isDisconnectedOk, errMsg);
+        }
+        return new OperationResult(true);
+
+    }
+
+    // will be called only from GUI
+    public void setComport(String comportName) {
+        // if recorder already connected with that port
+        if(bdfRecorder != null && bdfRecorder.getComportName().equals(comportName)) {
+            return;
+        }
+        try {
+            disconnect();
+            // restart connection task with new comport name
+            if(connectionTask != null) {
+                connectionTask.cancel();
+            }
+            connectionTask = new ConnectionTask(comportName);
+            connectionTimer.schedule(connectionTask, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+        } catch (Exception ex) {
+            // do nothing!
+        }
+    }
+
+
+    public Boolean[] getLeadOffMask() {
+        return leadOffBitMask;
+    }
+
+    public boolean isDirectoryExist(String directory) {
+        File dir = new File(directory);
+        if(dir.exists() && dir.isDirectory()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Create directory if it does not exist.
+     * @param directory name of the directory to create
+     * @return OperationResult: successful if  and only if the  directory was created
+     */
+    public OperationResult createDirectory(String directory)  {
+        File dir = new File(directory);
+        if(isDirectoryExist(directory)) {
+            String errMSg = MessageFormat.format(DIRECTORY_EXIST_MSG, dir.getName());
+            return new OperationResult(false, errMSg);
+        }
+        try {
+            if(dir.mkdir()) {
+                return new OperationResult(true);
+            } else {
+                String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir);
+                return new OperationResult(false, errMSg);
+            }
+
+        } catch (Exception ex) {
+            String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir) + "\n"+ex.getMessage();
+            return new OperationResult(false, errMSg);
         }
     }
 
@@ -110,8 +453,8 @@ public class BdfRecorderApp implements RecorderEventsListener {
      * That will be quick and good enough for our purpose
      * @return available comports list with selected port included
      */
-    public synchronized String[] getComportNames() {
-        String[] availablePorts = bdfRecorder.getAvailableComportNames();
+    public String[] getComportNames(String selectedComportName) {
+        String[] availablePorts = BdfRecorder.getAvailableComportNames();
         if(selectedComportName == null || selectedComportName.isEmpty()) {
             return availablePorts;
         }
@@ -140,180 +483,43 @@ public class BdfRecorderApp implements RecorderEventsListener {
         }
     }
 
-    public void changeRecorder() {
-        stopRecording();
-        recordingSettings = null;
-      //  bdfRecorder.disconnect();
-      //  bdfRecorder = new BdfRecorder();
-    }
-
-
-    @Override
-    public void handleLowButtery() {
-        stopRecording();
-        sendMessage(LOW_BUTTERY_MSG);
-    }
-
-
-    /**
-     * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
-     * contact or disconnecting. Therefore in Lead-Off detection mask has:
-     * <ul>
-     *     <li>TRUE if electrode DISCONNECTED</li>
-     *     <li>FALSE if electrode CONNECTED</li>
-     *     <li>NULL if the channel is disabled or its lead-off detection disabled or
-     *     its commutator state != "INPUT"</li>
-     * </ul>
-     * Every ads-channel has 2 electrodes (Positive and Negative) so in leadOff detection mask:
-     * <br>element-0 and element-1 correspond to Positive and Negative electrodes of ads channel 0,
-     * <br>element-2 and element-3 correspond to Positive and Negative electrodes of ads channel 1,
-     * <br>...
-     * <br>element-14 and element-15 correspond to Positive and Negative electrodes of ads channel 8.
-     *
-     * @return leadOff detection mask
-     */
-    public Boolean[] getLeadOfDetectionMask() {
-        if(recordingSettings == null) {
-            return new Boolean[8 * 2];
-        }
-        Boolean[] mask = new Boolean[recordingSettings.getNumberOfAdsChannels() * 2];
-        boolean[] adsMask = bdfRecorder.getLeadOfDetectionMask();
-        if(adsMask != null) {
-            for (int i = 0; i < recordingSettings.getNumberOfAdsChannels(); i++) {
-                if(recordingSettings.isAdsChannelEnabled(i) && recordingSettings.isAdsChannelLeadOffEnable(i)
-                        && recordingSettings.getAdsChannelCommutatorState(i).equals("INPUT")) {
-                    mask[2*i] = adsMask[2*i];
-                    mask[2*i + 1] = adsMask[2*i + 1];
-                }
-            }
-        }
-        return mask;
-    }
-
     public void setNotificationListener(NotificationListener l) {
         notificationListener = l;
     }
 
     public void setMessageListener(MessageListener l) {
-        messageListener = l;
-    }
-
-    private void sendMessage(String message) {
-        if(messageListener != null) {
-            messageListener.onMessage(message);
-        }
-    }
-
-    private synchronized void daemonConnect() {
-        if (!bdfRecorder.isConnected() && selectedComportName != null && !selectedComportName.isEmpty()) {
-            try {
-                bdfRecorder.connect(selectedComportName);
-            } catch (Exception ex) {
-                // DO NOTHING!
-            }
-        }
-
-    }
-
-    public synchronized void connect(String comportName) {
-        selectedComportName = comportName;
-        try {
-            if(comportName != null && !comportName.isEmpty()) {
-                bdfRecorder.connect(comportName);
-            }
-        } catch (ComportBusyRuntimeException ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(COMPORT_BUSY_ERR, comportName);
-            sendMessage(errMSg);
-        } catch (ComportNotFoundRuntimeException ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(COMPORT_NOT_FOUND_ERR, comportName);
-            sendMessage(errMSg);
-        } catch (Exception ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(APP_ERR, ex.getMessage());
-            sendMessage(errMSg);
-           // closeApplication(ERROR_STATUS);
-        }
-    }
-
-    public synchronized void startRecording(AppConfig recordingSettings)  {
-        this.recordingSettings = recordingSettings;
-        String dirToSave = recordingSettings.getDirToSave();
-        File dir = new File(dirToSave);
-        if(!dir.exists()) {
-            String msg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
-            boolean isConfirmed = true;
-            if(isConfirmed) {
-                dir.mkdir();
-            }
-            else {
-                return;
-            }
-        }
-        String filename =  normalizeFilename(recordingSettings.getFilename());
-        File fileToWrite = new File(dirToSave, filename);
-        String comportName = recordingSettings.getComportName();
-        selectedComportName = comportName;
-        try {
-            bdfRecorder.connect(comportName);
-            startFuture = bdfRecorder.startRecording(recordingSettings.getBdfRecorderConfig(), fileToWrite);
-        } catch (BdfFileNotFoundRuntimeException ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_ERR, fileToWrite);
-            sendMessage(errMSg);
-        } catch (ComportBusyRuntimeException ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(COMPORT_BUSY_ERR, comportName);
-            sendMessage(errMSg);
-        } catch (ComportNotFoundRuntimeException ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(COMPORT_NOT_FOUND_ERR, comportName);
-            sendMessage(errMSg);
-        } catch (Exception ex) {
-            log.error(ex);
-            ex.printStackTrace();
-            String errMSg = MessageFormat.format(APP_ERR, ex.getMessage());
-            sendMessage(errMSg);
-            closeApplication(ERROR_STATUS);
-        }
-    }
-
-    public synchronized void stopRecording() throws BdfRecorderRuntimeException {
-        try {
-            bdfRecorder.stopRecording();
-        } catch (Exception ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(APP_ERR, ex.getMessage());
-            sendMessage(errMSg);
-            closeApplication(ERROR_STATUS);
-        }
+        messageSender.setMessageListener(l);
     }
 
     public boolean isRecording() {
-        return bdfRecorder.isRecording();
+        if(bdfRecorder != null && bdfRecorder.getRecorderState() == RecorderState.RECORDING) {
+            return true;
+        }
+        return false;
     }
 
     public boolean isActive() {
-        return bdfRecorder.isActive();
+        if(bdfRecorder != null && bdfRecorder.isActive()) {
+            return true;
+        }
+        return false;
     }
 
     public String getStateReport() {
         String stateString = "Disconnected";
-        if(bdfRecorder.isActive()) {
+        if(isActive()) {
             stateString = "Connected";
         }
 
-        int recordsNumber = getNumberOfWrittenDataRecords();
-        if(bdfRecorder.isRecording()) {
-            if(recordsNumber == 0) {
+        if(isRecording()) {
+            if(numberOfWrittenDataRecords.get() == 0) {
                 stateString = "Starting...";
             } else {
-                stateString = "Recording... " + recordsNumber + " data records";
+                stateString = "Recording... " + numberOfWrittenDataRecords + " data records";
             }
         } else {
-            if(recordsNumber > 0) {
-                stateString = "Saved to file: " + bdfRecorder.getSavedFile();
+            if(numberOfWrittenDataRecords.get() > 0) {
+                stateString = "Saved to file: " + edfFile;
             }
         }
         return stateString;
@@ -344,45 +550,35 @@ public class BdfRecorderApp implements RecorderEventsListener {
     }
 
 
-
-
-    private int getNumberOfWrittenDataRecords() {
-        try {
-            return bdfRecorder.getNumberOfSentDataRecords();
-        } catch (Exception ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(APP_ERR, ex.getMessage());
-            sendMessage(errMSg);
-            closeApplication(ERROR_STATUS);
-        }
-        return 0;
-    }
-
-
     private void closeApplication(int status) {
-        try {
-            if(recordingSettings != null) {
-                try{
-                    preferences.saveConfig(recordingSettings);
-                } catch (Exception ex) {
-                    String errMsg = "Error during saving preferences";
-                    log.error(errMsg, ex);
-                }
-            }
-            bdfRecorder.stopRecording();
-            notificationTimer.stop();
-            connectionTimer.cancel();
-            bdfRecorder.disconnect();
-            System.exit(status);
-        } catch (Exception e) {
-            String errMsg = "Error during closing application";
-            log.error(errMsg, e);
-            System.exit(ERROR_STATUS);
+        notificationTimer.cancel();
+        connectionTimer.cancel();
+        messageSender.stop();
+        if(!futureHandlingExecutor.isShutdown()) {
+            futureHandlingExecutor.shutdownNow();
         }
+        if(bdfRecorder != null) {
+            bdfRecorder.disconnect();
+        }
+        System.exit(status);
     }
 
-    public synchronized void closeApplication(AppConfig recordingSettings) {
-        this.recordingSettings = recordingSettings;
+    public void closeApplication(AppConfig appConfig) {
+        try{
+            preferences.saveConfig(appConfig);
+        } catch (Exception ex) {
+            String errMsg = "Error during saving preferences";
+            log.error(errMsg, ex);
+        }
         closeApplication(SUCCESS_STATUS);
     }
+
+
+    class NullNotificationListener implements NotificationListener {
+        @Override
+        public void update() {
+            // do nothing
+        }
+    }
+
 }

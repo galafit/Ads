@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder.exceptions;
+package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.SerialPortRuntimeException;
 import jssc.SerialPortException;
@@ -6,7 +6,7 @@ import jssc.SerialPortException;
 /**
  * Created by galafit on 29/5/17.
  */
-public class ConnectionRuntimeException extends BdfRecorderRuntimeException {
+public class ConnectionRuntimeException extends RuntimeException {
     public static final String TYPE_PORT_ALREADY_OPENED = "Port already opened";
     public static final String TYPE_PORT_NOT_OPENED = "Port not opened";
     public static final String TYPE_CANT_SET_MASK = "Can't set mask";
