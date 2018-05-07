@@ -4,5 +4,5 @@ package com.biorecorder.ads;
  * Listener for messages from Ads and Frame decoder
  */
 interface MessageListener {
-    public void onMessageReceived(AdsMessage adsMessage, String additionalInfo);
+    public void onMessage(AdsMessage message, String additionalInfo);
 }

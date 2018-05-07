@@ -218,9 +218,6 @@ public class BdfRecorderApp {
         }
         edfFile = fileToWrite;
 
-        Future<Boolean> startFuture = bdfRecorder.startRecording(bdfRecorderConfig);
-        futureHandlingExecutor.submit(new FutureHandlerTask(startFuture, bdfRecorderConfig));
-
         numberOfWrittenDataRecords.set(0);
         bdfRecorder.setDataListener(new BdfDataListener() {
             @Override
@@ -249,6 +246,9 @@ public class BdfRecorderApp {
                 leadOffBitMask = leadOffMask;
             }
         });
+
+        Future<Boolean> startFuture = bdfRecorder.startRecording(bdfRecorderConfig);
+        futureHandlingExecutor.submit(new FutureHandlerTask(startFuture, bdfRecorderConfig));
         return new OperationResult(true);
     }
 

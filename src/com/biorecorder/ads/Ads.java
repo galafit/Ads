@@ -126,11 +126,6 @@ public class Ads {
             public void handleLowButtery() {
                 // do nothing;
             }
-
-            @Override
-            public void handleFrameBroken(String eventInfo) {
-                // do nothing;
-            }
         };
     }
 
@@ -146,23 +141,23 @@ public class Ads {
         });
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
-            public void onMessageReceived(AdsMessage adsMessage, String additionalInfo) {
-                if (adsMessage == AdsMessage.ADS_2_CHANNELS) {
+            public void onMessage(AdsMessage message, String additionalInfo) {
+                if (message == AdsMessage.ADS_2_CHANNELS) {
                     adsType = AdsType.ADS_2;
                     lastEventTime = System.currentTimeMillis();
                 }
-                if (adsMessage == AdsMessage.ADS_8_CHANNELS) {
+                if (message == AdsMessage.ADS_8_CHANNELS) {
                     adsType = AdsType.ADS_8;
                     lastEventTime = System.currentTimeMillis();
                 }
-                if (adsMessage == AdsMessage.STOP_RECORDING) {
+                if (message == AdsMessage.STOP_RECORDING) {
                     adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
                     lastEventTime = System.currentTimeMillis();
                 }
-                if (adsMessage == AdsMessage.FRAME_BROKEN) {
+                if (message == AdsMessage.FRAME_BROKEN) {
                     log.info(additionalInfo);
                 }
-                if (adsMessage == AdsMessage.LOW_BATTERY) {
+                if (message == AdsMessage.LOW_BATTERY) {
                     eventsListener.handleLowButtery();
                 }
             }

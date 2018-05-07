@@ -285,7 +285,7 @@ class FrameDecoder implements ComPortListener {
 
     private void notifyMessageListeners(AdsMessage adsMessage, String additionalInfo) {
         for (MessageListener l : messageListeners) {
-            l.onMessageReceived(adsMessage, additionalInfo);
+            l.onMessage(adsMessage, additionalInfo);
         }
     }
 

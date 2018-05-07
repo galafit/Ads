@@ -5,5 +5,4 @@ package com.biorecorder.ads;
  */
 public interface AdsEventsListener {
     public void handleLowButtery();
-    public void handleFrameBroken(String eventInfo);
 }

@@ -44,11 +44,6 @@ public class BdfRecorder {
                 public void handleLowButtery() {
                     recorderEventsListener.handleLowButtery();
                 }
-
-                @Override
-                public void handleFrameBroken(String eventInfo) {
-                    // do nothing
-                }
             });
             edfSignalsFilter = createChannelsFilter();
         } catch (SerialPortRuntimeException ex) {
