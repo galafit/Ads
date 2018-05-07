@@ -24,7 +24,7 @@ public enum AdsType {
         if(numberOfAdsChannels == 2){
             adsConfigurator = new AdsConfigurator2Ch();
         } else if(numberOfAdsChannels == 8) {
-            adsConfigurator =  new AdsConfigurator8();
+            adsConfigurator =  new AdsConfigurator8Ch();
         } else {
             String msg = "Invalid Ads channels count: "+numberOfAdsChannels+ ". Number of Ads channels should be 2 or 8";
             throw new IllegalArgumentException(msg);

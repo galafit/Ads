@@ -338,7 +338,7 @@ public class BdfRecorder1 {
             if (adsConfig.isLeadOffEnabled()) {
                 edfConfig.addSignal();
                 int signalNumber = edfConfig.getNumberOfSignals() - 1;
-                edfConfig.setLabel(signalNumber, "Loff Status");
+                edfConfig.setLabel(signalNumber, "Lead Off Status");
                 edfConfig.setTransducer(signalNumber, "None");
                 edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());
                 edfConfig.setPhysicalRange(signalNumber, adsConfig.getLeadOffStatusPhysicalMin(), adsConfig.getLeadOffStatusPhysicalMax());

@@ -8,5 +8,7 @@ public class Start1 {
         AppConfig1 recordingSettings = preferences.getConfig();
         BdfRecorderApp1 bdfRecorder = new BdfRecorderApp1(preferences, recordingSettings.getComportName());
         BdfRecorderWindow1 bdfRecorderWindow = new BdfRecorderWindow1(bdfRecorder, recordingSettings);
+        bdfRecorder.setMessageListener(bdfRecorderWindow);
+        bdfRecorder.setNotificationListener(bdfRecorderWindow);
     }
 }

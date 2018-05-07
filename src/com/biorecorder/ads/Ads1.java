@@ -94,10 +94,10 @@ public class Ads1 {
     public Ads1(String comportName) throws SerialPortRuntimeException {
         comport = new Comport1(comportName, COMPORT_SPEED);
         comport.setComPortListener(createFrameDecoder(null));
-        comport.writeByte(STOP_REQUEST);
-        comport.writeByte(HARDWARE_REQUEST);
         dataListener = createNullDataListener();
         eventsListener = createNullEventsListener();
+        comport.writeByte(STOP_REQUEST);
+        comport.writeByte(HARDWARE_REQUEST);
         pingTask = new PingTask();
         monitoringTask = new MonitoringTask();
 

@@ -58,32 +58,22 @@ public class AppConfig1 {
     }
 
     public String getDirToSave() {
-        // first we try to return «dirToSave» if it is specified and exists
+        // first we try to return «dirToSave» if it is specified
         if(dirToSave != null) {
-            File dir = new File(dirToSave);
-            if(dir.exists() && dir.isDirectory()) {
-                return dirToSave;
-            }
+            return dirToSave;
         }
-        // then we try return «projectDir/records» if it is exist or can be created
+        // then we try return «projectDir/records»
+
         String projectDir = System.getProperty("user.dir");
         String dirName = "records";
 
         File dir = new File (projectDir, dirName);
-        if(dir.exists()) {
-            return dir.toString();
-        } else {
-            try {
-                dir.mkdir();
-                return dir.toString();
-            } catch (Exception ex) {
-                // do nothing!
-            }
-        }
+        return dir.toString();
+       /*
         // finally we return «homeDir/records»
         String userHomeDir = System.getProperty("user.home");
         dir = new File (userHomeDir, dirName);
-        return dir.toString();
+        return dir.toString();*/
     }
 
 

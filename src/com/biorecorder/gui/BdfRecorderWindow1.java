@@ -8,16 +8,18 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 
 
 /**
  *
  */
-public class BdfRecorderWindow1 extends JFrame implements NotificationListener {
+public class BdfRecorderWindow1 extends JFrame implements NotificationListener, MessageListener{
 
-    private BdfRecorderApp1 recorder;
-    private AppConfig1 config;
+    private final BdfRecorderApp1 recorder;
+    private final AppConfig1 config;
 
     private String patientIdentificationLabel = "Patient";
     private String recordingIdentificationLabel = "Record";
@@ -74,6 +76,7 @@ public class BdfRecorderWindow1 extends JFrame implements NotificationListener {
     public BdfRecorderWindow1(BdfRecorderApp1 recorder, AppConfig1 config) {
         this.config = config;
         this.recorder = recorder;
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent windowEvent) {
@@ -145,7 +148,22 @@ public class BdfRecorderWindow1 extends JFrame implements NotificationListener {
         accelerometerName.setEnabled(false);
     }
 
+    private boolean confirm(String message) {
+        int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow1.this, message, null, JOptionPane.YES_NO_OPTION);
+        if(answer == JOptionPane.YES_OPTION) {
+            return true;
+        }
+        return false;
+    }
 
+    private void showMessage(String msg) {
+        JOptionPane.showMessageDialog(BdfRecorderWindow1.this, msg);
+    }
+
+    @Override
+    public void onMessage(String message) {
+        showMessage(message);
+    }
 
     @Override
     public void update() {
@@ -186,23 +204,6 @@ public class BdfRecorderWindow1 extends JFrame implements NotificationListener {
             }
         });
 
-        recorder.setMessageListener(new MessageListener() {
-            @Override
-            public void showMessage(String message) {
-                JOptionPane.showMessageDialog(BdfRecorderWindow1.this, message);
-
-            }
-            @Override
-            public boolean askConfirmation(String message) {
-                int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow1.this, message, null, JOptionPane.YES_NO_OPTION);
-                if(answer == JOptionPane.YES_OPTION) {
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        recorder.setNotificationListener(this);
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
         comport.addPopupMenuListener(new PopupMenuListener() {
             @Override
@@ -267,17 +268,40 @@ public class BdfRecorderWindow1 extends JFrame implements NotificationListener {
 
 
         startButton.addActionListener(new ActionListener() {
+            private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
+
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                saveDataToModel();
-                recorder.startRecording(config);
+               // saveDataToModel();
+                String dirToSave = getDirectory();
+                OperationResult actionResult = null;
+
+                if(!recorder.isDirectoryExist(dirToSave)) {
+                    String confirmMsg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
+                    if(confirm(confirmMsg)) {
+                        actionResult = recorder.createDirectory(dirToSave);
+                        if(actionResult.isSuccess()) {
+                            actionResult = recorder.startRecording(config);
+                        }
+                    }
+                } else {
+                    recorder.closeApplication(config);
+                    actionResult = recorder.startRecording(config);
+                }
+
+                if(actionResult != null && !actionResult.isMessageEmpty()) {
+                    showMessage(actionResult.getMessage());
+                }
             }
         });
 
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                recorder.stop();
+                OperationResult actionResult = recorder.stop();
+                if(!actionResult.isMessageEmpty()) {
+                    showMessage(actionResult.getMessage());
+                }
             }
         });
 

@@ -12,11 +12,22 @@ public class OperationResult {
         this.message = message;
     }
 
+    public OperationResult(boolean isSuccess) {
+        this(isSuccess, "");
+    }
+
     public boolean isSuccess() {
         return isSuccess;
     }
 
     public String getMessage() {
         return message;
+    }
+
+    public boolean isMessageEmpty() {
+        if(message == null || message.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 }

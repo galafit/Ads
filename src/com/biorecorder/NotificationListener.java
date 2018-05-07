@@ -5,5 +5,4 @@ package com.biorecorder;
  */
 public interface NotificationListener {
     public void update();
-
 }

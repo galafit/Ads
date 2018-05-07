@@ -161,17 +161,9 @@ public class BdfRecorderWindow extends JFrame  {
 
         bdfRecorder.setMessageListener(new MessageListener() {
             @Override
-            public void showMessage(String message) {
+            public void onMessage(String message) {
                 JOptionPane.showMessageDialog(BdfRecorderWindow.this, message);
 
-            }
-            @Override
-            public boolean askConfirmation(String message) {
-                int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow.this, message, null, JOptionPane.YES_NO_OPTION);
-                if(answer == JOptionPane.YES_OPTION) {
-                    return true;
-                }
-                return false;
             }
         });
 

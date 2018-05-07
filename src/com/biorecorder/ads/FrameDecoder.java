@@ -245,11 +245,7 @@ class FrameDecoder implements ComPortListener {
             result += 1;
         }
         if(adsConfig.isLeadOffEnabled()) {
-            if (adsConfig.getAdsChannelsCount() == 8) {
-                result += 2;
-            } else {
-                result += 1;
-            }
+            result += 1;
         }
 
         return result;

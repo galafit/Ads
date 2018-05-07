@@ -200,7 +200,7 @@ public class BdfRecorderApp implements RecorderEventsListener {
 
     private void sendMessage(String message) {
         if(messageListener != null) {
-            messageListener.showMessage(message);
+            messageListener.onMessage(message);
         }
     }
 
@@ -243,7 +243,7 @@ public class BdfRecorderApp implements RecorderEventsListener {
         File dir = new File(dirToSave);
         if(!dir.exists()) {
             String msg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
-            boolean isConfirmed = messageListener.askConfirmation(msg);
+            boolean isConfirmed = true;
             if(isConfirmed) {
                 dir.mkdir();
             }
