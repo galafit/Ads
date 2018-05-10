@@ -7,7 +7,7 @@ import java.util.List;
 /**
  *
  */
-public class BdfRecorderConfig {
+public class RecorderConfig {
     private AdsConfig adsConfig = new AdsConfig();
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";

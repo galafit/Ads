@@ -2,6 +2,7 @@ package com.biorecorder;
 
 import com.biorecorder.bdfrecorder.*;
 
+import com.biorecorder.bdfrecorder.BdfDataListener;
 import com.biorecorder.edflib.EdfFileWriter;
 import com.biorecorder.edflib.FileType;
 import com.biorecorder.edflib.base.EdfConfig;
@@ -142,7 +143,7 @@ public class BdfRecorderApp {
     // will be called only from GUI
     public OperationResult startRecording(AppConfig appConfig) {
         String comportName = appConfig.getComportName();
-        BdfRecorderConfig bdfRecorderConfig = appConfig.getBdfRecorderConfig();
+        RecorderConfig recorderConfig = appConfig.getRecorderConfig();
 
         if(isRecording()) {
             return new OperationResult(false, ALREADY_RECORDING_MSG);
@@ -191,10 +192,10 @@ public class BdfRecorderApp {
 
         // Apply MovingAverage filters to to ads channels to reduce 50Hz noise
         int enableSignalsCounter = 0;
-        for (int i = 0; i < bdfRecorderConfig.getNumberOfChannels(); i++) {
-            if (bdfRecorderConfig.isChannelEnabled(i)) {
-                if (bdfRecorderConfig.is50HzFilterEnabled(i)) {
-                    int numberOfAveragingPoints = bdfRecorderConfig.getChannelFrequency(i) / 50;
+        for (int i = 0; i < recorderConfig.getNumberOfChannels(); i++) {
+            if (recorderConfig.isChannelEnabled(i)) {
+                if (recorderConfig.is50HzFilterEnabled(i)) {
+                    int numberOfAveragingPoints = recorderConfig.getChannelFrequency(i) / 50;
                     bdfRecorder.addChannelFilter(enableSignalsCounter, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:"+ numberOfAveragingPoints);
                 }
                 enableSignalsCounter++;
@@ -205,7 +206,7 @@ public class BdfRecorderApp {
 
         File fileToWrite = new File(appConfig.getDirToSave(), normalizeFilename(appConfig.getFileName()));
         boolean isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
-        EdfConfig edfConfig = bdfRecorder.getResultantRecordingInfo(bdfRecorderConfig);
+        EdfConfig edfConfig = bdfRecorder.getResultantRecordingInfo(recorderConfig);
         try {
             edfFileWriter = new EdfFileWriter(fileToWrite, FileType.BDF_24BIT);
             edfFileWriter.setDurationOfDataRecordsComputable(isDurationOfDataRecordComputable);
@@ -247,16 +248,16 @@ public class BdfRecorderApp {
             }
         });
 
-        Future<Boolean> startFuture = bdfRecorder.startRecording(bdfRecorderConfig);
-        futureHandlingExecutor.submit(new FutureHandlerTask(startFuture, bdfRecorderConfig));
+        Future<Boolean> startFuture = bdfRecorder.startRecording(recorderConfig);
+        futureHandlingExecutor.submit(new FutureHandlerTask(startFuture, recorderConfig));
         return new OperationResult(true);
     }
 
     class FutureHandlerTask implements Runnable {
         private Future<Boolean> future;
-        private BdfRecorderConfig config;
+        private RecorderConfig config;
 
-        public FutureHandlerTask(Future future, BdfRecorderConfig config) {
+        public FutureHandlerTask(Future future, RecorderConfig config) {
             this.future = future;
             this.config = config;
         }

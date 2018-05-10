@@ -9,7 +9,7 @@ import java.io.File;
  * Created by galafit on 30/3/18.
  */
 public class AppConfig {
-    private BdfRecorderConfig bdfRecorderConfig = new BdfRecorderConfig();
+    private RecorderConfig recorderConfig = new RecorderConfig();
     private boolean isDurationOfDataRecordComputable = true;
 
     private String comportName;
@@ -17,28 +17,28 @@ public class AppConfig {
     @JsonIgnore
     private String fileName;
 
-    BdfRecorderConfig getBdfRecorderConfig() {
-        return bdfRecorderConfig;
+    RecorderConfig getRecorderConfig() {
+        return recorderConfig;
     }
 
-    public void setBdfRecorderConfig(BdfRecorderConfig bdfRecorderConfig) {
-        this.bdfRecorderConfig = bdfRecorderConfig;
+    public void setRecorderConfig(RecorderConfig recorderConfig) {
+        this.recorderConfig = recorderConfig;
     }
 
     public String getPatientIdentification() {
-        return bdfRecorderConfig.getPatientIdentification();
+        return recorderConfig.getPatientIdentification();
     }
 
     public void setPatientIdentification(String patientIdentification) {
-        bdfRecorderConfig.setPatientIdentification(patientIdentification);
+        recorderConfig.setPatientIdentification(patientIdentification);
     }
 
     public String getRecordingIdentification() {
-        return bdfRecorderConfig.getRecordingIdentification();
+        return recorderConfig.getRecordingIdentification();
     }
 
     public void setRecordingIdentification(String recordingIdentification) {
-        bdfRecorderConfig.setRecordingIdentification(recordingIdentification);
+        recorderConfig.setRecordingIdentification(recordingIdentification);
     }
 
     public boolean isDurationOfDataRecordComputable() {
@@ -91,27 +91,27 @@ public class AppConfig {
 
 
     public Boolean is50HzFilterEnabled(int channelNumber) {
-        return bdfRecorderConfig.is50HzFilterEnabled(channelNumber);
+        return recorderConfig.is50HzFilterEnabled(channelNumber);
     }
 
     public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
-        bdfRecorderConfig.setIs50HzFilterEnabled(channelNumber, is50HzFilterEnabled);
+        recorderConfig.setIs50HzFilterEnabled(channelNumber, is50HzFilterEnabled);
     }
 
     public int[] getChannelsAvailableDividers() {
-        return bdfRecorderConfig.getChannelsAvailableDividers();
+        return recorderConfig.getChannelsAvailableDividers();
     }
 
     public int[] getAccelerometerAvailableDividers() {
-        return bdfRecorderConfig.getAccelerometerAvailableDividers();
+        return recorderConfig.getAccelerometerAvailableDividers();
     }
 
     public int getChannelFrequency(int channelNumber) {
-        return bdfRecorderConfig.getChannelFrequency(channelNumber);
+        return recorderConfig.getChannelFrequency(channelNumber);
     }
 
     public int getAccelerometerFrequency() {
-        return bdfRecorderConfig.getAccelerometerFrequency();
+        return recorderConfig.getAccelerometerFrequency();
     }
 
     /**
@@ -120,7 +120,7 @@ public class AppConfig {
      * @param divider
      */
     public void setChannelDivider(int channelNumber, int divider) {
-        bdfRecorderConfig.setChannelDivider(channelNumber, divider);
+        recorderConfig.setChannelDivider(channelNumber, divider);
     }
 
     /**
@@ -128,104 +128,104 @@ public class AppConfig {
      * @param divider = 10
      */
     public void setAccelerometerDivider(int divider) {
-        bdfRecorderConfig.setAccelerometerDivider(divider);
+        recorderConfig.setAccelerometerDivider(divider);
     }
 
     public boolean isLeadOffEnabled() {
-        return bdfRecorderConfig.isLeadOffEnabled();
+        return recorderConfig.isLeadOffEnabled();
     }
 
     public int getNumberOfChannels() {
-        return bdfRecorderConfig.getNumberOfChannels();
+        return recorderConfig.getNumberOfChannels();
     }
 
     public int getSampleRate() {
-        return bdfRecorderConfig.getRecorderSampleRate().getValue();
+        return recorderConfig.getRecorderSampleRate().getValue();
     }
 
     public boolean isAccelerometerEnabled() {
-        return bdfRecorderConfig.isAccelerometerEnabled();
+        return recorderConfig.isAccelerometerEnabled();
     }
 
     public void setAccelerometerEnabled(boolean accelerometerEnabled) {
-        bdfRecorderConfig.setAccelerometerEnabled(accelerometerEnabled);
+        recorderConfig.setAccelerometerEnabled(accelerometerEnabled);
     }
 
     public boolean isBatteryVoltageMeasureEnabled() {
-        return bdfRecorderConfig.isBatteryVoltageMeasureEnabled();
+        return recorderConfig.isBatteryVoltageMeasureEnabled();
     }
 
     public void setBatteryVoltageMeasureEnabled(boolean batteryVoltageMeasureEnabled) {
-        bdfRecorderConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
+        recorderConfig.setBatteryVoltageMeasureEnabled(batteryVoltageMeasureEnabled);
     }
 
     public String getDeviceType() {
-        return bdfRecorderConfig.getDeviceType().name();
+        return recorderConfig.getDeviceType().name();
     }
 
     public void setDeviceType(String recorderTypeName) {
-        bdfRecorderConfig.setDeviceType(RecorderType.valueOf(recorderTypeName));
+        recorderConfig.setDeviceType(RecorderType.valueOf(recorderTypeName));
     }
 
     public boolean isAccelerometerOneChannelMode() {
-        return bdfRecorderConfig.isAccelerometerOneChannelMode();
+        return recorderConfig.isAccelerometerOneChannelMode();
     }
 
     public void setAccelerometerOneChannelMode(boolean accelerometerOneChannelMode) {
-        bdfRecorderConfig.setAccelerometerOneChannelMode(accelerometerOneChannelMode);
+        recorderConfig.setAccelerometerOneChannelMode(accelerometerOneChannelMode);
     }
 
     public String getChannelName(int channelNumber) {
-        return bdfRecorderConfig.getChannelName(channelNumber);
+        return recorderConfig.getChannelName(channelNumber);
     }
 
     public void setChannelName(int channelNumber, String name) {
-        bdfRecorderConfig.setChannelName(channelNumber, name);
+        recorderConfig.setChannelName(channelNumber, name);
     }
 
     public void setChannelLeadOffEnable(int channelNumber, boolean leadOffEnable) {
-        bdfRecorderConfig.setChannelLeadOffEnable(channelNumber, leadOffEnable);
+        recorderConfig.setChannelLeadOffEnable(channelNumber, leadOffEnable);
     }
 
     public void setChannelRldSenseEnabled(int channelNumber, boolean rldSenseEnabled) {
-        bdfRecorderConfig.setChannelRldSenseEnabled(channelNumber, rldSenseEnabled);
+        recorderConfig.setChannelRldSenseEnabled(channelNumber, rldSenseEnabled);
     }
 
     public boolean isChannelLeadOffEnable(int channelNumber) {
-        return bdfRecorderConfig.isChannelLeadOffEnable(channelNumber);
+        return recorderConfig.isChannelLeadOffEnable(channelNumber);
     }
 
     public boolean isChannelRldSenseEnabled(int channelNumber) {
-        return bdfRecorderConfig.isChannelRldSenseEnabled(channelNumber);
+        return recorderConfig.isChannelRldSenseEnabled(channelNumber);
     }
 
     public int getChannelGain(int channelNumber) {
-        return bdfRecorderConfig.getChannelGain(channelNumber).getValue();
+        return recorderConfig.getChannelGain(channelNumber).getValue();
     }
 
     public void setChannelGain(int channelNumber, int gainValue) {
-        bdfRecorderConfig.setChannelGain(channelNumber, RecorderGain.valueOf(gainValue));
+        recorderConfig.setChannelGain(channelNumber, RecorderGain.valueOf(gainValue));
     }
 
 
     public String getChannelRecordingMode(int channelNumber) {
-        return bdfRecorderConfig.getChannelRecordingMode(channelNumber).name();
+        return recorderConfig.getChannelRecordingMode(channelNumber).name();
     }
 
     public void setChannelRecordinMode(int channelNumber, String recordingModeName) {
-        bdfRecorderConfig.setChannelRecordingMode(channelNumber, RecordingMode.valueOf(recordingModeName));
+        recorderConfig.setChannelRecordingMode(channelNumber, RecordingMode.valueOf(recordingModeName));
     }
 
     public boolean isChannelEnabled(int channelNumber) {
-        return bdfRecorderConfig.isChannelEnabled(channelNumber);
+        return recorderConfig.isChannelEnabled(channelNumber);
     }
 
     public void setChannelEnabled(int channelNumber, boolean enabled) {
-        bdfRecorderConfig.setChannelEnabled(channelNumber, enabled);
+        recorderConfig.setChannelEnabled(channelNumber, enabled);
     }
 
     public Integer[] getChannelsAvailableFrequencies(int sampleRate) {
-        int[] dividers = bdfRecorderConfig.getChannelsAvailableDividers();
+        int[] dividers = recorderConfig.getChannelsAvailableDividers();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
             frequencies[i] = sampleRate / dividers[i];
@@ -234,7 +234,7 @@ public class AppConfig {
     }
 
     public Integer[] getAccelerometerAvailableFrequencies(int sampleRate) {
-        int[] dividers = bdfRecorderConfig.getAccelerometerAvailableDividers();
+        int[] dividers = recorderConfig.getAccelerometerAvailableDividers();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
             frequencies[i] = sampleRate / dividers[i];
@@ -244,10 +244,10 @@ public class AppConfig {
 
 
     public void setFrequencies(int sampleRate, int accelerometerFrequency, int[] adsChannelsFrequencies) {
-        bdfRecorderConfig.setRecorderSampleRate(RecorderSampleRate.valueOf(sampleRate));
-        bdfRecorderConfig.setAccelerometerDivider((sampleRate / accelerometerFrequency));
+        recorderConfig.setRecorderSampleRate(RecorderSampleRate.valueOf(sampleRate));
+        recorderConfig.setAccelerometerDivider((sampleRate / accelerometerFrequency));
         for (int i = 0; i < adsChannelsFrequencies.length; i++) {
-            bdfRecorderConfig.setChannelDivider(i, (sampleRate / adsChannelsFrequencies[i]));
+            recorderConfig.setChannelDivider(i, (sampleRate / adsChannelsFrequencies[i]));
         }
     }
 
