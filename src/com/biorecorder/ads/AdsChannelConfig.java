@@ -73,7 +73,7 @@ class AdsChannelConfig {
         return "AdsChannelConfig{" +
                 "divider=" + divider +
                 ", isEnabled=" + isEnabled +
-                ", gain=" + gain +
+                ", calculateGain=" + gain +
                 ", commutatorState=" + commutatorState +
                 ", isLoffEnable=" + isLoffEnable +
                 ", isRldSenseEnabled=" + isRldSenseEnabled +
