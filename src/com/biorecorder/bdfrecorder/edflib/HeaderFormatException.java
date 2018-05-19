@@ -21,18 +21,17 @@ public class HeaderFormatException extends Exception {
     public static final String TYPE_VERSION_FORMAT_INVALID = "Version format invalid";
     public static final String TYPE_DATE_FORMAT_INVALID = "Date format invalid. Expected: dd.mm.yy";
     public static final String TYPE_TIME_FORMAT_INVALID = "Time format invalid. Expected: hh.mm.ss";
-    public static final String TYPE_RECORD_DURATION_NAN = "Duration of data record can not be converted to double";
-    public static final String TYPE_RECORD_DURATION_NEGATIVE = "Duration of data record < 0";
-    public static final String TYPE_NUMBER_OF_SIGNALS_NAN = "Number of signals can not be converted to int";
-    public static final String TYPE_NUMBER_OF_SIGNALS_NEGATIVE = "Number of signals < 0";
-    public static final String TYPE_SIGNAL_PHYSICAL_MIN_NAN = "Physical min can not be converted to double";
-    public static final String TYPE_SIGNAL_PHYSICAL_MAX_NAN = "Physical max can not be converted to double";
-    public static final String TYPE_SIGNAL_DIGITAL_MIN_NAN = "Digital min can not be converted to int";
-    public static final String TYPE_SIGNAL_DIGITAL_MAX_NAN = "Digital max can not be converted to int";
+    public static final String TYPE_NUMBER_OF_BYTES_INVALID = "Number of bytes in header invalid. Expected: 256 + 256 * number of signals";
+    public static final String TYPE_NUMBER_OF_RECORDS_INVALID = "Number of data records invalid. Expected int >= -1";
+    public static final String TYPE_RECORD_DURATION_INVALID = "Duration of data record invalid. Expected double >= 0";
+    public static final String TYPE_NUMBER_OF_SIGNALS_INVALID = "Number of signals invalid. Expected int >= 0";
+    public static final String TYPE_SIGNAL_PHYSICAL_MIN_INVALID = "Physical min invalid. Expected double";
+    public static final String TYPE_SIGNAL_PHYSICAL_MAX_INVALID = "Physical max invalid. Expected double";
+    public static final String TYPE_SIGNAL_DIGITAL_MIN_INVALID = "Digital min invalid. Expected int";
+    public static final String TYPE_SIGNAL_DIGITAL_MAX_INVALID = "Digital max invalid. Expected int";
     public static final String TYPE_SIGNAL_PHYSICAL_MAX_LOWER_OR_EQUAL_MIN = "Physical max <= Physical min";
     public static final String TYPE_SIGNAL_DIGITAL_MAX_LOWER_OR_EQUAL_MIN = "Digital max <= Digital min";
-    public static final String TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_NAN = "Number of samples in data record can not be converted to int";
-    public static final String TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_NEGATIVE = "Number of samples in data record < 0";
+    public static final String TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_INVALID = "Number of samples in data record invalid. Expected int >= 0";
 
     private String exceptionType;
     private String wrongValues;

@@ -1,7 +1,9 @@
 package com.biorecorder.bdfrecorder.edflib;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.MessageFormat;
 
 /**
@@ -24,7 +26,8 @@ import java.text.MessageFormat;
  * and in this form written to the file.
  */
 public class EdfWriter {
-
+    private volatile long recordsCount;
+    private int signalNumber;
     private File file;
     private long startTime;
     private long stopTime;
@@ -41,29 +44,21 @@ public class EdfWriter {
      *
      * @param file   the file to be opened for writing
      * @param header object containing all necessary information for the header record
-     * @throws FileNotFoundRuntimeException if the file exists but is a directory rather
+     * @throws FileNotFoundException if the file exists but is a directory rather
      * than a regular file, does not exist but cannot be created,
      * or cannot be opened for any other reason
      */
-    public EdfWriter(File file, EdfHeader header) throws FileNotFoundRuntimeException {
+    public EdfWriter(File file, EdfHeader header) throws FileNotFoundException {
         this.header = header;
-        try {
-            this.file = file;
-            File dir = file.getParentFile();
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
-            fileOutputStream = new FileOutputStream(file);
-        } catch (Exception e) {
-            String errMsg = MessageFormat.format("Writable file: {0} can not be created", file);
-            throw new FileNotFoundRuntimeException(errMsg, e);
-        }
+        this.file = file;
+        fileOutputStream = new FileOutputStream(file);
+
     }
 
 
     /**
-     * Gets the Edf/Bdf file where this writer writes data
-     * @return Edf/Bdf file where this writer writes data
+     * Gets the Edf/Bdf file where data are saved
+     * @return Edf/Bdf file
      */
     public File getFile() {
         return file;
@@ -81,32 +76,35 @@ public class EdfWriter {
         this.isDurationOfDataRecordsComputable = isComputable;
     }
 
+
     /**
-     *
-     * @param physicalSamples physical samples belonging to some signal or entire DataRecord
-     * @throws EdfRuntimeException  if an I/O  occurs while writing data to the file
+     * Writes n "raw" digital (integer) samples belonging to one signal.
+     * The number of written samples : n = (sample frequency of the signal) * (duration of DataRecord).
+     * <p>
+     * Call this method for every signal (channel) in the file. The order is important!
+     * When there are 4 signals,  the order of calling this method must be:
+     * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
+     * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
+     * <br> ... etc.
+     * @param digitalSamples data array with digital samples belonging to one signal
      */
-    public synchronized void writePhysicalSamples(double[] physicalSamples) throws EdfRuntimeException {
-        if(isClosed) {
-            return;
-        }
-        super.writePhysicalSamples(physicalSamples);
+    public void writeDigitalSamples(int[] digitalSamples) {
+
+
+
     }
+
 
     /**
      *
      * @param digitalSamples data array with digital samples
      * @param offset the start calculateOffset in the data.
      * @param length the number of bytes to write.
-     * @throws IllegalStateException if EdfConfig was not set
-     * @throws EdfRuntimeException  if an I/O  occurs while writing data to the file
+     * @throws IOException  if an I/O  occurs while writing data to the file
      */
-    public synchronized void writeDigitalSamples(int[] digitalSamples, int offset, int length) throws EdfRuntimeException, IllegalStateException {
+    public void writeDigitalSamples(int[] digitalSamples, int offset, int length) throws EdfRuntimeException, IllegalStateException {
         if(isClosed) {
             return;
-        }
-        if(header == null) {
-            throw new IllegalStateException("Recording configuration info is not specified! EdfConfig = "+ header);
         }
         try {
             HeaderConfig config = (HeaderConfig) this.header;
@@ -139,10 +137,81 @@ public class EdfWriter {
     }
 
     /**
-     *
-     * @throws EdfRuntimeException  if an I/O  occurs while closing the file writer
+     * Writes the entire DataRecord (data pack) containing "raw" digital samples from all signals
+     * starting with n_0 samples of signal 0, n_1 samples of signal 1, n_2 samples of signal 2, etc.
+     * <br>
+     * Where number of samples of signal i: n_i = (sample frequency of the signal_i) * (duration of DataRecord).
+     * @param digitalDataRecord array with digital (int) samples from all signals
      */
-    public synchronized void close() throws EdfRuntimeException {
+    public void writeDigitalRecord(int[] digitalDataRecord) {
+        writeDigitalSamples(digitalDataRecord, 0, edfConfig.getDataRecordLength());
+    }
+
+
+    /**
+     * Writes n physical samples (uV, mA, Ohm) belonging to one signal.
+     * The number of written samples : n = (sample frequency of the signal) * (duration of DataRecord).
+     * <p>
+     * The physical samples will be converted to digital samples using the
+     * values of physical maximum, physical minimum, digital maximum and digital minimum.
+     * <p>
+     * Call this method for every signal (channel) in the file. The order is important!
+     * When there are 4 signals,  the order of calling this method must be:
+     * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
+     * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
+     * <br> ... etc.
+     * @param physicalSamples data array with physical (double) samples belonging to one signal
+     */
+    public void writePhysicalSamples(double[] physicalSamples) throws IllegalStateException {
+        if(edfConfig == null) {
+            throw new IllegalStateException("Recording configuration info is not specified! EdfConfig = "+ edfConfig);
+        }
+        int[] digSamples = new int[physicalSamples.length];
+        int signalNumber;
+        for (int i = 0; i < physicalSamples.length; i++) {
+            signalNumber = edfConfig.sampleNumberToSignalNumber(sampleCounter + i + 1);
+            digSamples[i] = edfConfig.physicalValueToDigital(signalNumber, physicalSamples[i]);
+        }
+
+        writeDigitalSamples(digSamples);
+    }
+
+    /**
+     * Writes the entire DataRecord (data pack) containing physical samples (uV, mA, Ohm) from all signals
+     * starting with n_0 samples of signal 0, n_1 samples of signal 1, n_2 samples of signal 2, etc.
+     * <br>
+     * Where number of samples of signal i: n_i = (sample frequency of the signal_i) * (duration of DataRecord).
+     * <p>
+     * The physical samples will be converted to digital samples using the
+     * values of physical maximum, physical minimum, digital maximum and digital minimum.
+     * @param physicalDataRecord array with physical (double) samples from all signals
+     */
+    public void writePhysicalRecord(double[] physicalDataRecord) {
+
+    }
+
+
+    /**
+     * Gets the number of received data records (data packages).
+     * @return number of received data records
+     */
+    public int getNumberOfReceivedDataRecords() {
+        if(edfConfig == null || edfConfig.getDataRecordLength()== 0) {
+            return 0;
+        }
+        return (int) (sampleCounter / edfConfig.getDataRecordLength());
+    }
+
+
+
+    /**
+     * Closes this Edf/Bdf file for writing DataRecords and releases any system resources associated with
+     * it. This method MUST be called after finishing writing DataRecords.
+     * Failing to do so will cause unnessesary memory usage and corrupted and incomplete data writing.
+
+     * @throws IOException  if an I/O  occurs while writing data to the file
+     */
+    public void close() throws IOException {
         if(isClosed) {
             return;
         }

@@ -289,7 +289,7 @@ public class DefaultEdfConfig {
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @return Gain of the signal
      */
-    public double gain(int signalNumber) {
+    public double getGain(int signalNumber) {
         return signals.get(signalNumber).getGain();
     }
 
@@ -301,7 +301,7 @@ public class DefaultEdfConfig {
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @return Offset of the signal
      */
-    public double offset(int signalNumber) {
+    public double getOffset(int signalNumber) {
         return signals.get(signalNumber).getOffset();
     }
 
