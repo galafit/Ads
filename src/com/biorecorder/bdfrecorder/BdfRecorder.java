@@ -1,14 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.edflib.base.DefaultEdfConfig;
-import com.biorecorder.edflib.base.EdfConfig;
-import com.biorecorder.edflib.base.EdfWriter;
-import com.biorecorder.edflib.filters.EdfFilter;
-import com.biorecorder.edflib.filters.EdfJoiner;
-import com.biorecorder.edflib.filters.EdfSignalsFilter;
-import com.biorecorder.edflib.filters.EdfSignalsRemover;
-import com.biorecorder.edflib.filters.signalfilters.SignalFilter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -240,14 +232,14 @@ public class BdfRecorder {
             BdfSignalsRemover edfSignalsRemover = new BdfSignalsRemover(edfJoiner);
             if (recorderConfig.isLeadOffEnabled()) {
                 // delete helper Lead-off channel
-                edfSignalsRemover.removeSignal(adsDataRecordConfig.getSignalsCount() - 1);
+                edfSignalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 1);
             }
             if (recorderConfig.isBatteryVoltageMeasureEnabled()) {
                 // delete helper BatteryVoltage channel
                 if (recorderConfig.isLeadOffEnabled()) {
-                    edfSignalsRemover.removeSignal(adsDataRecordConfig.getSignalsCount() - 2);
+                    edfSignalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 2);
                 } else {
-                    edfSignalsRemover.removeSignal(adsDataRecordConfig.getSignalsCount() - 1);
+                    edfSignalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 1);
                 }
             }
 
@@ -262,14 +254,14 @@ public class BdfRecorder {
 
         private EdfConfig getAdsDataRecordConfig(RecorderConfig recorderConfig) {
             AdsConfig adsConfig = recorderConfig.getAdsConfig();
-            DefaultEdfConfig edfConfig = new DefaultEdfConfig();
+            EdfHeader edfConfig = new EdfHeader();
             edfConfig.setRecordingIdentification(recorderConfig.getRecordingIdentification());
             edfConfig.setPatientIdentification(recorderConfig.getPatientIdentification());
             edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
             for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
                 if (adsConfig.isAdsChannelEnabled(i)) {
                     edfConfig.addSignal();
-                    int signalNumber = edfConfig.getSignalsCount() - 1;
+                    int signalNumber = edfConfig.signalsCount() - 1;
                     edfConfig.setTransducer(signalNumber, "Unknown");
                     edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
                     edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
@@ -284,7 +276,7 @@ public class BdfRecorder {
             if (adsConfig.isAccelerometerEnabled()) {
                 if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
                     edfConfig.addSignal();
-                    int signalNumber = edfConfig.getSignalsCount() - 1;
+                    int signalNumber = edfConfig.signalsCount() - 1;
                     edfConfig.setLabel(signalNumber, "Accelerometer");
                     edfConfig.setTransducer(signalNumber, "None");
                     edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
@@ -297,7 +289,7 @@ public class BdfRecorder {
                     String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
                     for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
                         edfConfig.addSignal();
-                        int signalNumber = edfConfig.getSignalsCount() - 1;
+                        int signalNumber = edfConfig.signalsCount() - 1;
                         edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
                         edfConfig.setTransducer(signalNumber, "None");
                         edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
@@ -311,7 +303,7 @@ public class BdfRecorder {
             }
             if (adsConfig.isBatteryVoltageMeasureEnabled()) {
                 edfConfig.addSignal();
-                int signalNumber = edfConfig.getSignalsCount() - 1;
+                int signalNumber = edfConfig.signalsCount() - 1;
                 edfConfig.setLabel(signalNumber, "Battery voltage");
                 edfConfig.setTransducer(signalNumber, "None");
                 edfConfig.setPhysicalDimension(signalNumber, adsConfig.getBatteryVoltageDimension());
@@ -323,7 +315,7 @@ public class BdfRecorder {
             }
             if (adsConfig.isLeadOffEnabled()) {
                 edfConfig.addSignal();
-                int signalNumber = edfConfig.getSignalsCount() - 1;
+                int signalNumber = edfConfig.signalsCount() - 1;
                 edfConfig.setLabel(signalNumber, "Lead Off Status");
                 edfConfig.setTransducer(signalNumber, "None");
                 edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());

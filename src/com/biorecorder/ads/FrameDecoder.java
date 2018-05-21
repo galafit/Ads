@@ -39,7 +39,7 @@ class FrameDecoder implements ComPortListener {
         dataRecordSize = getRawFrameSize();
         decodedFrameSize = getDecodedFrameSize();
         rawFrame = new byte[Math.max(dataRecordSize, MAX_MESSAGE_SIZE)];
-       // log.info("Com port frame size: " + dataRecordSize + " bytes");
+       // log.info("Com port frame size: " + calculateDataRecordSize + " bytes");
     }
 
     public int getDataRecordSize() {

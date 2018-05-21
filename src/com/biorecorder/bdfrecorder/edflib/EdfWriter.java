@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.MessageFormat;
+import java.nio.channels.FileChannel;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Random;
 
 /**
  * This class permits to write digital or physical samples
@@ -26,16 +29,21 @@ import java.text.MessageFormat;
  * and in this form written to the file.
  */
 public class EdfWriter {
-    private volatile long recordsCount;
-    private int signalNumber;
-    private File file;
-    private long startTime;
-    private long stopTime;
-    private double actualDurationOfDataRecord;
-    private boolean isDurationOfDataRecordsComputable;
-    private FileOutputStream fileOutputStream;
+    private final String CLOSED_MSG = "File was closed. Data can not be written";
+    private final String NUMBER_OF_SIGNALS_ZERO = "Number of signals is 0. Data can not be written";
+
+    private final EdfHeader header;
+    private final File file;
+    private volatile long firstRecordTime;
+    private volatile long lastRecordTime;
+    private volatile boolean isDurationOfDataRecordsComputable = false;
+    private final boolean isStartTimeUndefined;
+    private volatile long sampleCount;
+
+    private final FileOutputStream fileOutputStream;
     private volatile boolean isClosed = false;
-    private volatile EdfHeader header;
+    private final int recordSize; // helper field to avoid unnecessary calculations
+    private int numberOfWrittenSignals;
 
     /**
      * Creates EdfWriter to write data samples to the file represented by
@@ -52,16 +60,13 @@ public class EdfWriter {
         this.header = header;
         this.file = file;
         fileOutputStream = new FileOutputStream(file);
-
-    }
-
-
-    /**
-     * Gets the Edf/Bdf file where data are saved
-     * @return Edf/Bdf file
-     */
-    public File getFile() {
-        return file;
+        recordSize = header.getDataRecordSize();
+        this.header.setNumberOfDataRecords(-1);
+        if(header.getRecordingStartTimeMs() < 0) {
+            isStartTimeUndefined = true;
+        } else {
+            isStartTimeUndefined = false;
+        }
     }
 
     /**
@@ -76,7 +81,6 @@ public class EdfWriter {
         this.isDurationOfDataRecordsComputable = isComputable;
     }
 
-
     /**
      * Writes n "raw" digital (integer) samples belonging to one signal.
      * The number of written samples : n = (sample frequency of the signal) * (duration of DataRecord).
@@ -87,52 +91,76 @@ public class EdfWriter {
      * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
      * <br> ... etc.
      * @param digitalSamples data array with digital samples belonging to one signal
+     * @throws IOException if file was close,
+     * if number of signals for that file is 0,
+     * or an I/O error occurs.
      */
-    public void writeDigitalSamples(int[] digitalSamples) {
-
-
-
+    public void writeDigitalSamples(int[] digitalSamples) throws IOException {
+        if(isClosed) {
+            throw new IOException(CLOSED_MSG);
+        }
+        if(header.signalsCount() == 0) {
+            throw new IOException(NUMBER_OF_SIGNALS_ZERO);
+        }
+        int sn = header.getNumberOfSamplesInEachDataRecord(numberOfWrittenSignals);
+        int digMin = header.getDigitalMin(numberOfWrittenSignals);
+        int digMax = header.getDigitalMax(numberOfWrittenSignals);
+        for (int i = 0; i < sn; i++) {
+            if(digitalSamples[i] < digMin) {
+                digitalSamples[i] = digMin;
+            }
+            if(digitalSamples[i] > digMax) {
+                digitalSamples[i] = digMax;
+            }
+        }
+        /** TODO: Bdf browser writes header with updated numberOfDataRecords (and other info)
+         * every time when it writs data. May be we should do the same.
+         * At the moment we write header only 2 times: with first data recording
+         * and when the EdfWriter is closed
+         **/
+        if(sampleCount == 0) {
+            writeHeaderToFile();
+        }
+        writeDataToFile(digitalSamples, sn);
+        numberOfWrittenSignals++;
+        if(numberOfWrittenSignals == header.signalsCount()) {
+            numberOfWrittenSignals = 0;
+        }
     }
 
-
-    /**
-     *
-     * @param digitalSamples data array with digital samples
-     * @param offset the start calculateOffset in the data.
-     * @param length the number of bytes to write.
-     * @throws IOException  if an I/O  occurs while writing data to the file
-     */
-    public void writeDigitalSamples(int[] digitalSamples, int offset, int length) throws EdfRuntimeException, IllegalStateException {
-        if(isClosed) {
-            return;
+    private void writeDataToFile(int[] samples, int length) throws IOException {
+        if (sampleCount == 0) {
+            // 1 second = 1000 msec
+            firstRecordTime = System.currentTimeMillis();
         }
-        try {
-            HeaderConfig config = (HeaderConfig) this.header;
-            if (sampleCounter == 0) {
-                // 1 second = 1000 msec
-                startTime = System.currentTimeMillis() - (long) config.getDurationOfDataRecord() * 1000;
-                // setRecordingStartDateTimeMs делаем только если bdfHeader.getRecordingStartDateTimeMs == -1
-                // если например идет копирование данных из файла в файл и
-                // bdfHeader.getRecordingStartDateTimeMs имеет нормальное значение то изменять его не нужно
-                if (config.getRecordingStartDateTimeMs() < 0) {
-                    config.setRecordingStartDateTimeMs(startTime);
-                }
-                config.setNumberOfDataRecords(-1);
-                fileOutputStream.write(config.createFileHeader());
-            }
-
-            int numberOfBytesPerSample = config.getFileType().getNumberOfBytesPerSample();
-            byte[] byteArray = new byte[numberOfBytesPerSample * length];
-            EndianBitConverter.intArrayToLittleEndianByteArray(digitalSamples, offset, byteArray, 0, length, numberOfBytesPerSample);
-            fileOutputStream.write(byteArray);
-        } catch (IOException e) {
-            String errMsg = MessageFormat.format("Error while writing data to the file: {0}. Check available HD space.", file);
-            throw new EdfRuntimeException(errMsg, e);
+        if(sampleCount % recordSize == 0) {
+            lastRecordTime = System.currentTimeMillis();
         }
-        sampleCounter += digitalSamples.length;
-        stopTime = System.currentTimeMillis();
-        if (getNumberOfReceivedDataRecords() > 0) {
-            actualDurationOfDataRecord = (stopTime - startTime) * 0.001 / getNumberOfReceivedDataRecords();
+        sampleCount += length;
+        int numberOfBytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
+        byte[] byteArray = new byte[numberOfBytesPerSample * length];
+        EndianBitConverter.intArrayToLittleEndianByteArray(samples, 0, byteArray, 0, length, numberOfBytesPerSample);
+        fileOutputStream.write(byteArray);
+    }
+
+    private void writeHeaderToFile() throws IOException {
+        Long numberOfReceivedRecords = getNumberOfReceivedDataRecords();
+        if(numberOfReceivedRecords > 0) {
+            header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
+        }
+        if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
+            double durationOfRecord = (lastRecordTime - firstRecordTime) * 1000 / numberOfReceivedRecords;
+            header.setDurationOfDataRecord(durationOfRecord);
+        }
+        if(isStartTimeUndefined) {
+            header.setRecordingStartTimeMs(firstRecordTime  - (long) (header.getDurationOfDataRecord() * 1000));
+        }
+        FileChannel fileChannel = fileOutputStream.getChannel();
+        long currentPosition = fileChannel.position();
+        fileChannel.position(0);
+        fileOutputStream.write(new HeaderRecord(header).getbytes());
+        if(currentPosition > 0) {
+            fileChannel.position(currentPosition);
         }
     }
 
@@ -142,9 +170,33 @@ public class EdfWriter {
      * <br>
      * Where number of samples of signal i: n_i = (sample frequency of the signal_i) * (duration of DataRecord).
      * @param digitalDataRecord array with digital (int) samples from all signals
+     * @throws IOException if file was close,
+     * if number of signals for that file is 0,
+     * or an I/O error occurs.
      */
-    public void writeDigitalRecord(int[] digitalDataRecord) {
-        writeDigitalSamples(digitalDataRecord, 0, edfConfig.getDataRecordLength());
+    public void writeDigitalRecord(int[] digitalDataRecord) throws IOException {
+        if(isClosed) {
+            throw new IOException(CLOSED_MSG);
+        }
+        if(header.signalsCount() == 0) {
+            throw new IOException(NUMBER_OF_SIGNALS_ZERO);
+        }
+        int counter = 0;
+        for (int signal = 0; signal < header.signalsCount(); signal++) {
+            int sn = header.getNumberOfSamplesInEachDataRecord(signal);
+            int digMin = header.getDigitalMin(signal);
+            int digMax = header.getDigitalMax(signal);
+            for (int i = 0; i < sn; i++) {
+                if(digitalDataRecord[counter] < digMin) {
+                    digitalDataRecord[counter] = digMin;
+                }
+                if(digitalDataRecord[counter] > digMax) {
+                    digitalDataRecord[counter] = digMax;
+                }
+                counter++;
+            }
+        }
+        writeDataToFile(digitalDataRecord, recordSize);
     }
 
 
@@ -161,18 +213,16 @@ public class EdfWriter {
      * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
      * <br> ... etc.
      * @param physicalSamples data array with physical (double) samples belonging to one signal
+     * @throws IOException if file was close,
+     * if number of signals for that file is 0,
+     * or an I/O error occurs.
      */
-    public void writePhysicalSamples(double[] physicalSamples) throws IllegalStateException {
-        if(edfConfig == null) {
-            throw new IllegalStateException("Recording configuration info is not specified! EdfConfig = "+ edfConfig);
+    public void writePhysicalSamples(double[] physicalSamples) throws IOException {
+        int ns = header.getNumberOfSamplesInEachDataRecord(numberOfWrittenSignals);
+        int digSamples[] = new int[ns];
+        for (int i = 0; i < ns; i++) {
+            digSamples[i] = header.physicalValueToDigital(numberOfWrittenSignals, physicalSamples[i]);
         }
-        int[] digSamples = new int[physicalSamples.length];
-        int signalNumber;
-        for (int i = 0; i < physicalSamples.length; i++) {
-            signalNumber = edfConfig.sampleNumberToSignalNumber(sampleCounter + i + 1);
-            digSamples[i] = edfConfig.physicalValueToDigital(signalNumber, physicalSamples[i]);
-        }
-
         writeDigitalSamples(digSamples);
     }
 
@@ -185,53 +235,74 @@ public class EdfWriter {
      * The physical samples will be converted to digital samples using the
      * values of physical maximum, physical minimum, digital maximum and digital minimum.
      * @param physicalDataRecord array with physical (double) samples from all signals
+     * @throws IOException if file was close,
+     * if number of signals for that file is 0,
+     * or an I/O error occurs.
      */
-    public void writePhysicalRecord(double[] physicalDataRecord) {
-
-    }
-
-
-    /**
-     * Gets the number of received data records (data packages).
-     * @return number of received data records
-     */
-    public int getNumberOfReceivedDataRecords() {
-        if(edfConfig == null || edfConfig.getDataRecordLength()== 0) {
-            return 0;
+    public void writePhysicalRecord(double[] physicalDataRecord) throws IOException {
+        int digSamples[] = new int[recordSize];
+        int counter = 0;
+        for (int signal = 0; signal < header.signalsCount(); signal++) {
+            int sn = header.getNumberOfSamplesInEachDataRecord(signal);
+            for (int i = 0; i < sn; i++) {
+                digSamples[counter] = header.physicalValueToDigital(signal, physicalDataRecord[counter]);
+                counter++;
+            }
         }
-        return (int) (sampleCounter / edfConfig.getDataRecordLength());
+        writeDigitalRecord(digSamples);
     }
-
-
 
     /**
      * Closes this Edf/Bdf file for writing DataRecords and releases any system resources associated with
      * it. This method MUST be called after finishing writing DataRecords.
      * Failing to do so will cause unnessesary memory usage and corrupted and incomplete data writing.
-
-     * @throws IOException  if an I/O  occurs while writing data to the file
+     *
+     * @throws IOException  if an I/O  occurs
      */
     public void close() throws IOException {
         if(isClosed) {
             return;
         }
         isClosed = true;
-        HeaderConfig config = (HeaderConfig) this.header;
-        if (config.getNumberOfDataRecords() == -1) {
-            config.setNumberOfDataRecords(getNumberOfReceivedDataRecords());
-        }
-        if (isDurationOfDataRecordsComputable && actualDurationOfDataRecord > 0) {
-            config.setDurationOfDataRecord(actualDurationOfDataRecord);
-        }
-        FileChannel channel = fileOutputStream.getChannel();
         try {
-            channel.position(0);
-            fileOutputStream.write(config.createFileHeader());
+            writeHeaderToFile();
             fileOutputStream.close();
         } catch (IOException e) {
-            String errMsg = MessageFormat.format("Error while closing the file: {0}.", file);
-            new EdfRuntimeException(errMsg, e);
+            fileOutputStream.close();
+            throw e;
         }
+    }
+
+    /**
+     * Gets the Edf/Bdf file where data are saved
+     * @return Edf/Bdf file
+     */
+    public File getFile() {
+        return file;
+    }
+
+    /**
+     * Gets the number of received data records (data packages).
+     * @return number of received data records
+     */
+    public long getNumberOfReceivedDataRecords() {
+        if(recordSize == 0) {
+            return 0;
+        }
+        return (int) (sampleCount / recordSize);
+    }
+
+
+    public boolean isClosed() {
+        return isClosed;
+    }
+
+    public long getFirstRecordTime() {
+        return firstRecordTime;
+    }
+
+    public long getLastRecordTime() {
+        return lastRecordTime;
     }
 
     /**
@@ -241,14 +312,19 @@ public class EdfWriter {
      * @return string with some info about writing process
      */
     public String getWritingInfo() {
+        long numberOfRecords = getNumberOfReceivedDataRecords();
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
         StringBuilder stringBuilder = new StringBuilder("\n");
-        stringBuilder.append("Start recording time = " + startTime + " (" + dateFormat.format(new Date(startTime)) + ") \n");
-        stringBuilder.append("Stop recording time = " + stopTime + " (" + dateFormat.format(new Date(stopTime)) + ") \n");
-        stringBuilder.append("Number of data records = " + getNumberOfReceivedDataRecords() + "\n");
-        stringBuilder.append("Actual duration of a data record = " + actualDurationOfDataRecord);
+        stringBuilder.append("Start recording time = " + firstRecordTime + " (" + dateFormat.format(new Date(firstRecordTime)) + ") \n");
+        stringBuilder.append("Stop recording time = " + lastRecordTime + " (" + dateFormat.format(new Date(lastRecordTime)) + ") \n");
+        stringBuilder.append("Number of data records = " + numberOfRecords + "\n");
+        if(numberOfRecords > 1) {
+            double durationOfRecord = (lastRecordTime - firstRecordTime) * 1000 / numberOfRecords;
+            stringBuilder.append("Calculated duration of data records = " + durationOfRecord);
+        }
         return stringBuilder.toString();
     }
+
 
     /**
      * Unit Test. Usage Example.
@@ -270,26 +346,31 @@ public class EdfWriter {
         int channel1Frequency = 5; // Hz
 
         // create header info for the file describing data records structure
-        HeaderConfig headerConfig = new HeaderConfig(2, DataFormat.EDF_16BIT);
+        EdfHeader header = new EdfHeader(DataFormat.EDF_16BIT, 2);
         // Signal numbering starts from 0!
         // configure signal (channel) number 0
-        headerConfig.setSampleFrequency(0, channel0Frequency);
-        headerConfig.setLabel(0, "first channel");
-        headerConfig.setPhysicalRange(0, -500, 500);
-        headerConfig.setDigitalRange(0, -2048, -2047);
-        headerConfig.setPhysicalDimension(0, "uV");
+        header.setSampleFrequency(0, channel0Frequency);
+        header.setLabel(0, "first channel");
+        header.setPhysicalRange(0, -500, 500);
+        header.setDigitalRange(0, -2048, -2047);
+        header.setPhysicalDimension(0, "uV");
 
         // configure signal (channel) number 1
-        headerConfig.setSampleFrequency(1, channel1Frequency);
-        headerConfig.setLabel(1, "second channel");
-        headerConfig.setPhysicalRange(1, 100, 300);
+        header.setSampleFrequency(1, channel1Frequency);
+        header.setLabel(1, "second channel");
+        header.setPhysicalRange(1, 100, 300);
 
         // create file
         File recordsDir = new File(System.getProperty("user.dir"), "records");
         File file = new File(recordsDir, "test.edf");
 
-        // create EdfFileWriter to write edf data to that file
-        EdfFileWriter fileWriter = new EdfFileWriter(file, headerConfig);
+        // create EdfWriter to write edf data to that file
+        EdfWriter fileWriter = null;
+        try {
+            fileWriter = new EdfWriter(file, header);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
 
         // create and write samples
         int[] samplesFromChannel0 = new int[channel0Frequency];
@@ -307,15 +388,23 @@ public class EdfWriter {
             }
 
             // write samples from both channels to the edf file
-            fileWriter.writeDigitalSamples(samplesFromChannel0);
-            fileWriter.writeDigitalSamples(samplesFromChannel1);
+            try {
+                fileWriter.writeDigitalSamples(samplesFromChannel0);
+                fileWriter.writeDigitalSamples(samplesFromChannel1);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+        // close EdfFileWriter. Always must be called after finishing writing DataRecords.
+        try {
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        // close EdfFileWriter. Always must be called after finishing writing DataRecords.
-        fileWriter.close();
-
         // print header info
-        System.out.println(headerConfig);
+        System.out.println(header);
         System.out.println();
         // print writing info
         System.out.println(fileWriter.getWritingInfo());

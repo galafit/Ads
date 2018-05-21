@@ -27,8 +27,8 @@ public class HeaderFormatException extends Exception {
     public static final String TYPE_NUMBER_OF_SIGNALS_INVALID = "Number of signals invalid. Expected int >= 0";
     public static final String TYPE_SIGNAL_PHYSICAL_MIN_INVALID = "Physical min invalid. Expected double";
     public static final String TYPE_SIGNAL_PHYSICAL_MAX_INVALID = "Physical max invalid. Expected double";
-    public static final String TYPE_SIGNAL_DIGITAL_MIN_INVALID = "Digital min invalid. Expected int";
-    public static final String TYPE_SIGNAL_DIGITAL_MAX_INVALID = "Digital max invalid. Expected int";
+    public static final String TYPE_SIGNAL_DIGITAL_MIN_INVALID = "Digital min invalid. Expected int >= -32768 (-8388608) for EDF (BDF)";
+    public static final String TYPE_SIGNAL_DIGITAL_MAX_INVALID = "Digital max invalid. Expected int <= 32767 (8388607) for EDF (BDF)";
     public static final String TYPE_SIGNAL_PHYSICAL_MAX_LOWER_OR_EQUAL_MIN = "Physical max <= Physical min";
     public static final String TYPE_SIGNAL_DIGITAL_MAX_LOWER_OR_EQUAL_MIN = "Digital max <= Digital min";
     public static final String TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_INVALID = "Number of samples in data record invalid. Expected int >= 0";

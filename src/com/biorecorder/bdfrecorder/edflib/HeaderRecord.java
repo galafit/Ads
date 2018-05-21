@@ -9,6 +9,9 @@ import java.util.Arrays;
 import java.util.Date;
 
 /**
+ * This class is wrapper around array of byte[]
+ * storing header info that gives easy access to all fields.
+ * <p>
  * BDF HEADER RECORD
  * <br>8 ascii : version of this data format (0)
  * <br>80 ascii : local patient identification (mind item 3 of the additional EDF+ specs)
@@ -119,8 +122,8 @@ public class HeaderRecord {
 
     public HeaderRecord(EdfHeader edfHeader) {
         // convert this HeaderConfig object to byte array
-        String startDateOfRecording = new SimpleDateFormat("dd.MM.yy").format(new Date(edfHeader.getRecordingStartDateTimeMs()));
-        String startTimeOfRecording = new SimpleDateFormat("HH.mm.ss").format(new Date(edfHeader.getRecordingStartDateTimeMs()));
+        String startDateOfRecording = new SimpleDateFormat("dd.MM.yy").format(new Date(edfHeader.getRecordingStartTimeMs()));
+        String startTimeOfRecording = new SimpleDateFormat("HH.mm.ss").format(new Date(edfHeader.getRecordingStartTimeMs()));
 
         StringBuilder headerBuilder = new StringBuilder();
         headerBuilder.append(adjustLength(edfHeader.getDataFormat().getVersion(), VERSION_LENGTH - 1));  // -1 because first non ascii byte (or "0" for edf) we will add later
@@ -132,7 +135,7 @@ public class HeaderRecord {
         headerBuilder.append(adjustLength(edfHeader.getDataFormat().getFirstReserved(), RESERVED_LENGTH));
         headerBuilder.append(adjustLength(Integer.toString(edfHeader.getNumberOfDataRecords()), NUMBER_Of_DATARECORDS_LENGTH));
         headerBuilder.append(adjustLength(double2String(edfHeader.getDurationOfDataRecord()), DURATION_OF_DATARECORD_LENGTH));
-        headerBuilder.append(adjustLength(Integer.toString(edfHeader.getSignalsCount()), NUMBER_OF_SIGNALS_LENGTH));
+        headerBuilder.append(adjustLength(Integer.toString(edfHeader.signalsCount()), NUMBER_OF_SIGNALS_LENGTH));
 
 
         StringBuilder labels = new StringBuilder();
@@ -146,7 +149,7 @@ public class HeaderRecord {
         StringBuilder samplesNumbers = new StringBuilder();
         StringBuilder reservedForChannels = new StringBuilder();
 
-        for (int i = 0; i < edfHeader.getSignalsCount(); i++) {
+        for (int i = 0; i < edfHeader.signalsCount(); i++) {
             labels.append(adjustLength(edfHeader.getLabel(i), SIGNAL_LABEL_LENGTH));
             transducerTypes.append(adjustLength(edfHeader.getTransducer(i), SIGNAL_TRANSDUCER_TYPE_LENGTH));
             physicalDimensions.append(adjustLength(edfHeader.getPhysicalDimension(i), SIGNAL_PHYSICAL_DIMENSION_LENGTH));
@@ -286,7 +289,7 @@ public class HeaderRecord {
         EdfHeader edfHeader = new EdfHeader(dataFormat, realNumberOfSignals);
         edfHeader.setPatientIdentification(patientIdentification());
         edfHeader.setRecordingIdentification(recordingIdentification());
-        edfHeader.setRecordingStartDateTimeMs(startingDateTime);
+        edfHeader.setRecordingStartTimeMs(startingDateTime);
         edfHeader.setNumberOfDataRecords(numberOfRecords);
         edfHeader.setDurationOfDataRecord(recordDuration);
 
@@ -321,6 +324,10 @@ public class HeaderRecord {
             } catch (NumberFormatException ex) {
                 throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MIN_INVALID, digMinString, i);
             }
+            if(dataFormat == DataFormat.EDF_16BIT && digMin < -32768 || dataFormat == DataFormat.BDF_24BIT && digMin < -8388608) {
+                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MIN_INVALID, digMinString, i);
+            }
+
             String digMaxString = signalDigitalMax(i);
             int digMax;
             try {
@@ -328,6 +335,10 @@ public class HeaderRecord {
             } catch (NumberFormatException ex) {
                 throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MAX_INVALID, digMaxString, i);
             }
+            if(dataFormat == DataFormat.EDF_16BIT && digMax > 32767 || dataFormat == DataFormat.BDF_24BIT && digMax > 8388607) {
+                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MAX_INVALID, digMaxString, i);
+            }
+
             if(digMax <= digMin) {
                 throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MAX_LOWER_OR_EQUAL_MIN, "max: "+digMax + ", min: "+digMin, i);
             }
