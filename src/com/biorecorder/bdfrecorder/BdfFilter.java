@@ -31,7 +31,7 @@ public abstract class BdfFilter implements BdfDataProducer {
 
     protected abstract void filterData(int[] inputRecord);
 
-    public static int recordLength(BdfDataProducer dataProducer) {
+    public static int recordSize(BdfDataProducer dataProducer) {
         int totalNumberOfSamplesInRecord = 0;
         for (int i = 0; i < dataProducer.getSignalsCount(); i++) {
             totalNumberOfSamplesInRecord += dataProducer.getNumberOfSamplesInEachDataRecord(i);

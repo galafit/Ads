@@ -36,7 +36,6 @@ import java.util.Date;
  */
 public class HeaderRecord {
     private static Charset ASCII = Charset.forName("US-ASCII");
-    private static String failedToReadHeaderErrMsg = "Failed to read header record.";
 
     private static final int VERSION_LENGTH = 8;
     private static final int PATIENT_ID_LENGTH = 80;
@@ -85,15 +84,14 @@ public class HeaderRecord {
     private int numberOfSignals;
     private byte[] headerBuffer;
 
-    public HeaderRecord(File file) throws FileNotFoundException,  FailedReadHeaderException {
+    public HeaderRecord(File file) throws FileNotFoundException,  IOException, HeaderException {
         FileInputStream inputStream = new FileInputStream(file);
-        long fileSize = file.length();
         numberOfSignals = 0;
-        headerBuffer = readHeader(inputStream, numberOfSignals, fileSize);
+        headerBuffer = readHeader(inputStream, numberOfSignals);
         try {
           int realNumberOfSignals = Integer.valueOf(getNumberOfSignals(headerBuffer));
             if(realNumberOfSignals > 0) {
-                headerBuffer = readHeader(inputStream, realNumberOfSignals, fileSize);
+                headerBuffer = readHeader(inputStream, realNumberOfSignals);
                 numberOfSignals = realNumberOfSignals;
             }
         } catch (NumberFormatException ex) {
@@ -102,20 +100,14 @@ public class HeaderRecord {
 
     }
 
-    byte[] getbytes() {
+    byte[] getBytes() {
         return headerBuffer;
     }
 
-    private byte[] readHeader(InputStream inputStream, int numberOfSignals, long fileSize) throws  FailedReadHeaderException {
+    private byte[] readHeader(InputStream inputStream, int numberOfSignals) throws  IOException, HeaderException {
         byte[] buffer = new byte [numberOfBytesInHeader(numberOfSignals)];
-        int numberCharactersRead = 0;
-        try {
-            numberCharactersRead = inputStream.read(buffer);
-        } catch (IOException e) {
-            throw new FailedReadHeaderException(failedToReadHeaderErrMsg, e);
-        }
-        if(numberCharactersRead < buffer.length) {
-            throw new FailedReadHeaderException(failedToReadHeaderErrMsg + " file size: "+fileSize+", header record size: "+ buffer.length);
+        if(inputStream.read(buffer) < buffer.length) {
+            throw new HeaderException(HeaderException.TYPE_HEADER_NOT_COMPLETE);
         }
         return buffer;
     }
@@ -188,7 +180,7 @@ public class HeaderRecord {
     }
 
 
-    public EdfHeader getHeaderInfo() throws HeaderFormatException {
+    public EdfHeader getHeaderInfo() throws HeaderException {
 
 /******************** VERSION OF DATA FORMAT *********************************************/
         String versionString = bytesToStringASCII(headerBuffer, 0, 8);
@@ -200,14 +192,14 @@ public class HeaderRecord {
             if(version_.equals(expectedVersion)) {
                 dataFormat = DataFormat.BDF_24BIT;
             } else {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_VERSION_FORMAT_INVALID,versionString );
+                throw new HeaderException(HeaderException.TYPE_VERSION_FORMAT_INVALID,versionString );
             }
         } else { // EDF
             String expectedVersion = adjustLength("0", VERSION_LENGTH);
             if(versionString.equals(expectedVersion)) {
                 dataFormat = DataFormat.EDF_16BIT;
             } else {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_VERSION_FORMAT_INVALID, versionString);
+                throw new HeaderException(HeaderException.TYPE_VERSION_FORMAT_INVALID, versionString);
             }
         }
 
@@ -217,10 +209,10 @@ public class HeaderRecord {
         try {
             realNumberOfSignals = Integer.valueOf(numberOfSignalsString);
         } catch (NumberFormatException ex) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_NUMBER_OF_SIGNALS_INVALID, numberOfSignalsString);
+            throw new HeaderException(HeaderException.TYPE_NUMBER_OF_SIGNALS_INVALID, numberOfSignalsString);
         }
         if(realNumberOfSignals < 0) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_NUMBER_OF_SIGNALS_INVALID, numberOfSignalsString);
+            throw new HeaderException(HeaderException.TYPE_NUMBER_OF_SIGNALS_INVALID, numberOfSignalsString);
         }
 /******************** START DATE AND TIME *********************************************/
         String dateString = recordingStartDate();
@@ -230,7 +222,7 @@ public class HeaderRecord {
         try {
             dateFormat.parse(dateString);
         } catch (ParseException e) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_DATE_FORMAT_INVALID, dateString);
+            throw new HeaderException(HeaderException.TYPE_DATE_FORMAT_INVALID, dateString);
         }
 
         String timeString = recordingStartTime();
@@ -239,7 +231,7 @@ public class HeaderRecord {
         try {
             timeFormat.parse(timeString);
         } catch (ParseException e) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_TIME_FORMAT_INVALID, timeString);
+            throw new HeaderException(HeaderException.TYPE_TIME_FORMAT_INVALID, timeString);
         }
 
         long startingDateTime = 0;
@@ -258,10 +250,10 @@ public class HeaderRecord {
         try {
             numberOfBytes = Integer.valueOf(numberOfBytesString);
         } catch (NumberFormatException ex) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_NUMBER_OF_BYTES_INVALID, numberOfBytesString);
+            throw new HeaderException(HeaderException.TYPE_NUMBER_OF_BYTES_INVALID, numberOfBytesString);
         }
         if(numberOfBytes != 256 + 256 * realNumberOfSignals) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_NUMBER_OF_BYTES_INVALID, numberOfBytesString);
+            throw new HeaderException(HeaderException.TYPE_NUMBER_OF_BYTES_INVALID, numberOfBytesString);
         }
 /******************** NUMBER OF DATA RECORDS *********************************************/
         String numberOfRecordsString = numberOfDataRecords();
@@ -269,10 +261,10 @@ public class HeaderRecord {
         try {
             numberOfRecords = Integer.valueOf(numberOfRecordsString);
         } catch (NumberFormatException ex) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_NUMBER_OF_RECORDS_INVALID, numberOfRecordsString);
+            throw new HeaderException(HeaderException.TYPE_NUMBER_OF_RECORDS_INVALID, numberOfRecordsString);
         }
         if(numberOfRecords < -1) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_NUMBER_OF_RECORDS_INVALID, numberOfRecordsString);
+            throw new HeaderException(HeaderException.TYPE_NUMBER_OF_RECORDS_INVALID, numberOfRecordsString);
         }
 /******************** DURATION OF DATA RECORDS *********************************************/
         String recordDurationString = numberOfDataRecords();
@@ -280,10 +272,10 @@ public class HeaderRecord {
         try {
             recordDuration = Double.valueOf(recordDurationString);
         } catch (NumberFormatException ex) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_RECORD_DURATION_INVALID, recordDurationString);
+            throw new HeaderException(HeaderException.TYPE_RECORD_DURATION_INVALID, recordDurationString);
         }
         if(recordDuration < 0) {
-            throw new HeaderFormatException(HeaderFormatException.TYPE_RECORD_DURATION_INVALID, recordDurationString);
+            throw new HeaderException(HeaderException.TYPE_RECORD_DURATION_INVALID, recordDurationString);
         }
 
         EdfHeader edfHeader = new EdfHeader(dataFormat, realNumberOfSignals);
@@ -304,17 +296,17 @@ public class HeaderRecord {
             try {
                 physMin = Double.valueOf(physMinString);
             } catch (NumberFormatException ex) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_PHYSICAL_MIN_INVALID, physMinString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_PHYSICAL_MIN_INVALID, physMinString, i);
             }
             String physMaxString = signalPhysicalMax(i);
             double physMax;
             try {
                 physMax = Double.valueOf(physMaxString);
             } catch (NumberFormatException ex) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_PHYSICAL_MAX_INVALID, physMaxString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_PHYSICAL_MAX_INVALID, physMaxString, i);
             }
             if(physMax <= physMin) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_PHYSICAL_MAX_LOWER_OR_EQUAL_MIN, "max: "+physMax + ", min: "+physMin, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_PHYSICAL_MAX_LOWER_OR_EQUAL_MIN, "max: "+physMax + ", min: "+physMin, i);
             }
 /******************** DIGITAL MAX AND MIN *********************************************/
             String digMinString = signalDigitalMin(i);
@@ -322,10 +314,10 @@ public class HeaderRecord {
             try {
                 digMin = Integer.valueOf(digMinString);
             } catch (NumberFormatException ex) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MIN_INVALID, digMinString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_DIGITAL_MIN_INVALID, digMinString, i);
             }
             if(dataFormat == DataFormat.EDF_16BIT && digMin < -32768 || dataFormat == DataFormat.BDF_24BIT && digMin < -8388608) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MIN_INVALID, digMinString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_DIGITAL_MIN_INVALID, digMinString, i);
             }
 
             String digMaxString = signalDigitalMax(i);
@@ -333,14 +325,14 @@ public class HeaderRecord {
             try {
                 digMax = Integer.valueOf(digMaxString);
             } catch (NumberFormatException ex) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MAX_INVALID, digMaxString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_DIGITAL_MAX_INVALID, digMaxString, i);
             }
             if(dataFormat == DataFormat.EDF_16BIT && digMax > 32767 || dataFormat == DataFormat.BDF_24BIT && digMax > 8388607) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MAX_INVALID, digMaxString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_DIGITAL_MAX_INVALID, digMaxString, i);
             }
 
             if(digMax <= digMin) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_DIGITAL_MAX_LOWER_OR_EQUAL_MIN, "max: "+digMax + ", min: "+digMin, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_DIGITAL_MAX_LOWER_OR_EQUAL_MIN, "max: "+digMax + ", min: "+digMin, i);
             }
 /******************** NUMBER OF SAMPLES PER RECORD *********************************************/
             String samplesString = signalNumberOfSamplesInDataRecord(i);
@@ -348,10 +340,10 @@ public class HeaderRecord {
             try {
                 samples = Integer.valueOf(samplesString);
             } catch (NumberFormatException ex) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_INVALID, samplesString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_INVALID, samplesString, i);
             }
             if(samples < 0) {
-                throw new HeaderFormatException(HeaderFormatException.TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_INVALID, samplesString, i);
+                throw new HeaderException(HeaderException.TYPE_SIGNAL_NUMBER_OF_SAMPLES_IN_RECORD_INVALID, samplesString, i);
             }
             edfHeader.setNumberOfSamplesInEachDataRecord(i, samples);
             edfHeader.setPhysicalDimension(i, signalPhysicalDimension(i));

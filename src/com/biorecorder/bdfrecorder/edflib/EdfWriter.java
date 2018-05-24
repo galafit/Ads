@@ -13,17 +13,18 @@ import java.util.Random;
  * This class permits to write digital or physical samples
  * from multiple measuring channels to  EDF or BDF File.
  * Every channel (signal) has its own sample frequency.
+ * Class is not thread safe!!!
  * <p>
  * If the file does not exist it will be created.
  * Already existing file with the same name
  * will be silently overwritten without advance warning!!
  * <p>
- * We may write <b>digital</b> or <b>physical</b>  samples.
- * Every physical (floating point) sample
- * will be converted to the corresponding digital (int) one
+ * When we write <b>physical</b>  samples
+ * every physical (floating point) sample
+ * is converted to the corresponding digital (int) one
  * using physical maximum, physical minimum, digital maximum and digital minimum of the signal.
  * <p>
- * Every digital (int) value will be converted
+ * Every digital (int) value is converted
  * to 2 LITTLE_ENDIAN ordered bytes (16 bits) for EDF files or
  * to 3 LITTLE_ENDIAN ordered bytes (24 bits) for BDF files
  * and in this form written to the file.
@@ -31,6 +32,7 @@ import java.util.Random;
 public class EdfWriter {
     private final String CLOSED_MSG = "File was closed. Data can not be written";
     private final String NUMBER_OF_SIGNALS_ZERO = "Number of signals is 0. Data can not be written";
+    protected final String RECORD_INCOMPLETE = "Last data record is incomplete. Incorrect use of method: writeDigitalSamples/writePhysicalSamples.";
 
     private final EdfHeader header;
     private final File file;
@@ -43,7 +45,7 @@ public class EdfWriter {
     private final FileOutputStream fileOutputStream;
     private volatile boolean isClosed = false;
     private final int recordSize; // helper field to avoid unnecessary calculations
-    private int numberOfWrittenSignals;
+    private int signalWritePosition;
 
     /**
      * Creates EdfWriter to write data samples to the file represented by
@@ -91,20 +93,20 @@ public class EdfWriter {
      * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
      * <br> ... etc.
      * @param digitalSamples data array with digital samples belonging to one signal
-     * @throws IOException if file was close,
-     * if number of signals for that file is 0,
-     * or an I/O error occurs.
+     * @throws IOException if an I/O error occurs
+     * @throws IllegalStateException if file was close,
+     * or number of signals for that file is 0.
      */
     public void writeDigitalSamples(int[] digitalSamples) throws IOException {
         if(isClosed) {
-            throw new IOException(CLOSED_MSG);
+            throw new IllegalStateException(CLOSED_MSG);
         }
         if(header.signalsCount() == 0) {
-            throw new IOException(NUMBER_OF_SIGNALS_ZERO);
+            throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
         }
-        int sn = header.getNumberOfSamplesInEachDataRecord(numberOfWrittenSignals);
-        int digMin = header.getDigitalMin(numberOfWrittenSignals);
-        int digMax = header.getDigitalMax(numberOfWrittenSignals);
+        int sn = header.getNumberOfSamplesInEachDataRecord(signalWritePosition);
+        int digMin = header.getDigitalMin(signalWritePosition);
+        int digMax = header.getDigitalMax(signalWritePosition);
         for (int i = 0; i < sn; i++) {
             if(digitalSamples[i] < digMin) {
                 digitalSamples[i] = digMin;
@@ -113,18 +115,14 @@ public class EdfWriter {
                 digitalSamples[i] = digMax;
             }
         }
-        /** TODO: Bdf browser writes header with updated numberOfDataRecords (and other info)
-         * every time when it writs data. May be we should do the same.
-         * At the moment we write header only 2 times: with first data recording
-         * and when the EdfWriter is closed
-         **/
+
         if(sampleCount == 0) {
             writeHeaderToFile();
         }
         writeDataToFile(digitalSamples, sn);
-        numberOfWrittenSignals++;
-        if(numberOfWrittenSignals == header.signalsCount()) {
-            numberOfWrittenSignals = 0;
+        signalWritePosition++;
+        if(signalWritePosition == header.signalsCount()) {
+            signalWritePosition = 0;
         }
     }
 
@@ -145,7 +143,7 @@ public class EdfWriter {
 
     private void writeHeaderToFile() throws IOException {
         Long numberOfReceivedRecords = getNumberOfReceivedDataRecords();
-        if(numberOfReceivedRecords > 0) {
+        if(numberOfReceivedRecords > 0 && numberOfReceivedRecords < 100000000) {
             header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
         }
         if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
@@ -158,7 +156,7 @@ public class EdfWriter {
         FileChannel fileChannel = fileOutputStream.getChannel();
         long currentPosition = fileChannel.position();
         fileChannel.position(0);
-        fileOutputStream.write(new HeaderRecord(header).getbytes());
+        fileOutputStream.write(new HeaderRecord(header).getBytes());
         if(currentPosition > 0) {
             fileChannel.position(currentPosition);
         }
@@ -170,16 +168,22 @@ public class EdfWriter {
      * <br>
      * Where number of samples of signal i: n_i = (sample frequency of the signal_i) * (duration of DataRecord).
      * @param digitalDataRecord array with digital (int) samples from all signals
-     * @throws IOException if file was close,
+     * @throws IOException if an I/O error occurs
+     * @throws IllegalStateException if file was close,
      * if number of signals for that file is 0,
-     * or an I/O error occurs.
+     * or last data record is incomplete (due to
+     * the fact that samples from some channels were not recorded by methods
+     * writeDigitalSamples/writePhysicalSamples).
      */
     public void writeDigitalRecord(int[] digitalDataRecord) throws IOException {
         if(isClosed) {
-            throw new IOException(CLOSED_MSG);
+            throw new IllegalStateException(CLOSED_MSG);
         }
         if(header.signalsCount() == 0) {
-            throw new IOException(NUMBER_OF_SIGNALS_ZERO);
+            throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
+        }
+        if(signalWritePosition != 0) {
+            throw new IllegalStateException(RECORD_INCOMPLETE);
         }
         int counter = 0;
         for (int signal = 0; signal < header.signalsCount(); signal++) {
@@ -213,15 +217,15 @@ public class EdfWriter {
      * <br>samples belonging to signal 0, samples belonging to signal 1, samples belonging to signal 2, samples belonging to  signal 3,
      * <br> ... etc.
      * @param physicalSamples data array with physical (double) samples belonging to one signal
-     * @throws IOException if file was close,
-     * if number of signals for that file is 0,
-     * or an I/O error occurs.
+     * @throws IOException if an I/O error occurs
+     * @throws IllegalStateException if file was close,
+     * or number of signals for that file is 0
      */
     public void writePhysicalSamples(double[] physicalSamples) throws IOException {
-        int ns = header.getNumberOfSamplesInEachDataRecord(numberOfWrittenSignals);
+        int ns = header.getNumberOfSamplesInEachDataRecord(signalWritePosition);
         int digSamples[] = new int[ns];
         for (int i = 0; i < ns; i++) {
-            digSamples[i] = header.physicalValueToDigital(numberOfWrittenSignals, physicalSamples[i]);
+            digSamples[i] = header.physicalValueToDigital(signalWritePosition, physicalSamples[i]);
         }
         writeDigitalSamples(digSamples);
     }
@@ -235,9 +239,12 @@ public class EdfWriter {
      * The physical samples will be converted to digital samples using the
      * values of physical maximum, physical minimum, digital maximum and digital minimum.
      * @param physicalDataRecord array with physical (double) samples from all signals
-     * @throws IOException if file was close,
+     * @throws IOException if an I/O error occurs
+     * @throws IllegalStateException if file was close,
      * if number of signals for that file is 0,
-     * or an I/O error occurs.
+     * or last data record is incomplete (due to
+     * the fact that samples from some channels were not recorded by methods
+     * writeDigitalSamples/writePhysicalSamples).
      */
     public void writePhysicalRecord(double[] physicalDataRecord) throws IOException {
         int digSamples[] = new int[recordSize];

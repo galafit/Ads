@@ -17,7 +17,8 @@ package com.biorecorder.bdfrecorder.edflib;
  * выводиться клиенты
  *
  */
-public class HeaderFormatException extends Exception {
+public class HeaderException extends Exception {
+    public static final String TYPE_HEADER_NOT_COMPLETE = "Header record is not complete";
     public static final String TYPE_VERSION_FORMAT_INVALID = "Version format invalid";
     public static final String TYPE_DATE_FORMAT_INVALID = "Date format invalid. Expected: dd.mm.yy";
     public static final String TYPE_TIME_FORMAT_INVALID = "Time format invalid. Expected: hh.mm.ss";
@@ -38,18 +39,18 @@ public class HeaderFormatException extends Exception {
     private int signalNumber = -1;
 
 
-    public HeaderFormatException(String exceptionType) {
+    public HeaderException(String exceptionType) {
         super(exceptionType);
         this.exceptionType = exceptionType;
     }
 
-    public HeaderFormatException(String exceptionType, String value) {
+    public HeaderException(String exceptionType, String value) {
         super(exceptionType + ". Read:  ");
         this.exceptionType = exceptionType;
         this.wrongValues = value;
     }
 
-    public HeaderFormatException(String exceptionType, String value, int signalNumber) {
+    public HeaderException(String exceptionType, String value, int signalNumber) {
         super("SignalNumber: "+signalNumber+ " " + exceptionType + ". Read:  ");
         this.exceptionType = exceptionType;
         this.wrongValues = value;

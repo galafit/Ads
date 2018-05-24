@@ -49,22 +49,6 @@ public class BdfRecorder {
     }
 
 
-    private EdfSignalsFilter createChannelsFilter() {
-        EdfWriter dataReceiver = new EdfWriter() {
-            @Override
-            public void writeDigitalSamples(int[] ints, int i, int i1) {
-                dataListener.onDataRecordReceived(ints);
-            }
-
-            @Override
-            public void close() {
-
-            }
-        };
-
-        return new EdfSignalsFilter(dataReceiver);
-    }
-
     /**
      * Start Recorder measurements.
      *
@@ -177,7 +161,7 @@ public class BdfRecorder {
 
 
 
-    class NamedDigitalFilter implements SignalFilter {
+    class NamedDigitalFilter implements DigitalFilter {
         private DigitalFilter filter;
         private String filterName;
 
@@ -191,7 +175,6 @@ public class BdfRecorder {
             return filter.getFilteredValue(v);
         }
 
-        @Override
         public String getName() {
             return filterName;
         }
@@ -327,10 +310,70 @@ public class BdfRecorder {
             }
             return edfConfig;
         }
-
-
-
     }*/
+
+    private BdfFilterSignalsFilter createChannelsFilter() {
+        EdfWriter dataReceiver = new EdfWriter() {
+            @Override
+            public void writeDigitalSamples(int[] ints, int i, int i1) {
+                dataListener.onDataRecordReceived(ints);
+            }
+
+            @Override
+            public void close() {
+
+            }
+        };
+
+        return new EdfSignalsFilter(dataReceiver);
+    }
+
+    class AdsBdfProducer implements BdfDataProducer {
+        private final Ads ads;
+        private final AdsConfig adsConfig;
+
+        public AdsBdfProducer(Ads ads, AdsConfig adsConfig) {
+            this.ads = ads;
+            this.adsConfig = adsConfig;
+        }
+
+        @Override
+        public int getSignalsCount() {
+            int signals = 0;
+            for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
+               if(adsConfig.isAdsChannelEnabled(i)) {
+                   i++;
+               }
+            }
+            if(AdsConfig)
+            return signals;
+        }
+
+        @Override
+        public double getDurationOfDataRecord() {
+            return 0;
+        }
+
+        @Override
+        public int getNumberOfSamplesInEachDataRecord(int signalNumber) {
+            return 0;
+        }
+
+        @Override
+        public void setDataListener(BdfDataListener bdfDataListener) {
+
+        }
+
+        @Override
+        public void removeDataListener() {
+
+        }
+    }
+
+    private BdfDataProducer adsToBdfProducer(Ads ads, AdsConfig adsConfig) {
+
+
+    }
 
     class AdsDataHandler implements AdsDataListener {
         private final EdfFilter dataReceiver;

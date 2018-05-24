@@ -65,7 +65,7 @@ public class BdfSignalsFilter extends BdfFilter {
 
     @Override
     protected void filterData(int[] inputRecord)  {
-        int inputRecordLength = recordLength(input);
+        int inputRecordLength = recordSize(input);
         int[] resultantRecord = new int[inputRecordLength];
         int signalNumber = 0;
         int signalStartSampleNumber = 0;

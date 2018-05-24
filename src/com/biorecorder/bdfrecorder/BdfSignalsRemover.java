@@ -52,8 +52,8 @@ public class BdfSignalsRemover extends BdfFilter{
      */
     @Override
     protected void filterData(int[] inputRecord) {
-        int inputRecordLength = recordLength(input);
-        int[] resultantRecord = new int[recordLength(this)];
+        int inputRecordLength = recordSize(input);
+        int[] resultantRecord = new int[recordSize(this)];
 
         int inputSignalNumber = 0;
         int inputSignalStartSampleNumber = 0;

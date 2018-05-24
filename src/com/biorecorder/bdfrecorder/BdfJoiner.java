@@ -20,7 +20,7 @@ public class BdfJoiner extends BdfFilter {
     public BdfJoiner(BdfDataProducer input, int numberOfRecordsToJoin) {
         super(input);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
-        resultantDataRecord = new int[recordLength(input) * numberOfRecordsToJoin];
+        resultantDataRecord = new int[recordSize(input) * numberOfRecordsToJoin];
     }
 
     @Override
@@ -44,7 +44,7 @@ public class BdfJoiner extends BdfFilter {
      */
     @Override
     protected void filterData(int[] inputRecord)  {
-        int inputRecordLength = recordLength(input);
+        int inputRecordLength = recordSize(input);
         for (int inSamplePosition = 0; inSamplePosition < inputRecordLength; inSamplePosition++) {
             int counter = 0;
             int channelNumber = 0;
