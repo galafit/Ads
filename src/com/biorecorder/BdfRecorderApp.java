@@ -2,7 +2,8 @@ package com.biorecorder;
 
 import com.biorecorder.bdfrecorder.*;
 
-import com.biorecorder.bdfrecorder.BdfDataListener;
+import com.biorecorder.bdfrecorder.dataformat.DataListener;
+import com.biorecorder.bdfrecorder.dataformat.DataConfig;
 import com.biorecorder.edflib.EdfFileWriter;
 import com.biorecorder.edflib.FileType;
 import com.biorecorder.edflib.base.EdfConfig;
@@ -206,11 +207,11 @@ public class BdfRecorderApp {
 
         File fileToWrite = new File(appConfig.getDirToSave(), normalizeFilename(appConfig.getFileName()));
         boolean isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
-        EdfConfig edfConfig = bdfRecorder.getResultantRecordingInfo(recorderConfig);
+        DataConfig dataConfig = bdfRecorder.getResultantRecordingInfo(recorderConfig);
         try {
             edfFileWriter = new EdfFileWriter(fileToWrite, FileType.BDF_24BIT);
             edfFileWriter.setDurationOfDataRecordsComputable(isDurationOfDataRecordComputable);
-            edfFileWriter.setConfig(edfConfig);
+            edfFileWriter.setConfig(dataConfig);
 
         } catch (FileNotFoundRuntimeException ex) {
             log.error(ex);
@@ -220,9 +221,9 @@ public class BdfRecorderApp {
         edfFile = fileToWrite;
 
         numberOfWrittenDataRecords.set(0);
-        bdfRecorder.setDataListener(new BdfDataListener() {
+        bdfRecorder.setDataListener(new DataListener() {
             @Override
-            public void onDataRecordReceived(int[] dataRecord) {
+            public void onDataReceived(int[] dataRecord) {
                 try{
                     synchronized (BdfRecorderApp.this) {
                         edfFileWriter.writeDigitalSamples(dataRecord);

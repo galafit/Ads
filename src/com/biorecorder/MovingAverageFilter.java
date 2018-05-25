@@ -1,6 +1,6 @@
 package com.biorecorder;
 
-import com.biorecorder.bdfrecorder.DigitalFilter;
+import com.biorecorder.bdfrecorder.filters.DigitalFilter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,7 @@ public class MovingAverageFilter implements DigitalFilter {
         this.bufferSize = numberOfAveragingPoints;
     }
 
-    public double getFilteredValue(double value) {
+    public double filteredValue(double value) {
         this.buffer.add(Double.valueOf(value));
         if(this.buffer.size() < this.bufferSize) {
             return value;

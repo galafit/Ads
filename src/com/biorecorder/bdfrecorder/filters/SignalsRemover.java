@@ -1,4 +1,6 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.bdfrecorder.filters;
+
+import com.biorecorder.bdfrecorder.dataformat.DataProducer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,10 +8,10 @@ import java.util.List;
 /**
  * Permit to omit samples from some channels (delete signals)
  */
-public class BdfSignalsRemover extends BdfFilter{
+public class SignalsRemover extends DataPackageFilter {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
 
-    public BdfSignalsRemover(BdfDataProducer input) {
+    public SignalsRemover(DataProducer input) {
         super(input);
     }
 
@@ -68,6 +70,6 @@ public class BdfSignalsRemover extends BdfFilter{
                 resultantSampleCount++;
             }
         }
-        dataListener.onDataRecordReceived(resultantRecord);
+        dataListener.onDataReceived(resultantRecord);
     }
 }

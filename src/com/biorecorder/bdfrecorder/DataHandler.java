@@ -1,5 +1,7 @@
 package com.biorecorder.bdfrecorder;
 
+import com.biorecorder.bdfrecorder.dataformat.DataListener;
+
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -9,7 +11,7 @@ public class DataHandler {
     private final LinkedBlockingQueue<int[]> dataQueue = new LinkedBlockingQueue<>();
     private Thread dataHandlingThread;
     private volatile boolean isStopped;
-    private BdfDataListener dataListener;
+    private DataListener dataListener;
 
 
     public DataHandler(RecorderConfig recorderConfig) {
@@ -21,7 +23,7 @@ public class DataHandler {
                         // block until a request arrives
                         int[] dataRecord = dataQueue.take();
                         // send to listener
-                        dataListener.onDataRecordReceived(dataRecord);
+                        dataListener.onDataReceived(dataRecord);
                     } catch (InterruptedException ie) {
                         // stop
                         break;

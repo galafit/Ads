@@ -1,6 +1,10 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
+import com.biorecorder.bdfrecorder.dataformat.DataConfig;
+import com.biorecorder.bdfrecorder.dataformat.DataListener;
+import com.biorecorder.bdfrecorder.dataformat.DataProducer;
+import com.biorecorder.bdfrecorder.filters.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -27,7 +31,7 @@ public class BdfRecorder {
     private double resultantDataRecordDuration = 1; // sec
 
     private final Ads ads;
-    private volatile BdfDataListener dataListener;
+    private volatile DataListener dataListener;
     private volatile LeadOffListener leadOffListener;
     private volatile RecorderEventsListener recorderEventsListener;
 
@@ -104,7 +108,7 @@ public class BdfRecorder {
      *
      * @return object with info about recording process and dataRecords structure
      */
-    public EdfConfig getResultantRecordingInfo(RecorderConfig recorderConfig) {
+    public DataConfig getResultantRecordingInfo(RecorderConfig recorderConfig) {
         AdsDataHandler adsDataHandler = new AdsDataHandler(recorderConfig);
         return adsDataHandler.getResultantEdfConfig();
     }
@@ -133,7 +137,7 @@ public class BdfRecorder {
     }
 
 
-    public void setDataListener(BdfDataListener listener) {
+    public void setDataListener(DataListener listener) {
         dataListener = listener;
     }
 
@@ -171,8 +175,8 @@ public class BdfRecorder {
         }
 
         @Override
-        public double getFilteredValue(double v) {
-            return filter.getFilteredValue(v);
+        public double filteredValue(double v) {
+            return filter.filteredValue(v);
         }
 
         public String getName() {
@@ -181,9 +185,9 @@ public class BdfRecorder {
     }
 
 
-    class NullDataListener implements  BdfDataListener {
+    class NullDataListener implements DataListener {
         @Override
-        public void onDataRecordReceived(int[] dataRecord) {
+        public void onDataReceived(int[] dataRecord) {
             // do nothing;
         }
     }
@@ -205,14 +209,14 @@ public class BdfRecorder {
  /*   class AdsDataFilter {
         public AdsDataFilter(RecorderConfig recorderConfig, Map<Integer, List<NamedDigitalFilter>> channelsFilters, double resultantDataRecordDuration) {
 
-            EdfConfig adsDataRecordConfig = getAdsDataRecordConfig(recorderConfig);
+            DataConfig adsDataRecordConfig = getAdsDataRecordConfig(recorderConfig);
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
             int numberOfFramesToJoin = (int) (resultantDataRecordDuration / adsDataRecordConfig.getDurationOfDataRecord());
-            EdfJoiner edfJoiner = new EdfJoiner(numberOfFramesToJoin, edfSignalsFilter);
+            DataPackageJoiner edfJoiner = new DataPackageJoiner(numberOfFramesToJoin, edfSignalsFilter);
 
 
-            BdfSignalsRemover edfSignalsRemover = new BdfSignalsRemover(edfJoiner);
+            SignalsRemover edfSignalsRemover = new SignalsRemover(edfJoiner);
             if (recorderConfig.isLeadOffEnabled()) {
                 // delete helper Lead-off channel
                 edfSignalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 1);
@@ -231,11 +235,11 @@ public class BdfRecorder {
         }
 
 
-        public EdfConfig getResultantEdfConfig() {
+        public DataConfig getResultantEdfConfig() {
             return dataReceiver.getResultantConfig();
         }
 
-        private EdfConfig getAdsDataRecordConfig(RecorderConfig recorderConfig) {
+        private DataConfig getAdsDataRecordConfig(RecorderConfig recorderConfig) {
             AdsConfig adsConfig = recorderConfig.getAdsConfig();
             EdfHeader edfConfig = new EdfHeader();
             edfConfig.setRecordingIdentification(recorderConfig.getRecordingIdentification());
@@ -316,7 +320,7 @@ public class BdfRecorder {
         EdfWriter dataReceiver = new EdfWriter() {
             @Override
             public void writeDigitalSamples(int[] ints, int i, int i1) {
-                dataListener.onDataRecordReceived(ints);
+                dataListener.onDataReceived(ints);
             }
 
             @Override
@@ -325,14 +329,14 @@ public class BdfRecorder {
             }
         };
 
-        return new EdfSignalsFilter(dataReceiver);
+        return new SignalsTransformer(dataReceiver);
     }
 
-    class AdsBdfProducer implements BdfDataProducer {
+    class AdsDataProducer implements DataProducer {
         private final Ads ads;
         private final AdsConfig adsConfig;
 
-        public AdsBdfProducer(Ads ads, AdsConfig adsConfig) {
+        public AdsDataProducer(Ads ads, AdsConfig adsConfig) {
             this.ads = ads;
             this.adsConfig = adsConfig;
         }
@@ -360,7 +364,7 @@ public class BdfRecorder {
         }
 
         @Override
-        public void setDataListener(BdfDataListener bdfDataListener) {
+        public void setDataListener(DataListener dataListener) {
 
         }
 
@@ -370,13 +374,13 @@ public class BdfRecorder {
         }
     }
 
-    private BdfDataProducer adsToBdfProducer(Ads ads, AdsConfig adsConfig) {
+    private DataProducer adsToBdfProducer(Ads ads, AdsConfig adsConfig) {
 
 
     }
 
     class AdsDataHandler implements AdsDataListener {
-        private final EdfFilter dataReceiver;
+        private final DataPackageFilter dataReceiver;
         private final RecorderConfig recorderConfig;
 
         public AdsDataHandler(RecorderConfig recorderConfig) {
@@ -384,7 +388,7 @@ public class BdfRecorder {
             EdfWriter dataWriter = new EdfWriter() {
                 @Override
                 public void writeDigitalSamples(int[] ints, int i, int i1) {
-                    dataListener.onDataRecordReceived(ints);
+                    dataListener.onDataReceived(ints);
                 }
 
                 @Override
@@ -393,17 +397,17 @@ public class BdfRecorder {
                 }
             };
 
-            EdfSignalsFilter edfSignalsFilter = new EdfSignalsFilter(dataWriter);
+            SignalsTransformer edfSignalsTransformer = new SignalsTransformer(dataWriter);
             this.recorderConfig = recorderConfig;
 
-            EdfConfig adsDataRecordConfig = getAdsDataRecordConfig(recorderConfig);
+            DataConfig adsDataRecordConfig = getAdsDataRecordConfig(recorderConfig);
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
             int numberOfFramesToJoin = (int) (resultantDataRecordDuration / adsDataRecordConfig.getDurationOfDataRecord());
-            EdfJoiner edfJoiner = new EdfJoiner(numberOfFramesToJoin, edfSignalsFilter);
+            DataPackageJoiner edfJoiner = new DataPackageJoiner(numberOfFramesToJoin, edfSignalsTransformer);
 
 
-            EdfSignalsRemover edfSignalsRemover = new EdfSignalsRemover(edfJoiner);
+            SignalsRemover edfSignalsRemover = new SignalsRemover(edfJoiner);
             if (recorderConfig.isLeadOffEnabled()) {
                 // delete helper Lead-off channel
                 edfSignalsRemover.removeSignal(adsDataRecordConfig.getNumberOfSignals() - 1);
@@ -440,11 +444,11 @@ public class BdfRecorder {
             }
         }
 
-        public EdfConfig getResultantEdfConfig() {
+        public DataConfig getResultantEdfConfig() {
             return dataReceiver.getResultantConfig();
         }
 
-        private EdfConfig getAdsDataRecordConfig(RecorderConfig recorderConfig) {
+        private DataConfig getAdsDataRecordConfig(RecorderConfig recorderConfig) {
             AdsConfig adsConfig = recorderConfig.getAdsConfig();
             DefaultEdfConfig edfConfig = new DefaultEdfConfig();
             edfConfig.setRecordingIdentification(recorderConfig.getRecordingIdentification());

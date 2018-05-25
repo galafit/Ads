@@ -1,8 +1,11 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.bdfrecorder.filters;
+
+import com.biorecorder.bdfrecorder.dataformat.DataConfig;
+import com.biorecorder.bdfrecorder.dataformat.DataProducer;
 
 /**
  * Permits to join (piece together) given number of incoming DataRecords.
- * Resultant  DataRecords (that will be send to the listener)
+ * Resultant  data records (that will be send to the listener)
  * have the following structure:
  * <br>  number of samples from channel_0 in original DataRecord * numberOfRecordsToJoin ,
  * <br>  number of samples from channel_1 in original DataRecord * numberOfRecordsToJoin,
@@ -12,30 +15,47 @@ package com.biorecorder.bdfrecorder;
  *
  * <br>duration of resulting DataRecord = duration of original DataRecord * numberOfRecordsToJoin
  */
-public class BdfJoiner extends BdfFilter {
+public class DataPackageJoiner extends DataPackageFilter {
     private int numberOfRecordsToJoin;
     private int[] resultantDataRecord;
     private int joinedRecordsCounter;
+    private int inputRecordSize;
+    private int resultantRecordSize;
 
-    public BdfJoiner(BdfDataProducer input, int numberOfRecordsToJoin) {
+    public DataPackageJoiner(DataProducer input, int numberOfRecordsToJoin) {
         super(input);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
-        resultantDataRecord = new int[recordSize(input) * numberOfRecordsToJoin];
+        for (int i = 0; i < input.edfConfig().signalsCount(); i++) {
+            inputRecordSize += input.edfConfig().numberOfSamplesInEachDataRecord(i);
+        }
+        resultantRecordSize = inputRecordSize * numberOfRecordsToJoin;
+        resultantDataRecord = new int[resultantRecordSize];
     }
 
-    @Override
-    public int getSignalsCount() {
-        return input.getSignalsCount();
-    }
+
 
     @Override
-    public double getDurationOfDataRecord() {
-        return input.getDurationOfDataRecord() * numberOfRecordsToJoin;
+    public DataConfig edfConfig() {
+        return new DataConfigWrapper(input.edfConfig()) {
+            @Override
+            public int signalsCount() {
+                return innerConfig.signalsCount();
+            }
+
+            @Override
+            public double durationOfDataRecord() {
+                return innerConfig.durationOfDataRecord() * numberOfRecordsToJoin;
+            }
+
+            @Override
+            public int numberOfSamplesInEachDataRecord(int signalNumber) {
+                return innerConfig.numberOfSamplesInEachDataRecord(signalNumber) * numberOfRecordsToJoin;
+            }
+        };
     }
 
-    @Override
-    public int getNumberOfSamplesInEachDataRecord(int signalNumber) {
-        return input.getNumberOfSamplesInEachDataRecord(signalNumber) * numberOfRecordsToJoin;
+    private int getNumberOfSamplesInEachDataRecord(int signalNumber) {
+        return input.edfConfig().numberOfSamplesInEachDataRecord(signalNumber) * numberOfRecordsToJoin;
     }
 
     /**
@@ -44,8 +64,7 @@ public class BdfJoiner extends BdfFilter {
      */
     @Override
     protected void filterData(int[] inputRecord)  {
-        int inputRecordLength = recordSize(input);
-        for (int inSamplePosition = 0; inSamplePosition < inputRecordLength; inSamplePosition++) {
+        for (int inSamplePosition = 0; inSamplePosition < inputRecordSize; inSamplePosition++) {
             int counter = 0;
             int channelNumber = 0;
             while (inSamplePosition >= counter + getNumberOfSamplesInEachDataRecord(channelNumber)) {
@@ -63,8 +82,8 @@ public class BdfJoiner extends BdfFilter {
         joinedRecordsCounter++;
 
         if(joinedRecordsCounter == numberOfRecordsToJoin) {
-            dataListener.onDataRecordReceived(resultantDataRecord);
-            resultantDataRecord = new int[inputRecordLength * numberOfRecordsToJoin];
+            dataListener.onDataReceived(resultantDataRecord);
+            resultantDataRecord = new int[resultantRecordSize];
             joinedRecordsCounter = 0;
         }
     }

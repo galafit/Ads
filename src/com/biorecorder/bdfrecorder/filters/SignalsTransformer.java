@@ -1,4 +1,6 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.bdfrecorder.filters;
+
+import com.biorecorder.bdfrecorder.dataformat.DataProducer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -9,10 +11,10 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class BdfSignalsFilter extends BdfFilter {
+public class SignalsTransformer extends DataPackageFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
 
-    public BdfSignalsFilter(BdfDataProducer input) {
+    public SignalsTransformer(DataProducer input) {
         super(input);
     }
 
@@ -79,7 +81,7 @@ public class BdfSignalsFilter extends BdfFilter {
             if(signalFilters != null) {
                 double filteredValue = inputRecord[i];
                 for (DigitalFilter filter : signalFilters) {
-                    filteredValue = filter.getFilteredValue(filteredValue);
+                    filteredValue = filter.filteredValue(filteredValue);
                 }
                 resultantRecord[i] = new Double(filteredValue).intValue();
             } else {
@@ -87,7 +89,7 @@ public class BdfSignalsFilter extends BdfFilter {
             }
 
         }
-        dataListener.onDataRecordReceived(resultantRecord);
+        dataListener.onDataReceived(resultantRecord);
     }
 
     class NamedFilter implements DigitalFilter {
@@ -100,8 +102,8 @@ public class BdfSignalsFilter extends BdfFilter {
         }
 
         @Override
-        public double getFilteredValue(double inputValue) {
-            return filter.getFilteredValue(inputValue);
+        public double filteredValue(double inputValue) {
+            return filter.filteredValue(inputValue);
         }
 
         public String getFilterName() {
