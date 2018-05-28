@@ -1,9 +1,12 @@
 package com.biorecorder;
 
 import com.biorecorder.bdfrecorder.*;
+import com.biorecorder.filters.DigitalFilter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by galafit on 30/3/18.
@@ -11,34 +14,51 @@ import java.io.File;
 public class AppConfig {
     private RecorderConfig recorderConfig = new RecorderConfig();
     private boolean isDurationOfDataRecordComputable = true;
+    private String patientIdentification = "Default patient";
+    private String recordingIdentification = "Default record";
+    private boolean[] filter50HzMask = new boolean[recorderConfig.getChannelsCount()];
 
     private String comportName;
     private String dirToSave;
     @JsonIgnore
     private String fileName;
 
+    public AppConfig() {
+        for (int i = 0; i < filter50HzMask.length; i++) {
+            filter50HzMask[i] = true;
+        }
+    }
+
     RecorderConfig getRecorderConfig() {
         return recorderConfig;
+    }
+
+    public String getPatientIdentification() {
+        return patientIdentification;
     }
 
     public void setRecorderConfig(RecorderConfig recorderConfig) {
         this.recorderConfig = recorderConfig;
     }
 
-    public String getPatientIdentification() {
-        return recorderConfig.getPatientIdentification();
-    }
-
     public void setPatientIdentification(String patientIdentification) {
-        recorderConfig.setPatientIdentification(patientIdentification);
+        this.patientIdentification = patientIdentification;
     }
 
     public String getRecordingIdentification() {
-        return recorderConfig.getRecordingIdentification();
+        return recordingIdentification;
     }
 
     public void setRecordingIdentification(String recordingIdentification) {
-        recorderConfig.setRecordingIdentification(recordingIdentification);
+        this.recordingIdentification = recordingIdentification;
+    }
+
+    public boolean is50HzFilterEnabled(int channelNumber) {
+        return filter50HzMask[channelNumber];
+    }
+
+    public void set50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
+         filter50HzMask[channelNumber] = is50HzFilterEnabled;
     }
 
     public boolean isDurationOfDataRecordComputable() {
@@ -89,15 +109,6 @@ public class AppConfig {
         this.fileName = fileName;
     }
 
-
-    public Boolean is50HzFilterEnabled(int channelNumber) {
-        return recorderConfig.is50HzFilterEnabled(channelNumber);
-    }
-
-    public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
-        recorderConfig.setIs50HzFilterEnabled(channelNumber, is50HzFilterEnabled);
-    }
-
     public int[] getChannelsAvailableDividers() {
         return recorderConfig.getChannelsAvailableDividers();
     }
@@ -136,7 +147,7 @@ public class AppConfig {
     }
 
     public int getNumberOfChannels() {
-        return recorderConfig.getNumberOfChannels();
+        return recorderConfig.getChannelsCount();
     }
 
     public int getSampleRate() {

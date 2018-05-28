@@ -1,11 +1,15 @@
-package com.biorecorder.bdfrecorder.edflib;
+package com.biorecorder.edflib;
 
 import java.nio.charset.Charset;
 
 /**
- * Defines file types that can be read or written by
- * {@link EdfReader} and {@link EdfWriter}
- *
+ * {@link EdfReader} and {@link EdfWriter} can work with 2 data formats:
+ * <br>16 bit European Data Format (EDF)
+ * <br>and its 24 bit version - BioSemi data format (BDF).
+ * Detailed information can be viewed on the following links:
+ * <br><a href="http://www.edfplus.info/specs/edf.html">European Data Format (EDF). Full specification</a>
+ * <br><a href="https://www.biosemi.com/faq/file_format.htm">BioSemi file format (BDF)</a>
+ * <br><a href="https://www.teuniz.net/edfbrowser/bdfplus%20format%20description.html">Differences between BDF+ and EDF+</a>
  */
 public enum DataFormat {
     /**

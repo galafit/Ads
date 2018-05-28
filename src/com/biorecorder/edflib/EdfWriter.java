@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder.edflib;
+package com.biorecorder.edflib;
 
 import java.io.File;
 import java.io.FileNotFoundException;

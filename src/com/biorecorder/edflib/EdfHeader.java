@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder.edflib;
+package com.biorecorder.edflib;
 
 import java.text.DateFormat;
 import java.text.MessageFormat;
@@ -23,14 +23,14 @@ import java.util.Date;
  * <br>8 ascii : number of data records (-1 if unknown, obey item 10 of the additional EDF+ specs)
  * <br>8 ascii : duration of a data record, in seconds
  * <br>4 ascii : number of signals (ns) in data record
- * <br>ns * 16 ascii : ns * label (e.g. EEG Fpz-Cz or Body temp) (mind item 9 of the additional EDF+ specs)
- * <br>ns * 80 ascii : ns * transducer type (e.g. AgAgCl electrode)
+ * <br>ns * 16 ascii : ns * getLabel (e.g. EEG Fpz-Cz or Body temp) (mind item 9 of the additional EDF+ specs)
+ * <br>ns * 80 ascii : ns * getTransducer type (e.g. AgAgCl electrode)
  * <br>ns * 8 ascii : ns * physical dimension (e.g. uV or degreeC)
  * <br>ns * 8 ascii : ns * physical minimum (e.g. -500 or 34)
  * <br>ns * 8 ascii : ns * physical maximum (e.g. 500 or 40)
  * <br>ns * 8 ascii : ns * digital minimum (e.g. -2048)
  * <br>ns * 8 ascii : ns * digital maximum (e.g. 2047)
- * <br>ns * 80 ascii : ns * prefiltering (e.g. HP:0.1Hz LP:75Hz)
+ * <br>ns * 80 ascii : ns * getPrefiltering (e.g. HP:0.1Hz LP:75Hz)
  * <br>ns * 8 ascii : ns * nr of samples in each data record
  * <br>ns * 32 ascii : ns * reserved
  * <p>
@@ -53,20 +53,18 @@ public class EdfHeader {
      * the type of the of the file where data records will be written: EDF_16BIT or BDF_24BIT
      * and the number of measuring channels (signals)
      *
-     * @param dataFormat  EDF_16BIT or BDF_24BIT
+     * @param dataFormat      EDF_16BIT or BDF_24BIT
      * @param numberOfSignals number of signals in data records
-     * @throws IllegalArgumentException if numberOfSignals <= 0
+     * @throws IllegalArgumentException if numberOfSignals < 0
      */
     public EdfHeader(DataFormat dataFormat, int numberOfSignals) throws IllegalArgumentException {
         this.dataFormat = dataFormat;
-        if (numberOfSignals <= 0) {
-            String errMsg =  MessageFormat.format("Number of signals is invalid: {0}. Expected {1}",  numberOfSignals, ">0");
+        if (numberOfSignals < 0) {
+            String errMsg = MessageFormat.format("Number of signals is invalid: {0}. Expected {1}", numberOfSignals, ">= 0");
             throw new IllegalArgumentException(errMsg);
         }
         for (int i = 0; i < numberOfSignals; i++) {
-            Signal signalInfo = new Signal();
-            signalInfo.setLabel("Channel_" + signals.size());
-            signals.add(signalInfo);
+            addSignal(dataFormat);
         }
     }
 
@@ -125,6 +123,7 @@ public class EdfHeader {
      * Sets recording start date and time.
      * This function is optional. If not called,
      * the writer will use the system date and time at runtime
+     *
      * @param year   1970 - 3000
      * @param month  1 - 12
      * @param day    1 - 31
@@ -133,7 +132,7 @@ public class EdfHeader {
      * @param second 0 - 59
      * @throws IllegalArgumentException if some parameter (year, month...) is out of its range
      */
-    public void setRecordingStartDateTime(int year, int month, int day, int hour, int minute, int second) throws  IllegalArgumentException {
+    public void setRecordingStartDateTime(int year, int month, int day, int hour, int minute, int second) throws IllegalArgumentException {
         if (year < 1970 || year > 3000) {
             String errMsg = MessageFormat.format("Year is invalid: {0}. Expected: {1}", year, "1970 - 3000");
             throw new IllegalArgumentException(errMsg);
@@ -177,7 +176,7 @@ public class EdfHeader {
      * @throws IllegalArgumentException if recordingStartTime < 0
      */
     public void setRecordingStartTimeMs(long recordingStartTime) {
-        if(recordingStartTime < 0) {
+        if (recordingStartTime < 0) {
             String errMsg = "Invalid start time: " + recordingStartTime + " Expected >= 0";
             throw new IllegalArgumentException(errMsg);
         }
@@ -222,8 +221,8 @@ public class EdfHeader {
      * @param numberOfDataRecords number of DataRecords (data packages) in Edf/Bdf file
      * @throws IllegalArgumentException if number of data records < -1
      */
-     void setNumberOfDataRecords(int numberOfDataRecords) throws IllegalArgumentException{
-        if(numberOfDataRecords < -1) {
+    void setNumberOfDataRecords(int numberOfDataRecords) throws IllegalArgumentException {
+        if (numberOfDataRecords < -1) {
             String errMsg = "Invalid number of data records: " + numberOfDataRecords + " Expected >= -1";
             throw new IllegalArgumentException(errMsg);
         }
@@ -232,6 +231,7 @@ public class EdfHeader {
 
     /**
      * Return the number of measuring channels (signals).
+     *
      * @return the number of measuring channels
      */
     public int signalsCount() {
@@ -241,6 +241,7 @@ public class EdfHeader {
 
     /**
      * Gets duration of DataRecords (data packages).
+     *
      * @return duration of DataRecords in seconds
      */
     public double getDurationOfDataRecord() {
@@ -253,7 +254,7 @@ public class EdfHeader {
      * Default value = 1 sec.
      *
      * @param durationOfDataRecord duration of DataRecords in seconds
-     * @throws IllegalArgumentException if durationOfDataRecord <= 0.
+     * @throws IllegalArgumentException if getDurationOfDataRecord <= 0.
      */
     public void setDurationOfDataRecord(double durationOfDataRecord) throws IllegalArgumentException {
         if (durationOfDataRecord <= 0) {
@@ -268,19 +269,21 @@ public class EdfHeader {
      *****************************************************************/
 
     /**
-     * Gets the label of the signal
+     * Gets the getLabel of the signal
+     *
      * @param signalNumber number of the signal (channel). Numeration starts from 0
-     * @return label of the signal
+     * @return getLabel of the signal
      */
     public String getLabel(int signalNumber) {
         return signals.get(signalNumber).getLabel();
     }
 
     /**
-     * Get transducer(electrodes) name ("AgAgCl cup electrodes", etc)
+     * Get getTransducer(electrodes) name ("AgAgCl cup electrodes", etc)
      * used for measuring data belonging to the signal).
+     *
      * @param signalNumber number of the signal (channel). Numeration starts from 0
-     * @return String describing transducer (electrodes) used for measuring
+     * @return String describing getTransducer (electrodes) used for measuring
      */
     public String getTransducer(int signalNumber) {
         return signals.get(signalNumber).getTransducer();
@@ -314,7 +317,8 @@ public class EdfHeader {
 
     /**
      * Get physical dimension (units) of the signal ("uV", "BPM", "mA", "Degr.", etc.).
-     * @param signalNumber      number of the signal (channel). Numeration starts from 0
+     *
+     * @param signalNumber number of the signal (channel). Numeration starts from 0
      * @return String describing physical dimension of the signal ("uV", "BPM", "mA", "Degr.", etc.)
      */
     public String getPhysicalDimension(int signalNumber) {
@@ -348,29 +352,29 @@ public class EdfHeader {
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @param digitalMin   the minimum digital value of the signal
      * @param digitalMax   the maximum digital value of the signal
-     * @throws IllegalArgumentException  if digitalMin >= digitalMax,
-     *                            <br>digitalMin < -32768 (EDF_16BIT  file format).
-     *                            <br>digitalMin < -8388608 (BDF_24BIT  file format).
-     *                            <br>digitalMax > 32767 (EDF_16BIT  file format).
-     *                            <br>digitalMax > 8388607 (BDF_24BIT  file format).
-     *                            <br>digitalMin >= digitalMax
+     * @throws IllegalArgumentException if:
+     *                                  <br>digitalMin < -32768 (EDF_16BIT  file format).
+     *                                  <br>digitalMin < -8388608 (BDF_24BIT  file format).
+     *                                  <br>digitalMax > 32767 (EDF_16BIT  file format).
+     *                                  <br>digitalMax > 8388607 (BDF_24BIT  file format).
+     *                                  <br>digitalMin >= digitalMax
      */
     public void setDigitalRange(int signalNumber, int digitalMin, int digitalMax) throws IllegalArgumentException {
-        if(dataFormat == DataFormat.EDF_16BIT && digitalMin < -32768) {
-            String errMsg =  MessageFormat.format("Signal {0}. Invalid digital min: {1}.  Expected: {2}", signalNumber, digitalMin, ">= -32768");
+        if (dataFormat == DataFormat.EDF_16BIT && digitalMin < -32768) {
+            String errMsg = MessageFormat.format("Signal {0}. Invalid digital min: {1}.  Expected: {2}", signalNumber, digitalMin, ">= -32768");
             throw new IllegalArgumentException(errMsg);
         }
-        if(dataFormat == DataFormat.BDF_24BIT && digitalMin < -8388608) {
-            String errMsg =  MessageFormat.format("Signal {0}. Invalid digital min: {1}.  Expected: {2}", signalNumber, digitalMin, ">= -8388608");
+        if (dataFormat == DataFormat.BDF_24BIT && digitalMin < -8388608) {
+            String errMsg = MessageFormat.format("Signal {0}. Invalid digital min: {1}.  Expected: {2}", signalNumber, digitalMin, ">= -8388608");
             throw new IllegalArgumentException(errMsg);
         }
 
-        if(dataFormat == DataFormat.EDF_16BIT && digitalMax > 32767) {
-            String errMsg =  MessageFormat.format("Signal {0}. Invalid digital max: {1}.  Expected: {2}", signalNumber, digitalMax, "<= 32767");
+        if (dataFormat == DataFormat.EDF_16BIT && digitalMax > 32767) {
+            String errMsg = MessageFormat.format("Signal {0}. Invalid digital max: {1}.  Expected: {2}", signalNumber, digitalMax, "<= 32767");
             throw new IllegalArgumentException(errMsg);
         }
-        if(dataFormat == DataFormat.BDF_24BIT && digitalMax > 8388607) {
-            String errMsg =  MessageFormat.format("Signal {0}. Invalid digital max: {1}.  Expected: {2}", signalNumber, digitalMax, "<= 8388607");
+        if (dataFormat == DataFormat.BDF_24BIT && digitalMax > 8388607) {
+            String errMsg = MessageFormat.format("Signal {0}. Invalid digital max: {1}.  Expected: {2}", signalNumber, digitalMax, "<= 8388607");
             throw new IllegalArgumentException(errMsg);
         }
 
@@ -383,11 +387,14 @@ public class EdfHeader {
     }
 
     /**
-     * Sets the physical minimum and maximum values of the signal (the values of the input
+     * Sets the physical minimum and maximum values of the signal (the values of the in
      * of the ADC when the output equals the value of "digital minimum" and "digital maximum").
      * Usually physicalMin = - physicalMax.
      * <p>
      * Physical min and max must be set for every signal!!!
+     * <br>Default physicalMin = -32768,  physicalMax = 32767 (EDF_16BIT file format)
+     * <br>Default physicalMin = -8388608,  physicalMax = 8388607 (BDF_24BIT file format)
+     *
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @param physicalMin  the minimum physical value of the signal
      * @param physicalMax  the maximum physical value of the signal
@@ -414,11 +421,11 @@ public class EdfHeader {
     }
 
     /**
-     * Sets the transducer (electrodes) name of the signal ("AgAgCl cup electrodes", etc.).
+     * Sets the getTransducer (electrodes) name of the signal ("AgAgCl cup electrodes", etc.).
      * This method is optional.
      *
      * @param signalNumber number of the signal (channel). Numeration starts from 0
-     * @param transducer   string describing transducer (electrodes) used for measuring
+     * @param transducer   string describing getTransducer (electrodes) used for measuring
      */
     public void setTransducer(int signalNumber, String transducer) {
         signals.get(signalNumber).setTransducer(transducer);
@@ -436,11 +443,11 @@ public class EdfHeader {
 
 
     /**
-     * Sets the label (name) of signal.
+     * Sets the getLabel (name) of signal.
      * It is recommended to set labels for every signal.
      *
      * @param signalNumber number of the signal (channel). Numeration starts from 0
-     * @param label        label of the signal
+     * @param label        getLabel of the signal
      */
     public void setLabel(int signalNumber, String label) {
         signals.get(signalNumber).setLabel(label);
@@ -454,10 +461,11 @@ public class EdfHeader {
      * NumberOfSamplesInEachDataRecord = sampleFrequency
      * <p>
      * SampleFrequency o NumberOfSamplesInEachDataRecord must be set for every signal!!!
+     *
      * @param signalNumber                    number of the signal(channel). Numeration starts from 0
      * @param numberOfSamplesInEachDataRecord number of samples belonging to the signal with the given sampleNumberToSignalNumber
      *                                        in each DataRecord
-     * @throws IllegalArgumentException if the given numberOfSamplesInEachDataRecord <= 0
+     * @throws IllegalArgumentException if the given getNumberOfSamplesInEachDataRecord <= 0
      */
     public void setNumberOfSamplesInEachDataRecord(int signalNumber, int numberOfSamplesInEachDataRecord) throws IllegalArgumentException {
         if (numberOfSamplesInEachDataRecord <= 0) {
@@ -506,10 +514,11 @@ public class EdfHeader {
     /**
      * Helper method. Calculates and gets the number of samples from all signals
      * in data record.
+     *
      * @return the size of data record array
      */
     public int getDataRecordSize() {
-        int  recordSize = 0;
+        int recordSize = 0;
         for (int i = 0; i < signalsCount(); i++) {
             recordSize += getNumberOfSamplesInEachDataRecord(i);
         }
@@ -538,8 +547,8 @@ public class EdfHeader {
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @return physical value
      */
-    public  double digitalValueToPhysical(int signalNumber, int digValue) {
-        return  signals.get(signalNumber).digToPys(digValue);
+    public double digitalValueToPhysical(int signalNumber, int digValue) {
+        return signals.get(signalNumber).digToPys(digValue);
 
     }
 
@@ -548,6 +557,7 @@ public class EdfHeader {
      * Get Gain of the signal:
      * <br>digValue = (physValue / calculateGain) - Offset;
      * <br>physValue = (digValue + calculateOffset)
+     *
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @return Gain of the signal
      */
@@ -560,6 +570,7 @@ public class EdfHeader {
      * Get Offset of the signal:
      * <br>digValue = (physValue / calculateGain) - Offset;
      * <br>physValue = (digValue + calculateOffset)
+     *
      * @param signalNumber number of the signal(channel). Numeration starts from 0
      * @return Offset of the signal
      */
@@ -567,11 +578,21 @@ public class EdfHeader {
         return signals.get(signalNumber).getOffset();
     }
 
-
+    private void addSignal(DataFormat dataFormat) {
+        Signal signal = new Signal();
+        signal.setLabel("Channel_" + signals.size());
+        if (dataFormat == DataFormat.EDF_16BIT) {
+            signal.setDigitalRange(-32768, 32767);
+            signal.setPhysicalRange(-32768, 32767);
+        } else {
+            signal.setDigitalRange(-8388608, 8388607);
+            signal.setPhysicalRange(-8388608, 8388607);
+        }
+    }
 
     class Signal {
         private int numberOfSamplesInEachDataRecord;
-        private String prefiltering = "None";
+        private String prefiltering = "";
         private String transducerType = "Unknown";
         private String label = "";
         private int digitalMin;
@@ -644,7 +665,7 @@ public class EdfHeader {
          * Calculate the Offset calibration (adjust) factor of the signal on the base
          * of its physical and digital maximums and minimums
          *
-         * @return Offset = physicalMax / calculateGain() - digitalMax;
+         * @return Offset = getPhysicalMax / calculateGain() - getDigitalMax;
          */
         public double calculateOffset() {
             return (physicalMax / gain) - digitalMax;
@@ -707,13 +728,13 @@ public class EdfHeader {
         sb.append("\nDuration of DataRecords = " + getDurationOfDataRecord());
         sb.append("\nNumber of signals = " + signalsCount());
         for (int i = 0; i < signalsCount(); i++) {
-            sb.append("\n  " + i + " label: " + getLabel(i)
+            sb.append("\n  " + i + " getLabel: " + getLabel(i)
                     + "; number of samples: " + getNumberOfSamplesInEachDataRecord(i)
                     + "; frequency: " + Math.round(getSampleFrequency(i))
                     + "; dig min: " + getDigitalMin(i) + "; dig max: " + getDigitalMax(i)
                     + "; phys min: " + getPhysicalMin(i) + "; phys max: " + getPhysicalMax(i)
-                    + "; prefiltering: " + getPrefiltering(i)
-                    + "; transducer: " + getTransducer(i)
+                    + "; getPrefiltering: " + getPrefiltering(i)
+                    + "; getTransducer: " + getTransducer(i)
                     + "; dimension: " + getPhysicalDimension(i));
         }
         sb.append("\n");

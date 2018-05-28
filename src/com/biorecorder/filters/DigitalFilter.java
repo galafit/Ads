@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder.filters;
+package com.biorecorder.filters;
 
 /**
  * Any LINEAR transformation

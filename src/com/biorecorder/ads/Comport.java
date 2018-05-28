@@ -17,7 +17,7 @@ public class Comport implements SerialPortEventListener {
     private static Log log = LogFactory.getLog(Comport.class);
     private final SerialPort serialPort;
     private final String comportName;
-    private ComPortListener comPortListener;
+    private ComportListener comportListener;
 
     public Comport(String comportName, int speed) throws SerialPortRuntimeException {
         try {
@@ -45,7 +45,7 @@ public class Comport implements SerialPortEventListener {
         log.info(Thread.currentThread() + " opened comport: "+comportName);
 
         this.comportName = comportName;
-        comPortListener = createNullComPortListener();
+        comportListener = new NullComportListener();
     }
 
     public String getComportName() {
@@ -110,23 +110,21 @@ public class Comport implements SerialPortEventListener {
         }
     }
 
-    public void setComPortListener(ComPortListener comPortListener) {
-        if(comPortListener != null) {
-            this.comPortListener = comPortListener;
+    public boolean hasListener() {
+        if(comportListener instanceof NullComportListener) {
+            return false;
+        }
+        return true;
+    }
+
+    public void setListener(ComportListener comportListener) {
+        if(comportListener != null) {
+            this.comportListener = comportListener;
         }
     }
 
     public void removeComPortListener() {
-        comPortListener = createNullComPortListener();
-    }
-
-    private ComPortListener createNullComPortListener() {
-        return new ComPortListener() {
-            @Override
-            public void onByteReceived(byte inByte) {
-                // do nothing!
-            }
-        };
+        comportListener = new NullComportListener();
     }
 
     @Override
@@ -136,7 +134,7 @@ public class Comport implements SerialPortEventListener {
                 byte[] buffer = serialPort.readBytes();
                // System.out.println("\nbuffer length "+buffer.length);
                 for (int i = 0; i < buffer.length; i++) {
-                    comPortListener.onByteReceived((buffer[i]));
+                    comportListener.onByteReceived((buffer[i]));
                     //System.out.println(buffer[i]);
                 }
             } catch (SerialPortException ex) {
@@ -162,4 +160,10 @@ public class Comport implements SerialPortEventListener {
         return SerialPortList.getPortNames();
     }
 
+    class NullComportListener implements ComportListener {
+        @Override
+        public void onByteReceived(byte inByte) {
+            // do nothing;
+        }
+    }
 }

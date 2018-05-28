@@ -1,7 +1,6 @@
-package com.biorecorder.bdfrecorder.edflib;
+package com.biorecorder.edflib;
 
 import java.io.*;
-import java.text.MessageFormat;
 import java.util.Arrays;
 
 /**

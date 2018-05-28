@@ -2,16 +2,16 @@ package com.biorecorder;
 
 import com.biorecorder.bdfrecorder.*;
 
-import com.biorecorder.bdfrecorder.dataformat.DataListener;
-import com.biorecorder.bdfrecorder.dataformat.DataConfig;
-import com.biorecorder.edflib.EdfFileWriter;
-import com.biorecorder.edflib.FileType;
-import com.biorecorder.edflib.base.EdfConfig;
-import com.biorecorder.edflib.exceptions.FileNotFoundRuntimeException;
+import com.biorecorder.dataformat.DataListener;
+import com.biorecorder.dataformat.DataConfig;
+import com.biorecorder.edflib.DataFormat;
+import com.biorecorder.edflib.EdfHeader;
+import com.biorecorder.edflib.EdfWriter;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -57,7 +57,7 @@ public class BdfRecorderApp {
 
     private Preferences preferences;
     private BdfRecorder bdfRecorder;
-    private volatile EdfFileWriter edfFileWriter;
+    private volatile EdfWriter edfWriter;
     private volatile File edfFile;
     private volatile Boolean[] leadOffBitMask;
 
@@ -189,44 +189,52 @@ public class BdfRecorderApp {
         }
 
         // remove all previously added filters
-        bdfRecorder.removeAllChannelsFilters();
+        bdfRecorder.removeChannelsFilters();
 
         // Apply MovingAverage filters to to ads channels to reduce 50Hz noise
-        int enableSignalsCounter = 0;
-        for (int i = 0; i < recorderConfig.getNumberOfChannels(); i++) {
-            if (recorderConfig.isChannelEnabled(i)) {
-                if (recorderConfig.is50HzFilterEnabled(i)) {
-                    int numberOfAveragingPoints = recorderConfig.getChannelFrequency(i) / 50;
-                    bdfRecorder.addChannelFilter(enableSignalsCounter, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:"+ numberOfAveragingPoints);
-                }
-                enableSignalsCounter++;
+        for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+            if (appConfig.is50HzFilterEnabled(i)) {
+                int numberOfAveragingPoints = recorderConfig.getChannelFrequency(i) / 50;
+                bdfRecorder.addChannelFilter(i, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:"+ numberOfAveragingPoints);
             }
         }
 
 
-
         File fileToWrite = new File(appConfig.getDirToSave(), normalizeFilename(appConfig.getFileName()));
         boolean isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
-        DataConfig dataConfig = bdfRecorder.getResultantRecordingInfo(recorderConfig);
-        try {
-            edfFileWriter = new EdfFileWriter(fileToWrite, FileType.BDF_24BIT);
-            edfFileWriter.setDurationOfDataRecordsComputable(isDurationOfDataRecordComputable);
-            edfFileWriter.setConfig(dataConfig);
 
-        } catch (FileNotFoundRuntimeException ex) {
+        DataConfig dataConfig = bdfRecorder.getDataConfig(recorderConfig);
+        // copy data from dataConfig to the EdfHeader
+        EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, dataConfig.signalsCount());
+        edfHeader.setPatientIdentification(appConfig.getPatientIdentification());
+        edfHeader.setRecordingIdentification(appConfig.getRecordingIdentification());
+        edfHeader.setDurationOfDataRecord(dataConfig.getDurationOfDataRecord());
+        for (int i = 0; i < dataConfig.signalsCount(); i++) {
+            edfHeader.setNumberOfSamplesInEachDataRecord(i, dataConfig.getNumberOfSamplesInEachDataRecord(i));
+            edfHeader.setPrefiltering(i, dataConfig.getPrefiltering(i));
+            edfHeader.setTransducer(i, dataConfig.getTransducer(i));
+            edfHeader.setLabel(i, dataConfig.getLabel(i));
+            edfHeader.setDigitalRange(i, dataConfig.getDigitalMin(i), dataConfig.getDigitalMax(i));
+            edfHeader.setPhysicalRange(i, dataConfig.getPhysicalMin(i), dataConfig.getPhysicalMax(i));
+            edfHeader.setPhysicalDimension(i, dataConfig.getPhysicalDimension(i));
+        }
+         try {
+            edfWriter = new EdfWriter(fileToWrite, edfHeader);
+            edfWriter.setDurationOfDataRecordsComputable(isDurationOfDataRecordComputable);
+
+        } catch (FileNotFoundException ex) {
             log.error(ex);
             String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_MSG, fileToWrite);
             return new OperationResult(false, errMSg);
         }
         edfFile = fileToWrite;
-
         numberOfWrittenDataRecords.set(0);
         bdfRecorder.setDataListener(new DataListener() {
             @Override
             public void onDataReceived(int[] dataRecord) {
                 try{
                     synchronized (BdfRecorderApp.this) {
-                        edfFileWriter.writeDigitalSamples(dataRecord);
+                        edfWriter.writeDigitalSamples(dataRecord);
                     }
                     numberOfWrittenDataRecords.incrementAndGet();
                 } catch (Exception ex) {
@@ -304,9 +312,9 @@ public class BdfRecorderApp {
             bdfRecorder.removeDataListener();
             bdfRecorder.removeLeadOffListener();
             leadOffBitMask = null;
-            if(edfFileWriter != null) {
+            if(edfWriter != null) {
                 try {
-                    edfFileWriter.close();
+                    edfWriter.close();
                 } catch (Exception ex) {
                     log.error(ex);
                 }
@@ -318,7 +326,7 @@ public class BdfRecorderApp {
                     log.error(ex);
                 }
             }
-            edfFileWriter = null;
+            edfWriter = null;
             edfFile = null;
             bdfRecorder.startMonitoring();
         }
@@ -337,12 +345,12 @@ public class BdfRecorderApp {
                 log.error(FAILED_STOP_MSG);
                 errMSg = FAILED_STOP_MSG;
             }
-            if(edfFileWriter != null) {
+            if(edfWriter != null) {
                 try {
                     synchronized (this) {
-                        edfFileWriter.close();
+                        edfWriter.close();
                     }
-                    edfFileWriter = null;
+                    edfWriter = null;
                 } catch (Exception ex) {
                     isFileCloseSuccess = false;
                     log.error(ex);

@@ -1,6 +1,7 @@
-package com.biorecorder.bdfrecorder.filters;
+package com.biorecorder.filters;
 
-import com.biorecorder.bdfrecorder.dataformat.DataProducer;
+import com.biorecorder.dataformat.DataConfig;
+import com.biorecorder.dataformat.DataSender;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,19 +12,24 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class SignalsTransformer extends DataPackageFilter {
+public class SignalsFilter extends FilterDataSender {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
+    private int inRecordSize;
 
-    public SignalsTransformer(DataProducer input) {
+    public SignalsFilter(DataSender input) {
         super(input);
+        for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
+            inRecordSize += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+        }
     }
 
     /**
-     * Indicate that the given filter should be applied to the samples
-     * belonging to the given signal in DataRecords
+     * Indicates that the given filter should be applied to the samples
+     * belonging to the given signal. This method can be called only
+     * before adding a listener!
      *
      * @param signalFilter digital filter that will be applied to the samples
-     * @param signalNumber number of the channel (signal) to whose samples
+     * @param signalNumber number of the signal to whose samples
      *                     the filter should be applied to. Numbering starts from 0.
      */
     public void addSignalFilter(int signalNumber, DigitalFilter signalFilter, String filterName) {
@@ -35,9 +41,6 @@ public class SignalsTransformer extends DataPackageFilter {
         signalFilters.add(new NamedFilter(signalFilter, filterName));
     }
 
-    public void addSignalFilter(int signalNumber, DigitalFilter signalFilter) {
-        addSignalFilter(signalNumber, signalFilter, "");
-    }
 
     public String getSignalFiltersName(int signalNumber) {
         StringBuilder name = new StringBuilder("");
@@ -51,29 +54,26 @@ public class SignalsTransformer extends DataPackageFilter {
     }
 
     @Override
-    public int getSignalsCount() {
-        return input.getSignalsCount();
-    }
-
-    @Override
-    public double getDurationOfDataRecord() {
-        return input.getDurationOfDataRecord();
-    }
-
-    @Override
-    public int getNumberOfSamplesInEachDataRecord(int signalNumber) {
-        return input.getNumberOfSamplesInEachDataRecord(signalNumber);
+    public DataConfig dataConfig() {
+        return new DataConfigWrapper(in.dataConfig()) {
+            @Override
+            public String getPrefiltering(int signalNumber) {
+                if(inConfig.getPrefiltering(signalNumber) != null && ! inConfig.getPrefiltering(signalNumber).isEmpty()) {
+                    return inConfig.getPrefiltering(signalNumber) + ";" +getSignalFiltersName(signalNumber);
+                }
+                return getSignalFiltersName(signalNumber);
+            }
+        };
     }
 
     @Override
     protected void filterData(int[] inputRecord)  {
-        int inputRecordLength = recordSize(input);
-        int[] resultantRecord = new int[inputRecordLength];
+        int[] resultantRecord = new int[inRecordSize];
         int signalNumber = 0;
         int signalStartSampleNumber = 0;
-        for (int i = 0; i < inputRecordLength; i++) {
-            if(i >= signalStartSampleNumber + input.getNumberOfSamplesInEachDataRecord(signalNumber)) {
-                signalStartSampleNumber += input.getNumberOfSamplesInEachDataRecord(signalNumber);
+        for (int i = 0; i < inRecordSize; i++) {
+            if(i >= signalStartSampleNumber + in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber)) {
+                signalStartSampleNumber += in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
                 signalNumber++;
             }
 
@@ -89,7 +89,7 @@ public class SignalsTransformer extends DataPackageFilter {
             }
 
         }
-        dataListener.onDataReceived(resultantRecord);
+        sendDataToListeners(resultantRecord);
     }
 
     class NamedFilter implements DigitalFilter {

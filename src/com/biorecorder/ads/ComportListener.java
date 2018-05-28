@@ -1,5 +1,5 @@
 package com.biorecorder.ads;
 
-interface ComPortListener {
+interface ComportListener {
     public void onByteReceived(byte inByte);
 }

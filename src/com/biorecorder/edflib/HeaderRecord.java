@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder.edflib;
+package com.biorecorder.edflib;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -23,14 +23,14 @@ import java.util.Date;
  * <br>8 ascii : number of data records (-1 if unknown, obey item 10 of the additional EDF+ specs)
  * <br>8 ascii : duration of a data record, in seconds
  * <br>4 ascii : number of signals (ns) in data record
- * <br>ns * 16 ascii : ns * label (e.g. EEG Fpz-Cz or Body temp) (mind item 9 of the additional EDF+ specs)
- * <br>ns * 80 ascii : ns * transducer type (e.g. AgAgCl electrode)
+ * <br>ns * 16 ascii : ns * getLabel (e.g. EEG Fpz-Cz or Body temp) (mind item 9 of the additional EDF+ specs)
+ * <br>ns * 80 ascii : ns * getTransducer type (e.g. AgAgCl electrode)
  * <br>ns * 8 ascii : ns * physical dimension (e.g. uV or degreeC)
  * <br>ns * 8 ascii : ns * physical minimum (e.g. -500 or 34)
  * <br>ns * 8 ascii : ns * physical maximum (e.g. 500 or 40)
  * <br>ns * 8 ascii : ns * digital minimum (e.g. -2048)
  * <br>ns * 8 ascii : ns * digital maximum (e.g. 2047)
- * <br>ns * 80 ascii : ns * prefiltering (e.g. HP:0.1Hz LP:75Hz)
+ * <br>ns * 80 ascii : ns * getPrefiltering (e.g. HP:0.1Hz LP:75Hz)
  * <br>ns * 8 ascii : ns * nr of samples in each data record
  * <br>ns * 32 ascii : ns * reserved
  */

@@ -1,55 +1,24 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
+import com.biorecorder.filters.DigitalFilter;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  *
  */
 public class RecorderConfig {
     private AdsConfig adsConfig = new AdsConfig();
-    private String patientIdentification = "Default patient";
-    private String recordingIdentification = "Default record";
-
-    private List<Boolean> filter50HzMask = new ArrayList<Boolean>();
-
     AdsConfig getAdsConfig() {
         return adsConfig;
     }
 
     public void setAdsConfig(AdsConfig adsConfig) {
         this.adsConfig = adsConfig;
-    }
-
-    public String getPatientIdentification() {
-        return patientIdentification;
-    }
-
-    public void setPatientIdentification(String patientIdentification) {
-        this.patientIdentification = patientIdentification;
-    }
-
-    public String getRecordingIdentification() {
-        return recordingIdentification;
-    }
-
-    public void setRecordingIdentification(String recordingIdentification) {
-        this.recordingIdentification = recordingIdentification;
-    }
-
-    public Boolean is50HzFilterEnabled(int channelNumber) {
-        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
-            filter50HzMask.add(true);
-        }
-        return filter50HzMask.get(channelNumber);
-    }
-
-    public void setIs50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
-        while(filter50HzMask.size() < adsConfig.getAdsChannelsCount()) {
-            filter50HzMask.add(true);
-        }
-        filter50HzMask.set(channelNumber, is50HzFilterEnabled);
     }
 
     public int[] getChannelsAvailableDividers() {
@@ -90,7 +59,7 @@ public class RecorderConfig {
         return adsConfig.isLeadOffEnabled();
     }
 
-    public int getNumberOfChannels() {
+    public int getChannelsCount() {
         return adsConfig.getAdsChannelsCount();
     }
 
@@ -181,4 +150,6 @@ public class RecorderConfig {
     public void setChannelEnabled(int channelNumber, boolean enabled) {
         adsConfig.setAdsChannelEnabled(channelNumber, enabled);
     }
+
+
 }

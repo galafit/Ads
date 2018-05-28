@@ -1,5 +1,7 @@
 package com.biorecorder.ads;
 
+import com.biorecorder.dataformat.DataConfig;
+
 import java.util.ArrayList;
 
 /**
@@ -291,5 +293,27 @@ public class AdsConfig {
         return "Bit mask";
     }
 
+    public int allEnableChannelsCount() {
+        int count = 0;
+        for (int i = 0; i < getAdsChannelsCount(); i++) {
+            if(isAdsChannelEnabled(i)) {
+                count++;
+            }
+        }
+        if(isAccelerometerEnabled()) {
+            if(isAccelerometerOneChannelMode()) {
+                count++;
+            } else {
+                count += 3;
+            }
+        }
+        if(isBatteryVoltageMeasureEnabled()) {
+            count++;
+        }
+        if(isLeadOffEnabled()) {
+            count++;
+        }
+        return count;
+    }
 
 }

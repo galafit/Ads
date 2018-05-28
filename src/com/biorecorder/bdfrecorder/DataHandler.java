@@ -1,6 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
-import com.biorecorder.bdfrecorder.dataformat.DataListener;
+import com.biorecorder.dataformat.DataListener;
 
 import java.util.concurrent.LinkedBlockingQueue;
 

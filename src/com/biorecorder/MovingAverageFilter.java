@@ -1,6 +1,6 @@
 package com.biorecorder;
 
-import com.biorecorder.bdfrecorder.filters.DigitalFilter;
+import com.biorecorder.filters.DigitalFilter;
 
 import java.util.ArrayList;
 import java.util.List;

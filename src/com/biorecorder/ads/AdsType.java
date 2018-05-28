@@ -8,7 +8,6 @@ public enum AdsType {
     ADS_2(2, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10}),
     ADS_8(8, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10});
 
-
     private int numberOfAdsChannels;
     private Divider[] channelsAvailableDividers;
     private Divider[] getAccelerometerAvailableDividers;

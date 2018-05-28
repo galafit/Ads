@@ -1,6 +1,10 @@
 package com.biorecorder.ads;
 
 
+import com.biorecorder.dataformat.DataConfig;
+import com.biorecorder.dataformat.DataListener;
+import com.biorecorder.dataformat.DefaultDataConfig;
+import com.biorecorder.dataformat.NullDataListener;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -11,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Ads packs samples from all channels received during the
- * time = MaxDiv/SampleRate (durationOfDataRecord)
+ * time = MaxDiv/SampleRate (getDurationOfDataRecord)
  * in one array of int. Every array (data record or data package) has
  * the following structure (in case of 8 channels):
  * <p>
@@ -27,10 +31,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
- *  Where n_i = ads_channel_i_sampleRate * durationOfDataRecord
+ *  Where n_i = ads_channel_i_sampleRate * getDurationOfDataRecord
  *  <br>ads_channel_i_sampleRate = sampleRate / ads_channel_i_divider
  * <p>
- *  n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * durationOfDataRecord
+ *  n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * getDurationOfDataRecord
  *  <br>accelerometer_sampleRate = sampleRate / accelerometer_divider
  * <p>
  * If for Accelerometer  one channel mode is chosen then samples from
@@ -47,7 +51,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
- * Where n_acc =  accelerometer_sampleRate * durationOfDataRecord
+ * Where n_acc =  accelerometer_sampleRate * getDurationOfDataRecord
  *
  */
 public class Ads {
@@ -87,15 +91,13 @@ public class Ads {
     private ExecutorService startExecutor;
     private volatile Future<Boolean> startFuture;
 
-    private volatile AdsDataListener dataListener;
+    private volatile DataListener dataListener;
     private volatile AdsEventsListener eventsListener;
-
 
     public Ads(String comportName) throws SerialPortRuntimeException {
         comport = new Comport(comportName, COMPORT_SPEED);
-        comport.setComPortListener(createFrameDecoder(null));
-        dataListener = createNullDataListener();
-        eventsListener = createNullEventsListener();
+        dataListener = new NullDataListener();
+        eventsListener = new NullEventsListener();
         comport.writeByte(STOP_REQUEST);
         comport.writeByte(HARDWARE_REQUEST);
         pingTask = new PingTask();
@@ -106,66 +108,8 @@ public class Ads {
                 return new Thread(r, "«Starting» thread");
             }
         };
-
         startExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
-
     }
-
-    private AdsDataListener createNullDataListener() {
-        return new AdsDataListener() {
-            @Override
-            public void onDataReceived(int[] dataFrame) {
-                // Do nothing !!!
-            }
-        };
-    }
-
-    private AdsEventsListener createNullEventsListener() {
-        return new AdsEventsListener() {
-            @Override
-            public void handleLowButtery() {
-                // do nothing;
-            }
-        };
-    }
-
-    private FrameDecoder createFrameDecoder(@Nullable AdsConfig adsConfig) {
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-        frameDecoder.addDataListener(new AdsDataListener() {
-            @Override
-            public void onDataReceived(int[] dataFrame) {
-                isDataReceived = true;
-                lastEventTime = System.currentTimeMillis();
-                dataListener.onDataReceived(dataFrame);
-            }
-        });
-        frameDecoder.addMessageListener(new MessageListener() {
-            @Override
-            public void onMessage(AdsMessage message, String additionalInfo) {
-                if (message == AdsMessage.ADS_2_CHANNELS) {
-                    adsType = AdsType.ADS_2;
-                    lastEventTime = System.currentTimeMillis();
-                }
-                if (message == AdsMessage.ADS_8_CHANNELS) {
-                    adsType = AdsType.ADS_8;
-                    lastEventTime = System.currentTimeMillis();
-                }
-                if (message == AdsMessage.STOP_RECORDING) {
-                    adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
-                    lastEventTime = System.currentTimeMillis();
-                }
-                if (message == AdsMessage.FRAME_BROKEN) {
-                    log.info(additionalInfo);
-                }
-                if (message == AdsMessage.LOW_BATTERY) {
-                    eventsListener.handleLowButtery();
-                }
-            }
-        });
-       return frameDecoder;
-    }
-
-
 
     /**
      * Start "monitoring timer" which every second sends to
@@ -175,8 +119,13 @@ public class Ads {
      * @throws IllegalStateException if Ads was disconnected and its work is finalised
      */
     public void startMonitoring() throws IllegalStateException  {
+        if(!isConnected) {
+            throw new IllegalStateException(DISCONNECTED_MSG);
+        }
+        if(!comport.hasListener()) {
+            comport.setListener(new PortListener(null));
+        }
         monitoringTask.cancel();
-
         monitoringTask = new MonitoringTask();
         monitoringTimer.schedule(monitoringTask, MONITORING_TIMER_PERIOD_MS, MONITORING_TIMER_PERIOD_MS);
     }
@@ -253,7 +202,7 @@ public class Ads {
                 if(startSentOk) {
                     // create frame decoder corresponding to the configuration
                     // and set is as listener to comport
-                    comport.setComPortListener(createFrameDecoder(config));
+                    comport.setListener(new PortListener(config));
 
                     // waiting for data
                     while (!isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_SEC * 1000) {
@@ -284,6 +233,9 @@ public class Ads {
     public boolean stopRecording() throws IllegalStateException {
         if(!isConnected) {
             throw new IllegalStateException(DISCONNECTED_MSG);
+        }
+        if(!comport.hasListener()) {
+            comport.setListener(new PortListener(null));
         }
         // cancel starting
         if(startFuture != null) {
@@ -336,7 +288,7 @@ public class Ads {
         return adsType;
     }
 
-    public void setDataListener(AdsDataListener listener) {
+    public void setDataListener(DataListener listener) {
         dataListener = listener;
     }
 
@@ -345,11 +297,11 @@ public class Ads {
     }
 
     public void removeDataListener() {
-        dataListener = createNullDataListener();
+        dataListener = new NullDataListener();
     }
 
     public void removeEventsListener() {
-        eventsListener = createNullEventsListener();
+        eventsListener = new NullEventsListener();
     }
 
     /**
@@ -373,6 +325,74 @@ public class Ads {
 
     public static String[] getAvailableComportNames() {
         return Comport.getAvailableComportNames();
+    }
+
+    public DataConfig getDataConfig(AdsConfig adsConfig) {
+        DefaultDataConfig edfConfig = new DefaultDataConfig(0);
+        edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
+        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
+            if (adsConfig.isAdsChannelEnabled(i)) {
+                edfConfig.addSignal();
+                int signalNumber = edfConfig.signalsCount() - 1;
+                edfConfig.setTransducer(signalNumber, "Unknown");
+                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
+                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
+                edfConfig.setDigitalRange(signalNumber, adsConfig.getAdsChannelsDigitalMin(), adsConfig.getAdsChannelsDigitalMax());
+                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAdsChannelSampleRate(i));
+                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                edfConfig.setLabel(signalNumber, adsConfig.getAdsChannelName(i));
+            }
+        }
+
+        if (adsConfig.isAccelerometerEnabled()) {
+            if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
+                edfConfig.addSignal();
+                int signalNumber = edfConfig.signalsCount() - 1;
+                edfConfig.setLabel(signalNumber, "Accelerometer");
+                edfConfig.setTransducer(signalNumber, "None");
+                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
+                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
+                edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
+                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
+                edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+            } else {
+                String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
+                for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
+                    edfConfig.addSignal();
+                    int signalNumber = edfConfig.signalsCount() - 1;
+                    edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
+                    edfConfig.setTransducer(signalNumber, "None");
+                    edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
+                    edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
+                    edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
+                    edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+                }
+            }
+        }
+        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
+            edfConfig.addSignal();
+            int signalNumber = edfConfig.signalsCount() - 1;
+            edfConfig.setLabel(signalNumber, "Battery voltage");
+            edfConfig.setTransducer(signalNumber, "None");
+            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getBatteryVoltageDimension());
+            edfConfig.setPhysicalRange(signalNumber, adsConfig.getBatteryVoltagePhysicalMin(), adsConfig.getBatteryVoltagePhysicalMax());
+            edfConfig.setDigitalRange(signalNumber, adsConfig.getBatteryVoltageDigitalMin(), adsConfig.getBatteryVoltageDigitalMax());
+            int nrOfSamplesInEachDataRecord = 1;
+            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+        }
+        if (adsConfig.isLeadOffEnabled()) {
+            edfConfig.addSignal();
+            int signalNumber = edfConfig.signalsCount() - 1;
+            edfConfig.setLabel(signalNumber, "Lead Off Status");
+            edfConfig.setTransducer(signalNumber, "None");
+            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());
+            edfConfig.setPhysicalRange(signalNumber, adsConfig.getLeadOffStatusPhysicalMin(), adsConfig.getLeadOffStatusPhysicalMax());
+            edfConfig.setDigitalRange(signalNumber, adsConfig.getLeadOffStatusDigitalMin(), adsConfig.getLeadOffStatusDigitalMax());
+            int nrOfSamplesInEachDataRecord = 1;
+            edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
+        }
+        return edfConfig;
     }
 
 
@@ -448,6 +468,57 @@ public class Ads {
         @Override
         public void run() {
             comport.writeByte(HARDWARE_REQUEST);
+        }
+    }
+
+    class NullEventsListener implements AdsEventsListener {
+        @Override
+        public void handleLowButtery() {
+            // do nothing;
+        }
+    }
+
+    class PortListener implements ComportListener {
+        private final FrameDecoder frameDecoder;
+
+        public PortListener(@Nullable AdsConfig adsConfig) {
+            this.frameDecoder = new FrameDecoder(adsConfig);
+            frameDecoder.setDataListener(new DataListener() {
+                @Override
+                public void onDataReceived(int[] dataFrame) {
+                    isDataReceived = true;
+                    lastEventTime = System.currentTimeMillis();
+                    dataListener.onDataReceived(dataFrame);
+                }
+            });
+            frameDecoder.setMessageListener(new MessageListener() {
+                @Override
+                public void onMessage(AdsMessage message, String additionalInfo) {
+                    if (message == AdsMessage.ADS_2_CHANNELS) {
+                        adsType = AdsType.ADS_2;
+                        lastEventTime = System.currentTimeMillis();
+                    }
+                    if (message == AdsMessage.ADS_8_CHANNELS) {
+                        adsType = AdsType.ADS_8;
+                        lastEventTime = System.currentTimeMillis();
+                    }
+                    if (message == AdsMessage.STOP_RECORDING) {
+                        adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
+                        lastEventTime = System.currentTimeMillis();
+                    }
+                    if (message == AdsMessage.FRAME_BROKEN) {
+                        log.info(additionalInfo);
+                    }
+                    if (message == AdsMessage.LOW_BATTERY) {
+                        eventsListener.handleLowButtery();
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onByteReceived(byte inByte) {
+            frameDecoder.onByteReceived(inByte);
         }
     }
 

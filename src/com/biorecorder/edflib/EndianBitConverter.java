@@ -1,10 +1,10 @@
-package com.biorecorder.bdfrecorder.edflib;
+package com.biorecorder.edflib;
 
 /**
  * Contains several useful static methods to convert Java integer (32-bit, signed, BIG_ENDIAN)
  * to an array of bytes (BIG_ENDIAN or LITTLE_ENDIAN ordered) and vice versa
  */
-public class EndianBitConverter {
+class EndianBitConverter {
 
     /**
      * convert BIG_ENDIAN java integer to BIG_ENDIAN ordered 4 byte array.

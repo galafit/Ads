@@ -1,12 +1,11 @@
 package com.biorecorder.ads;
 
 
+import com.biorecorder.dataformat.DataListener;
+import com.biorecorder.dataformat.NullDataListener;
 import com.sun.istack.internal.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-
-class FrameDecoder implements ComPortListener {
+class FrameDecoder implements ComportListener {
 
     private static final byte START_FRAME_MARKER = (byte) (0xAA & 0xFF);
     private static final byte MESSAGE_MARKER = (byte) (0xA5 & 0xFF);
@@ -28,8 +27,8 @@ class FrameDecoder implements ComPortListener {
     AdsConfig adsConfig;
     private int previousFrameCounter = -1;
     private int[] accPrev = new int[3];
-    List<AdsDataListener> dataListeners = new ArrayList<AdsDataListener>();
-    List<MessageListener> messageListeners = new ArrayList<MessageListener>();
+    DataListener dataListener = new NullDataListener();
+    MessageListener messageListener = new NullMessageListener();
     private int MAX_MESSAGE_SIZE = 7;
 
 
@@ -42,18 +41,21 @@ class FrameDecoder implements ComPortListener {
        // log.info("Com port frame size: " + calculateDataRecordSize + " bytes");
     }
 
-    public int getDataRecordSize() {
-        return dataRecordSize;
+    public void setDataListener(DataListener l) {
+        dataListener = l;
     }
 
-    public void addDataListener(AdsDataListener l) {
-        dataListeners.add(l);
+    public void setMessageListener(MessageListener l) {
+        messageListener = l;
     }
 
-    public void addMessageListener(MessageListener l) {
-        messageListeners.add(l);
+    public void removeDataListener() {
+        dataListener = new NullDataListener();
     }
 
+    public void removeMessageListener() {
+        messageListener = new NullMessageListener();
+    }
 
     @Override
     public void onByteReceived(byte inByte) {
@@ -278,15 +280,12 @@ class FrameDecoder implements ComPortListener {
     }
 
     private void notifyDataListeners(int[] decodedFrame) {
-        for (AdsDataListener l : dataListeners) {
-            l.onDataReceived(decodedFrame);
-        }
+        dataListener.onDataReceived(decodedFrame);
+
     }
 
     private void notifyMessageListeners(AdsMessage adsMessage, String additionalInfo) {
-        for (MessageListener l : messageListeners) {
-            l.onMessage(adsMessage, additionalInfo);
-        }
+        messageListener.onMessage(adsMessage, additionalInfo);
     }
 
     /* Java int BIG_ENDIAN, Byte order: LITTLE_ENDIAN  */
@@ -305,5 +304,12 @@ class FrameDecoder implements ComPortListener {
 
     private static String byteToHexString(byte b) {
         return String.format("%02X ", b);
+    }
+
+    class NullMessageListener implements MessageListener {
+        @Override
+        public void onMessage(AdsMessage message, String additionalInfo) {
+            // do nothing;
+        }
     }
 }

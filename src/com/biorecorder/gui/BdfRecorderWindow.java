@@ -557,7 +557,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         for (int i = 0; i < config.getNumberOfChannels(); i++) {
             config.setChannelName(i, getChannelName(i));
             config.setChannelEnabled(i, isChannelEnable(i));
-            config.setIs50HzFilterEnabled(i, is50HzFilterEnable(i));
+            config.set50HzFilterEnabled(i, is50HzFilterEnable(i));
             config.setChannelGain(i, getChannelGain(i));
             config.setChannelRecordinMode(i, getChannelRecordingMode(i));
             config.setChannelLeadOffEnable(i, isChannelLoffEnable(i));
