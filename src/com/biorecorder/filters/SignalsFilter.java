@@ -15,11 +15,17 @@ import java.util.Map;
 public class SignalsFilter extends FilterDataSender {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private int inRecordSize;
+    private double[] offsets;
 
-    public SignalsFilter(DataSender input) {
-        super(input);
-        for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
-            inRecordSize += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+    public SignalsFilter(DataSender in) {
+        super(in);
+        for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
+            inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+        }
+        DataConfig inConfig = in.dataConfig();
+        offsets = new double[inConfig.signalsCount()];
+        for (int i = 0; i < offsets.length; i++) {
+            offsets[i] = DataConfig.offset(inConfig, i);
         }
     }
 
@@ -79,11 +85,12 @@ public class SignalsFilter extends FilterDataSender {
 
             List<NamedFilter> signalFilters = filters.get(signalNumber);
             if(signalFilters != null) {
-                double filteredValue = inputRecord[i];
+                // for filtering we use (digValue + offset) that is proportional physValue !!!
+                double digValue = inputRecord[i] + offsets[i];
                 for (DigitalFilter filter : signalFilters) {
-                    filteredValue = filter.filteredValue(filteredValue);
+                    digValue = filter.filteredValue(digValue);
                 }
-                resultantRecord[i] = new Double(filteredValue).intValue();
+                resultantRecord[i] = new Double(digValue - offsets[i]).intValue();
             } else {
                 resultantRecord[i] = inputRecord[i];
             }

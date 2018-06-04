@@ -296,10 +296,10 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                OperationResult actionResult = recorder.stop();
+              /*  OperationResult actionResult = recorder.stop();
                 if(!actionResult.isMessageEmpty()) {
                     showMessage(actionResult.getMessage());
-                }
+                }*/
             }
         });
 

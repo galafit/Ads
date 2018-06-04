@@ -1,4 +1,4 @@
-package com.biorecorder;
+package com.biorecorder.ads;
 
 import jssc.SerialPort;
 import jssc.SerialPortException;

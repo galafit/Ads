@@ -4,5 +4,5 @@ package com.biorecorder.bdfrecorder;
  * Created by galafit on 25/3/18.
  */
 public interface LeadOffListener {
-    public void onLeadOffDataReceived(Boolean[] leadOffMask);
+    public void onLeadOffMaskReceived(Boolean[] leadOffMask);
 }

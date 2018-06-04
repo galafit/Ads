@@ -3,12 +3,15 @@ package com.biorecorder;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * Thread safe class to send messages from one tread to another
+ * Thread safe class to send messages from one tread to another.
+ * Normally "consuming"(reading) a message take some time.
+ * That is why we need that class. It buffers incoming messages
+ * and send then to the listener only when previous messages are read.
  */
 public class MessageSender {
     private static final int DEFAULT_MESSAGE_QUEUE_CAPACITY = 10;
     private final LinkedBlockingQueue<String> messagesQueue;
-    private Thread messagesHandlingThread;
+    private final Thread messagesHandlingThread;
     private volatile boolean isStopped;
     private volatile MessageListener messageListener;
 
@@ -22,12 +25,9 @@ public class MessageSender {
         messagesHandlingThread = new Thread("«Messages handling» thread") {
             @Override
             public void run() {
-                while ( ! Thread.interrupted() && ! isStopped) {
+                while (! isStopped) {
                     try {
-                        // block until a request arrives
-                        String message = messagesQueue.take();
-                        // send to listener
-                        messageListener.onMessage(message);
+                        messageListener.onMessage(messagesQueue.take());
                     } catch (InterruptedException ie) {
                         // stop
                         break;
@@ -38,9 +38,15 @@ public class MessageSender {
         messagesHandlingThread.start();
     }
 
-
-    public void setMessageListener(MessageListener listener) {
-        messageListener = listener;
+    /**
+     * MessageSender permits to add only ONE MessageListener!
+     * So if a new listener added
+     * the old one is automatically removed
+     */
+    public void addMessageListener(MessageListener listener) {
+        if(listener != null) {
+            messageListener = listener;
+        }
     }
 
     public void removeMessageListener() {
@@ -55,7 +61,8 @@ public class MessageSender {
         try {
             messagesQueue.put(message);
         } catch (InterruptedException e) {
-            // do nothing;
+           // do nothing just put the flag for the case
+            Thread.currentThread().interrupt();
         }
     }
 

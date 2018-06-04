@@ -1,7 +1,4 @@
-package com.biorecorder;
-
-import com.biorecorder.ads.Comport;
-import com.biorecorder.ads.SerialPortRuntimeException;
+package com.biorecorder.ads;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -43,7 +40,7 @@ public class TestSerialPort1 {
             System.out.println(Thread.currentThread() + ": comport "+name+" openned");
             return comPort;
 
-        } catch (SerialPortRuntimeException e) {
+        } catch (ComportRuntimeException e) {
             System.out.println("!!!Exceprion!!!!  ");
             // throw new RuntimeException("runtime exception ");
             return null;
@@ -74,7 +71,7 @@ public class TestSerialPort1 {
                     ports.get(i).writeByte((byte)i);
                     System.out.println(i + " open port: "+ports.get(i).getComportName());
                     ports.get(i).close();
-                } catch (SerialPortRuntimeException e) {
+                } catch (ComportRuntimeException e) {
                     System.out.println("Exception");
                     e.printStackTrace();
                 }

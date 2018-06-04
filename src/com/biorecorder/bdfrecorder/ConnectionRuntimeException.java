@@ -1,7 +1,6 @@
 package com.biorecorder.bdfrecorder;
 
-import com.biorecorder.ads.SerialPortRuntimeException;
-import jssc.SerialPortException;
+import com.biorecorder.ads.ComportRuntimeException;
 
 /**
  * Created by galafit on 29/5/17.
@@ -36,13 +35,13 @@ public class ConnectionRuntimeException extends RuntimeException {
     }
 
 
-    public ConnectionRuntimeException(SerialPortRuntimeException ex) {
+    public ConnectionRuntimeException(ComportRuntimeException ex) {
         super(ex.getMessage());
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();
     }
 
-    public ConnectionRuntimeException(String msg, SerialPortRuntimeException ex) {
+    public ConnectionRuntimeException(String msg, ComportRuntimeException ex) {
         super(msg, ex);
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();

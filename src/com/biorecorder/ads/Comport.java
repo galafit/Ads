@@ -13,13 +13,21 @@ import org.apache.commons.logging.LogFactory;
  * https://code.google.com/p/java-simple-serial-connector/
  * http://www.quizful.net/post/java-serial-ports
  */
-public class Comport implements SerialPortEventListener {
+/*
+ * TODO По идее все должно и так нормально работать.
+ * Но вообще нужно посмотреть аккуратно и подумать
+ * возможно стоит методы writeByte, writeBytes и close сделать synchronized
+ * для надежности
+ */
+class Comport implements SerialPortEventListener {
     private static Log log = LogFactory.getLog(Comport.class);
     private final SerialPort serialPort;
     private final String comportName;
     private ComportListener comportListener;
 
-    public Comport(String comportName, int speed) throws SerialPortRuntimeException {
+    Comport(String comportName, int speed) throws ComportRuntimeException {
+        comportListener = new NullComportListener();
+        this.comportName = comportName;
         try {
             /*
              * This block is synchronized on the Class object
@@ -38,14 +46,10 @@ public class Comport implements SerialPortEventListener {
             // фактически это список событий, на которые мы хотим реагировать.
             // В данном случае MASK_RXCHAR будет извещать слушателей о приходе данных во входной буфер порта.
             serialPort.setEventsMask(SerialPort.MASK_RXCHAR);
-            serialPort.addEventListener(this);
         } catch (SerialPortException ex) {
-            throw new SerialPortRuntimeException(ex);
+            throw new ComportRuntimeException(ex);
         }
         log.info(Thread.currentThread() + " opened comport: "+comportName);
-
-        this.comportName = comportName;
-        comportListener = new NullComportListener();
     }
 
     public String getComportName() {
@@ -58,7 +62,7 @@ public class Comport implements SerialPortEventListener {
 
 
     public boolean close() {
-        removeComPortListener();
+        removeListener();
         // if port already closed we do nothing
         if(!serialPort.isOpened()) {
             return true;
@@ -110,20 +114,24 @@ public class Comport implements SerialPortEventListener {
         }
     }
 
-    public boolean hasListener() {
-        if(comportListener instanceof NullComportListener) {
-            return false;
-        }
-        return true;
-    }
-
-    public void setListener(ComportListener comportListener) {
+    /**
+     * Comport permits to add only ONE listener! So if a new listener added
+     * the old one are automatically removed
+     * @param comportListener
+     */
+    public void addListener(ComportListener comportListener) {
         if(comportListener != null) {
             this.comportListener = comportListener;
+            try {
+                serialPort.addEventListener(this);
+            } catch (SerialPortException e) {
+                // this happens if serial port closed or already has listener
+                // do nothing
+            }
         }
     }
 
-    public void removeComPortListener() {
+    public void removeListener() {
         comportListener = new NullComportListener();
     }
 
@@ -140,7 +148,7 @@ public class Comport implements SerialPortEventListener {
             } catch (SerialPortException ex) {
                 String errMsg = "Error during receiving serial port data: " + ex.getMessage();
                 log.error(errMsg, ex);
-                throw new SerialPortRuntimeException(errMsg, ex);
+                throw new ComportRuntimeException(errMsg, ex);
             }
         }
     }
@@ -152,7 +160,7 @@ public class Comport implements SerialPortEventListener {
      * That is why this method is SYNCHRONIZED (on the Class object).
      * Without synchronization it becomes possible
      * to have multiple connections with the same port
-     * and so loose incoming data. See {@link com.biorecorder.TestSerialPort}.
+     * and so loose incoming data. See {@link TestSerialPort}.
      *
      * @return array of names of all comports or empty array.
      */

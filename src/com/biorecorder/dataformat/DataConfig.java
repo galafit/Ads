@@ -32,7 +32,7 @@ package com.biorecorder.dataformat;
  * <br>
  * Where scaling factors:
  * <br>Gain = (physMax - physMin) / (digMax - digMin)
- * <br>Offset = physMax / Gain) - digMax;
+ * <br>Offset = (physMax / Gain) - digMax;
  * <p>
  * In general "Gain" refers to multiplication of a signal
  * and "Offset"  refer to addition to a signal, i.e. out = (in + Offset) * Gain
@@ -150,5 +150,13 @@ public interface DataConfig {
      * that corresponds to its digital  maximum
      */
     public  double getPhysicalMax(int signalNumber);
+
+    public static double gain(DataConfig dataConfig, int signalNumber) {
+        return (dataConfig.getPhysicalMax(signalNumber) - dataConfig.getPhysicalMin(signalNumber)) / (dataConfig.getDigitalMax(signalNumber) - dataConfig.getDigitalMin(signalNumber));
+    }
+
+    public static double offset(DataConfig dataConfig, int signalNumber) {
+        return dataConfig.getPhysicalMax(signalNumber) / gain(dataConfig, signalNumber) - dataConfig.getDigitalMax(signalNumber);
+    }
 
 }

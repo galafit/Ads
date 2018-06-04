@@ -25,8 +25,10 @@ public abstract class FilterDataSender implements DataSender, DataListener {
 
     @Override
     public void addDataListener(DataListener dataListener) {
-        this.listener = dataListener;
-        in.addDataListener(this);
+        if(dataListener != null) {
+            this.listener = dataListener;
+            in.addDataListener(this);
+        }
     }
 
     @Override

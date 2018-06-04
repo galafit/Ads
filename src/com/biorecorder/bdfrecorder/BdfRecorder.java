@@ -4,6 +4,7 @@ import com.biorecorder.ads.*;
 import com.biorecorder.dataformat.DataConfig;
 import com.biorecorder.dataformat.DataListener;
 import com.biorecorder.dataformat.DataSender;
+import com.biorecorder.dataformat.NullDataListener;
 import com.biorecorder.filters.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -18,7 +19,7 @@ import java.util.concurrent.Future;
  * Wrapper class that does some transformations with Ads data-frames:
  * <ul>
  *     <li>joins Ads data frames so that resultant frame has standard duration = 1 sec</li>
- *     <li>removes  helper technical info about lead-off status and buttery charge</li>
+ *     <li>removes  helper technical info about lead-off status and battery charge</li>
  *     <li>permits to add to ads channels data some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
  * </ul>
  *
@@ -28,25 +29,19 @@ import java.util.concurrent.Future;
  */
 public class BdfRecorder {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
-    private double resultantDataRecordDuration = 1; // sec
 
     private final Ads ads;
-    private volatile DataListener dataListener;
-    private volatile LeadOffListener leadOffListener;
-    private volatile RecorderEventsListener recorderEventsListener;
+    private volatile DataListener dataListener = new com.biorecorder.dataformat.NullDataListener();
+    private volatile EventsListener eventsListener = new NullEventsListener();
+    private volatile BatteryVoltageListener batteryListener = new NullBatteryVoltageListener();
+    private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
 
     private Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
 
     public BdfRecorder(String comportName) throws ConnectionRuntimeException {
         try {
             ads = new Ads(comportName);
-            ads.setAdsEventsListener(new AdsEventsListener() {
-                @Override
-                public void handleLowButtery() {
-                    recorderEventsListener.handleLowButtery();
-                }
-            });
-        } catch (SerialPortRuntimeException ex) {
+        } catch (ComportRuntimeException ex) {
             throw new ConnectionRuntimeException(ex);
         }
     }
@@ -70,37 +65,32 @@ public class BdfRecorder {
      *
      * @param recorderConfig object with ads config info
      * @return Future<Boolean> that get true if starting  was successful
-     * and false otherwise. Throws IllegalArgumentException if device type specified in config
-     * does not coincide with the really connected device type.
+     * and false otherwise. Usually starting fails due to device is not connected
+     * or wrong device type is specified in config (that does not coincide
+     * with the really connected device type)
      * @throws IllegalStateException if Recorder was disconnected and
      * its work was finalised or if it is already recording and should be stopped first
      */
     public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException {
-        DataSender adsFilterDataSender = createAdsFilterDataSender(ads, recorderConfig);
+        DataSender adsFilterDataSender = createResultantDataSender(ads, recorderConfig);
         adsFilterDataSender.addDataListener(dataListener);
         return ads.startRecording(recorderConfig.getAdsConfig());
     }
 
-    public boolean stopRecording() throws IllegalStateException {
+    public boolean stop() throws IllegalStateException {
         ads.removeDataListener();
-        ads.removeEventsListener();
-        return ads.stopRecording();
+        return ads.stop();
     }
 
-    public boolean disconnect()  {
+    public boolean disconnect() {
         ads.removeDataListener();
-        ads.removeEventsListener();
+        ads.removeMessageListener();
         return ads.disconnect();
     }
 
     public void startMonitoring() throws IllegalStateException  {
         ads.startMonitoring();
     }
-
-    public void stopMonitoring() {
-        ads.stopMonitoring();
-    }
-
 
     public boolean isActive() {
         return ads.isActive();
@@ -110,19 +100,18 @@ public class BdfRecorder {
         return ads.getComportName();
     }
 
-    public RecorderState getRecorderState() {
-        return RecorderState.valueOf(ads.getAdsState());
+    public boolean isRecording() {
+        return ads.isRecording();
     }
 
-
     /**
-     * Get the info describing the structure of resultant dataRecords
-     * that BdfRecorder sends to its listeners and write to the Edf/Bdf file
+     * Get the info describing the structure of resultant data records
+     * that BdfRecorder sends to its listeners
      *
-     * @return object with info about recording process and dataRecords structure
+     * @return object describing data records structure
      */
     public DataConfig getDataConfig(RecorderConfig recorderConfig) {
-        return createAdsFilterDataSender(ads, recorderConfig).dataConfig();
+        return createResultantDataSender(ads, recorderConfig).dataConfig();
     }
 
 
@@ -136,104 +125,85 @@ public class BdfRecorder {
     }
 
 
-    public void setDataListener(DataListener listener) {
-        dataListener = listener;
+    /**
+     * Recorder permits to add only ONE DataListener! So if a new listener added
+     * the old one are automatically removed
+     */
+    public void addDataListener(DataListener listener) {
+        if(listener != null) {
+            dataListener = listener;
+        }
     }
 
     public void removeDataListener() {
         dataListener = new NullDataListener();
     }
 
-
-    public void setLeadOffListener(LeadOffListener listener) {
-        leadOffListener = listener;
+    /**
+     * Recorder permits to add only ONE LeadOffListener! So if a new listener added
+     * the old one are automatically removed
+     */
+    public void addLeadOffListener(LeadOffListener listener) {
+        if(listener != null) {
+            leadOffListener = listener;
+        }
     }
 
     public void removeLeadOffListener() {
         leadOffListener = new NullLeadOffListener();
     }
 
-    public void setEventsListener(RecorderEventsListener listener) {
-        recorderEventsListener = listener;
+    /**
+     * Recorder permits to add only ONE ButteryVoltageListener! So if a new listener added
+     * the old one are automatically removed
+     */
+    public void addButteryVoltageListener(BatteryVoltageListener listener) {
+      if(listener != null)  {
+          batteryListener = listener;
+      }
+    }
+
+    public void removeButteryVoltageListener() {
+        batteryListener = new NullBatteryVoltageListener();
+    }
+
+    /**
+     * Recorder permits to add only ONE EventsListener! So if a new listener added
+     * the old one are automatically removed
+     */
+    public void addEventsListener(EventsListener listener) {
+        if(listener != null) {
+            eventsListener = listener;
+        }
+        ads.addMessageListener(new MessageListener() {
+            @Override
+            public void onMessage(AdsMessageType messageType, String message) {
+                if(messageType == AdsMessageType.LOW_BATTERY) {
+                    notifyEventsListeners();
+                }
+                if(messageType == AdsMessageType.FRAME_BROKEN) {
+                    log.info(message);
+                }
+            }
+
+        });
     }
 
     public void removeEventsListener() {
-        recorderEventsListener = new NullEventsListener();
+        eventsListener = new NullEventsListener();
+        ads.removeMessageListener();
+    }
+
+    private void notifyEventsListeners() {
+        eventsListener.handleLowBattery();
     }
 
 
-    class NullDataListener implements DataListener {
-        @Override
-        public void onDataReceived(int[] dataRecord) {
-            // do nothing;
-        }
-    }
-
-    class NullLeadOffListener implements LeadOffListener {
-        @Override
-        public void onLeadOffDataReceived(Boolean[] leadOffMask) {
-            // do nothing
-        }
-    }
-
-    class NullEventsListener implements RecorderEventsListener {
-        @Override
-        public void handleLowButtery() {
-
-        }
-    }
-
-
-    class AdsDataSender implements DataSender {
-        private final Ads ads;
-        private final RecorderConfig recorderConfig;
-
-        public AdsDataSender(Ads ads, RecorderConfig recorderConfig) {
-            this.ads = ads;
-            this.recorderConfig = recorderConfig;
-        }
-        @Override
-        public DataConfig dataConfig() {
-            return ads.getDataConfig(recorderConfig.getAdsConfig());
-        }
-
-        @Override
-        public void addDataListener(DataListener dataListener) {
-            ads.setDataListener(new DataListener() {
-                @Override
-                public void onDataReceived(int[] dataFrame) {
-                    dataListener.onDataReceived(dataFrame);
-
-                    if (recorderConfig.isLeadOffEnabled()) {
-                        boolean[] loffMask = Ads.leadOffIntToBitMask(dataFrame[dataFrame.length - 1], recorderConfig.getChannelsCount());
-                        Boolean[] resultantLoffMask = new Boolean[loffMask.length];
-                        for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
-                            if (recorderConfig.isChannelEnabled(i) && recorderConfig.isChannelLeadOffEnable(i)
-                                    && recorderConfig.getChannelRecordingMode(i).equals(RecordingMode.INPUT)) {
-                                resultantLoffMask[2 * i] = loffMask[2 * i];
-                                resultantLoffMask[2 * i + 1] = loffMask[2 * i + 1];
-                            }
-
-                        }
-                        leadOffListener.onLeadOffDataReceived(resultantLoffMask);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void removeDataListener(DataListener dataListener) {
-            ads.removeDataListener();
-
-        }
-    }
-
-
-    private DataSender createAdsFilterDataSender(Ads ads, RecorderConfig recorderConfig) {
+    private DataSender createResultantDataSender(Ads ads, RecorderConfig recorderConfig) {
         AdsConfig adsConfig = recorderConfig.getAdsConfig();
-        AdsDataSender adsDataSender = new AdsDataSender(ads, recorderConfig);
+        AdsDataSender adsDataSender = new AdsDataSender(ads, recorderConfig.getAdsConfig());
         // join DataRecords to have data records length = resultantDataRecordDuration;
-        int numberOfFramesToJoin = (int) (resultantDataRecordDuration / adsConfig.getDurationOfDataRecord());
+        int numberOfFramesToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
         DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfFramesToJoin);
 
         // Add digital filters to ads channels
@@ -266,6 +236,28 @@ public class BdfRecorder {
 
         return signalsRemover;
     }
+
+    class NullLeadOffListener implements LeadOffListener {
+        @Override
+        public void onLeadOffMaskReceived(Boolean[] leadOffMask) {
+            // do nothing
+        }
+    }
+
+    class NullEventsListener implements EventsListener {
+        @Override
+        public void handleLowBattery() {
+            // do nothing;
+        }
+    }
+
+    class NullBatteryVoltageListener implements BatteryVoltageListener {
+        @Override
+        public void onBatteryVoltageReceived(int batteryVoltage) {
+            // do nothing;
+        }
+    }
+
 
     class NamedDigitalFilter implements DigitalFilter {
         private DigitalFilter filter;

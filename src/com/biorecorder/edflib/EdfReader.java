@@ -9,13 +9,13 @@ import java.util.Arrays;
  * in special {@link EdfHeader} object, that we
  * can get by method {@link #getHeader()}
  * <p>
+ * This class is NOT thread safe!
+ * <p>
  * EDF/BDF files contains "row" digital (int) data but they can be converted to corresponding
  * real physical floating point data on the base of header information (physical maximum and minimum
  * and digital maximum and minimum specified for every channel (signal)).
  * So we can "read" both digital or physical values.
- * See: {@link #readDigitalSamples(int, int[], int, int)}, {@link #readPhysicalSamples(int, double[], int, int)}
- * {@link #readDigitalDataRecord(int[])}, {@link #readPhysicalDataRecord(double[])}.
- */
+  */
 public class EdfReader {
     private EdfHeader header;
     private FileInputStream fileInputStream;
@@ -50,8 +50,8 @@ public class EdfReader {
      * <p>
      * Note that every signal has it's own independent sample position indicator and
      * setSamplePosition() affects only one of them.
-     * Methods {@link #readDigitalSamples(int, int[], int, int)} and
-     * {@link #readPhysicalSamples(int, double[], int, int)} will start reading
+     * Methods {@link #readDigitalSamples(int, int)} and
+     * {@link #readPhysicalSamples(int, int)} (int, double[], int, int)} will start reading
      * samples belonging to a channel from the specified for that channel position.
      *
      * @param signalNumber channel (signal) number whose sample position we change. Numbering starts from 0!
@@ -90,8 +90,10 @@ public class EdfReader {
 
     /**
      * Set the DataRecords position indicator to the given new position.
-     * The position is measured in DataRecords. Methods {@link #readDigitalDataRecord(int[])} and
-     * {@link #readPhysicalDataRecord(double[])} will start reading from the specified position.
+     * The position is measured in DataRecords.
+     * Methods: {@link #readDigitalRecords(int)} and
+     * {@link #readDigitalRecords(int)}
+     * will start reading from the specified position.
      *
      * @param newPosition the new position, a non-negative integer counting
      *                    the number of data records from the beginning of the file
@@ -167,7 +169,7 @@ public class EdfReader {
      * @param signalNumber channel (signal) number whose samples must be read. Numbering starts from 0!
      * @param n       number of samples to read
      * @return array with physical samples read.
-     * The amount of samples read can be less than n or zero
+     * The array size read can be less than n or zero
      * @throws IOException  if an I/O error occurs
      */
     public double[] readPhysicalSamples(int signalNumber, int n) throws IOException {
@@ -189,7 +191,7 @@ public class EdfReader {
      * Return the array with data records read
      * @param n       number of data records to read
      * @return array with digital data records read.
-     * The amount of records read can be less than n or zero
+     * array size can be less than n * recordSize or zero
      * @throws IOException  if an I/O error occurs
      */
     public int[] readDigitalRecords(int n) throws IOException {
@@ -221,7 +223,7 @@ public class EdfReader {
      * Return the array with data records read.
      * @param n       number of data records to read
      * @return array with physical data records read.
-     * The amount of records read can be less than n or zero
+     * The array size can be less than n * recordSize or zero
      * @throws IOException  if an I/O error occurs
      */
     public double[] readPhysicalDataRecords(int n) throws IOException {

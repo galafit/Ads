@@ -8,12 +8,16 @@ import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class permits to write digital or physical samples
+ * EdfWriter permits to write digital or physical samples
  * from multiple measuring channels to  EDF or BDF File.
  * Every channel (signal) has its own sample frequency.
- * Class is not thread safe!!!
+ * <p>
+ * This class is  partially thread safe! It means that all methods
+ * writing data must be called from the same thread.
+ * But method close() may be called from a different (usually GUI) thread!
  * <p>
  * If the file does not exist it will be created.
  * Already existing file with the same name
@@ -39,11 +43,12 @@ public class EdfWriter {
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
     private volatile boolean isDurationOfDataRecordsComputable = false;
-    private final boolean isStartTimeUndefined;
+    private volatile boolean isClosed = false;
+    private volatile boolean isWriting = false;
     private volatile long sampleCount;
 
+    private final boolean isStartTimeUndefined;
     private final FileOutputStream fileOutputStream;
-    private volatile boolean isClosed = false;
     private final int recordSize; // helper field to avoid unnecessary calculations
     private int signalWritePosition;
 
@@ -97,10 +102,7 @@ public class EdfWriter {
      * @throws IllegalStateException if file was close,
      * or number of signals for that file is 0.
      */
-    public void writeDigitalSamples(int[] digitalSamples) throws IOException {
-        if(isClosed) {
-            throw new IllegalStateException(CLOSED_MSG);
-        }
+    public void writeDigitalSamples(int[] digitalSamples) throws IOException, IllegalStateException {
         if(header.signalsCount() == 0) {
             throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
         }
@@ -115,50 +117,10 @@ public class EdfWriter {
                 digitalSamples[i] = digMax;
             }
         }
-
-        if(sampleCount == 0) {
-            writeHeaderToFile();
-        }
         writeDataToFile(digitalSamples, sn);
         signalWritePosition++;
         if(signalWritePosition == header.signalsCount()) {
             signalWritePosition = 0;
-        }
-    }
-
-    private void writeDataToFile(int[] samples, int length) throws IOException {
-        if (sampleCount == 0) {
-            // 1 second = 1000 msec
-            firstRecordTime = System.currentTimeMillis();
-        }
-        if(sampleCount % recordSize == 0) {
-            lastRecordTime = System.currentTimeMillis();
-        }
-        sampleCount += length;
-        int numberOfBytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
-        byte[] byteArray = new byte[numberOfBytesPerSample * length];
-        EndianBitConverter.intArrayToLittleEndianByteArray(samples, 0, byteArray, 0, length, numberOfBytesPerSample);
-        fileOutputStream.write(byteArray);
-    }
-
-    private void writeHeaderToFile() throws IOException {
-        Long numberOfReceivedRecords = getNumberOfReceivedDataRecords();
-        if(numberOfReceivedRecords > 0 && numberOfReceivedRecords < 100000000) {
-            header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
-        }
-        if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
-            double durationOfRecord = (lastRecordTime - firstRecordTime) * 1000 / numberOfReceivedRecords;
-            header.setDurationOfDataRecord(durationOfRecord);
-        }
-        if(isStartTimeUndefined) {
-            header.setRecordingStartTimeMs(firstRecordTime  - (long) (header.getDurationOfDataRecord() * 1000));
-        }
-        FileChannel fileChannel = fileOutputStream.getChannel();
-        long currentPosition = fileChannel.position();
-        fileChannel.position(0);
-        fileOutputStream.write(new HeaderRecord(header).getBytes());
-        if(currentPosition > 0) {
-            fileChannel.position(currentPosition);
         }
     }
 
@@ -175,10 +137,7 @@ public class EdfWriter {
      * the fact that samples from some channels were not recorded by methods
      * writeDigitalSamples/writePhysicalSamples).
      */
-    public void writeDigitalRecord(int[] digitalDataRecord) throws IOException {
-        if(isClosed) {
-            throw new IllegalStateException(CLOSED_MSG);
-        }
+    public void writeDigitalRecord(int[] digitalDataRecord) throws IOException, IllegalStateException {
         if(header.signalsCount() == 0) {
             throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
         }
@@ -221,7 +180,7 @@ public class EdfWriter {
      * @throws IllegalStateException if file was close,
      * or number of signals for that file is 0
      */
-    public void writePhysicalSamples(double[] physicalSamples) throws IOException {
+    public void writePhysicalSamples(double[] physicalSamples) throws IOException, IllegalStateException {
         int ns = header.getNumberOfSamplesInEachDataRecord(signalWritePosition);
         int digSamples[] = new int[ns];
         for (int i = 0; i < ns; i++) {
@@ -246,7 +205,7 @@ public class EdfWriter {
      * the fact that samples from some channels were not recorded by methods
      * writeDigitalSamples/writePhysicalSamples).
      */
-    public void writePhysicalRecord(double[] physicalDataRecord) throws IOException {
+    public void writePhysicalRecord(double[] physicalDataRecord) throws IOException, IllegalStateException {
         int digSamples[] = new int[recordSize];
         int counter = 0;
         for (int signal = 0; signal < header.signalsCount(); signal++) {
@@ -271,22 +230,20 @@ public class EdfWriter {
             return;
         }
         isClosed = true;
+        while(isWriting) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                // do nothing;
+            }
+        }
         try {
             writeHeaderToFile();
+        } finally {
             fileOutputStream.close();
-        } catch (IOException e) {
-            fileOutputStream.close();
-            throw e;
         }
     }
 
-    /**
-     * Gets the Edf/Bdf file where data are saved
-     * @return Edf/Bdf file
-     */
-    public File getFile() {
-        return file;
-    }
 
     /**
      * Gets the number of received data records (data packages).
@@ -299,7 +256,6 @@ public class EdfWriter {
         return (int) (sampleCount / recordSize);
     }
 
-
     public boolean isClosed() {
         return isClosed;
     }
@@ -310,6 +266,55 @@ public class EdfWriter {
 
     public long getLastRecordTime() {
         return lastRecordTime;
+    }
+
+
+    private void writeDataToFile(int[] samples, int length) throws IllegalStateException, IOException {
+        isWriting = true;
+        if(isClosed) {
+            isWriting = false;
+            throw new IllegalStateException(CLOSED_MSG);
+        }
+        try{
+            if(sampleCount == 0) {
+                firstRecordTime = System.currentTimeMillis();
+                lastRecordTime = firstRecordTime;
+                writeHeaderToFile();
+            }
+
+            sampleCount += length;
+            // if number of received records > 1
+            if(sampleCount > recordSize && sampleCount % recordSize == 0) {
+                lastRecordTime = System.currentTimeMillis();
+            }
+            int numberOfBytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
+            byte[] byteArray = new byte[numberOfBytesPerSample * length];
+            EndianBitConverter.intArrayToLittleEndianByteArray(samples, 0, byteArray, 0, length, numberOfBytesPerSample);
+            fileOutputStream.write(byteArray);
+        } finally {
+            isWriting = false;
+        }
+    }
+
+    private void writeHeaderToFile() throws IOException {
+        Long numberOfReceivedRecords = getNumberOfReceivedDataRecords();
+        if(numberOfReceivedRecords > 0 && numberOfReceivedRecords < 100000000) {
+            header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
+        }
+        if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
+            double durationOfRecord = (lastRecordTime - firstRecordTime) * 1000 / numberOfReceivedRecords;
+            header.setDurationOfDataRecord(durationOfRecord);
+        }
+        if(isStartTimeUndefined) {
+            header.setRecordingStartTimeMs(firstRecordTime  - (long) (header.getDurationOfDataRecord() * 1000));
+        }
+        FileChannel fileChannel = fileOutputStream.getChannel();
+        long currentPosition = fileChannel.position();
+        fileChannel.position(0);
+        fileOutputStream.write(new HeaderRecord(header).getBytes());
+        if(currentPosition > 0) {
+            fileChannel.position(currentPosition);
+        }
     }
 
     /**

@@ -5,7 +5,7 @@ import jssc.SerialPortException;
 /**
  * Created by galafit on 23/3/18.
  */
-public class SerialPortRuntimeException extends RuntimeException {
+public class ComportRuntimeException extends RuntimeException {
     public static final String TYPE_PORT_ALREADY_OPENED = "Port already opened";
     public static final String TYPE_PORT_NOT_OPENED = "Port not opened";
     public static final String TYPE_CANT_SET_MASK = "Can't set mask";
@@ -23,19 +23,19 @@ public class SerialPortRuntimeException extends RuntimeException {
     private String portName;
     private String exceptionType;
 
-    public SerialPortRuntimeException(SerialPortException ex) {
+    public ComportRuntimeException(SerialPortException ex) {
         super(ex.getMessage());
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();
     }
 
-    public SerialPortRuntimeException(String msg, SerialPortException ex) {
+    public ComportRuntimeException(String msg, SerialPortException ex) {
         super(msg, ex);
         this.portName = ex.getPortName();
         this.exceptionType = ex.getExceptionType();
     }
 
-    public SerialPortRuntimeException(String portName, String exceptionType) {
+    public ComportRuntimeException(String portName, String exceptionType) {
         super(portName + ": "+exceptionType);
         this.portName = portName;
         this.exceptionType = exceptionType;

@@ -1,24 +1,17 @@
 package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.filters.DigitalFilter;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  *
  */
 public class RecorderConfig {
+    private double durationOfDataRecord = 1; // sec
+
     private AdsConfig adsConfig = new AdsConfig();
+
     AdsConfig getAdsConfig() {
         return adsConfig;
-    }
-
-    public void setAdsConfig(AdsConfig adsConfig) {
-        this.adsConfig = adsConfig;
     }
 
     public int[] getChannelsAvailableDividers() {
@@ -151,5 +144,11 @@ public class RecorderConfig {
         adsConfig.setAdsChannelEnabled(channelNumber, enabled);
     }
 
+    public double getDurationOfDataRecord() {
+        return durationOfDataRecord;
+    }
 
+    public void setDurationOfDataRecord(double durationOfDataRecord) {
+        this.durationOfDataRecord = durationOfDataRecord;
+    }
 }

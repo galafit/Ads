@@ -3,7 +3,7 @@ package com.biorecorder.ads;
 /**
  * Messages from Ads and frame decoder
  */
-public enum AdsMessage {
+public enum AdsMessageType {
     HELLO,
     STOP_RECORDING,
     LOW_BATTERY,
@@ -11,6 +11,5 @@ public enum AdsMessage {
     ADS_8_CHANNELS,
     FIRMWARE,
     TX_FAIL,
-    FRAME_BROKEN,
-    UNKNOWN;
+    FRAME_BROKEN;
 }
