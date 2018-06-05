@@ -76,6 +76,10 @@ public class EdfWriter {
         }
     }
 
+    public File getFile() {
+        return file;
+    }
+
     /**
      * If true the average duration of DataRecords during writing process will be calculated
      * and the result will be written to the file header.

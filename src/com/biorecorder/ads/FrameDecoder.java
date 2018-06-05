@@ -124,8 +124,11 @@ class FrameDecoder implements ComportListener {
             }
             frameIndex = 0;
         } else {
-            String infoMsg = "Frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
-            notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
+            // if adsConfig == null data frames can not be correctly detected
+            if(adsConfig != null) { // frameSize != 0
+                String infoMsg = "Frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
+            }
             frameIndex = 0;
         }
     }

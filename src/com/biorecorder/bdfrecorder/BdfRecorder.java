@@ -83,9 +83,14 @@ public class BdfRecorder {
     }
 
     public boolean disconnect() {
-        ads.removeDataListener();
-        ads.removeMessageListener();
-        return ads.disconnect();
+        if(ads.disconnect()) {
+            removeDataListener();
+            removeButteryVoltageListener();
+            removeLeadOffListener();
+            removeEventsListener();
+            return true;
+        }
+        return false;
     }
 
     public void startMonitoring() throws IllegalStateException  {

@@ -12,27 +12,33 @@ import java.util.concurrent.Future;
  */
 public class ConcurrentTest {
     ExecutorService startExecutor;
-    Future  executorResult;
+    Future  galaResult;
+    Future  sashaResult;
 
     public ConcurrentTest() {
-
         startExecutor = Executors.newSingleThreadExecutor();
-        executorResult = startExecutor.submit(new Gala());
+       // galaResult = startExecutor.submit(new Gala());
 
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+       // sashaResult = startExecutor.submit(new Sasha());
 
-        executorResult.cancel(true);
 
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        executorResult.cancel(true);
+        galaResult.cancel(true);
+        try {
+            Thread.sleep(6000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        sashaResult.cancel(true);
         startExecutor.shutdown();
     }
 
@@ -48,7 +54,7 @@ public class ConcurrentTest {
                     break;
                 }
             }
-            executorResult = startExecutor.submit(new Sasha());
+           // executorResult = startExecutor.submit(new Sasha());
 
         }
     }

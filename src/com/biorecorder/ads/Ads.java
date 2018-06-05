@@ -7,7 +7,6 @@ import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -59,8 +58,8 @@ public class Ads {
     private final byte STOP_REQUEST = (byte) (0xFF & 0xFF);
     private final byte HARDWARE_REQUEST = (byte) (0xFA & 0xFF);
 
-    private static final int PING_TIMER_PERIOD_MS = 1000;
-    private static final int MONITORING_TIMER_PERIOD_MS = 100;
+    private static final int PING_PERIOD_MS = 1000;
+    private static final int MONITORING_PERIOD_MS = 1000;
     private static final int ACTIVE_PERIOD_MS = 2000;
     private static final int SLEEP_TIME_MS = 1000;
 
@@ -70,13 +69,9 @@ public class Ads {
     private static final String RECORDING_MSG = "Device is recording. Stop it first";
 
     private final Comport comport;
-    private volatile Timer timer = new Timer();
-    private volatile TimerTask pingTask;
-    private volatile TimerTask monitoringTask;
 
     private volatile long lastEventTime;
     private volatile boolean isDataReceived;
-    private volatile boolean isConnected = true;
 
     private volatile AdsType adsType;
 
@@ -87,24 +82,22 @@ public class Ads {
             new AtomicReference<AdsState>(AdsState.UNDEFINED);
 
 
-    private ExecutorService startExecutor;
-    private volatile Future<Boolean> startFuture;
+    private ExecutorService singleThreadExecutor;
+    private volatile Future executorFuture;
+
     private volatile NumberedDataListener dataListener;
     private volatile MessageListener messageListener;
-    private volatile FrameDecoder frameDecoder;
 
     public Ads(String comportName) throws ComportRuntimeException {
         comport = new Comport(comportName, COMPORT_SPEED);
         dataListener = new NullDataListener();
         messageListener = new NullMessageListener();
-        pingTask = new PingTask();
-        monitoringTask = new MonitoringTask();
         ThreadFactory namedThreadFactory = new ThreadFactory() {
             public Thread newThread(Runnable r) {
-                return new Thread(r, "«Starting Recording» thread");
+                return new Thread(r, "«Executor» thread");
             }
         };
-        startExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
+        singleThreadExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 
     /**
@@ -116,7 +109,7 @@ public class Ads {
      * or if it is recording and should be stopped first
      */
     public void startMonitoring() throws IllegalStateException {
-        if (!isConnected) {
+        if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
 
@@ -124,21 +117,19 @@ public class Ads {
             throw new IllegalStateException(RECORDING_MSG);
         }
         // create frame decoder to handle ads messages
-        if (frameDecoder == null) {
-            frameDecoder = createAndConfigureFrameDecoder(null);
-            comport.addListener(frameDecoder);
-        }
+        comport.addListener(createAndConfigureFrameDecoder(null));
+
         if(adsStateAtomicReference.get() == AdsState.UNDEFINED) {
             comport.writeByte(STOP_REQUEST);
         }
-        monitoringTask.cancel();
-        monitoringTask = new MonitoringTask();
-        timer.schedule(monitoringTask, MONITORING_TIMER_PERIOD_MS, MONITORING_TIMER_PERIOD_MS);
+        if(executorFuture == null || executorFuture.isDone()) {
+            executorFuture = singleThreadExecutor.submit(new MonitoringTask());
+        }
     }
 
 
     /**
-     * Start Ads measurements.
+     * Start Ads measurements. Stop monitoring if it was activated before
      *
      * @param adsConfig object with ads config info
      * @return Future<Boolean> that get true if starting  was successful
@@ -150,7 +141,7 @@ public class Ads {
      *  or if it is already recording and should be stopped first
      */
     public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException {
-        if (!isConnected) {
+        if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
 
@@ -158,17 +149,18 @@ public class Ads {
             throw new IllegalStateException(RECORDING_MSG);
         }
         // stop monitoring
-        monitoringTask.cancel();
+        if(executorFuture != null && !executorFuture.isDone()) {
+            executorFuture.cancel(true);
+        }
 
         isDataReceived = false;
         // create frame decoder corresponding to the configuration
         // and set it as listener to comport
-        frameDecoder = createAndConfigureFrameDecoder(adsConfig);
-        comport.addListener(frameDecoder);
+        comport.addListener(createAndConfigureFrameDecoder(adsConfig));
         AdsState stateBeforeStart = adsStateAtomicReference.get();
         adsStateAtomicReference.set(AdsState.RECORDING);
-        startFuture = startExecutor.submit(new StartingTask(adsConfig, stateBeforeStart));
-        return startFuture;
+        executorFuture = singleThreadExecutor.submit(new StartingTask(adsConfig, stateBeforeStart));
+        return executorFuture;
     }
 
     class StartingTask implements Callable<Boolean> {
@@ -185,25 +177,30 @@ public class Ads {
             try {
                 boolean isStartOk = start();
                 if(!isStartOk) {
+                    // 4) start ping timer
+                    // ping timer permits Ads to detect bluetooth connection problems
+                    // and restart connection when it is necessary
+                    executorFuture = singleThreadExecutor.submit(new PingTask(), PING_PERIOD_MS);
+                } else {
                     cancel();
                 }
                 return isStartOk;
-            } catch (InterruptedException ex) {
-                cancel();
-                return false;
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 cancel();
                 throw ex;
             }
         }
 
-        private boolean start() throws Exception {
+        private boolean start() {
             long startTime = System.currentTimeMillis();
             // 1) to correctly start we need to be sure that the specified in config adsType is ok
             while (!Thread.currentThread().isInterrupted() && adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_MS) {
                 comport.writeByte(HARDWARE_REQUEST);
-                Thread.sleep(SLEEP_TIME_MS);
+                try {
+                    Thread.sleep(SLEEP_TIME_MS);
+                } catch (InterruptedException e) {
+                    return false;
+                }
             }
             // if adsType is ok
             if(!Thread.currentThread().isInterrupted() && adsType != null && adsType == config.getAdsType()) {
@@ -211,7 +208,11 @@ public class Ads {
                 if (stateBeforeStart == AdsState.UNDEFINED) {
                     if (comport.writeByte(STOP_REQUEST)) {
                         // give the ads time to stop
-                        Thread.currentThread().sleep(SLEEP_TIME_MS);
+                        try {
+                            Thread.sleep(SLEEP_TIME_MS);
+                        } catch (InterruptedException e) {
+                            return false;
+                        }
                     }
                 }
 
@@ -219,22 +220,18 @@ public class Ads {
                     // 3) send "start" command
                     boolean startOk = comport.writeBytes(config.getAdsConfigurationCommand());
                     if (startOk) {
-                        // 4) start ping timer
-                        // ping timer permits Ads to detect bluetooth connection problems
-                        // and restart connection when it is necessary
-                        pingTask.cancel();
-                        pingTask = new PingTask();
-                        timer.schedule(pingTask, PING_TIMER_PERIOD_MS, PING_TIMER_PERIOD_MS);
-
-                        // 5) waiting for data
+                        // 4) waiting for data
                         while (!Thread.currentThread().isInterrupted() && !isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_MS) {
-                            Thread.sleep(SLEEP_TIME_MS);
+                            try {
+                                Thread.sleep(SLEEP_TIME_MS);
+                            } catch (InterruptedException e) {
+                                return false;
+                            }
                         }
                         if(isDataReceived) {
                             return true;
                         }
                    }
-
                 }
             }
             return false;
@@ -246,9 +243,30 @@ public class Ads {
             } catch (Exception ex) {
                 // do nothing;
             }
-            pingTask.cancel();
             adsStateAtomicReference.set(AdsState.UNDEFINED);
         }
+    }
+
+    private boolean stop1() {
+        // cancel starting, pinging or monitoring
+        if (executorFuture != null && !executorFuture.isDone()) {
+            executorFuture.cancel(true);
+        }
+
+        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
+            adsStateAtomicReference.set(AdsState.UNDEFINED);
+        }
+        // send stop command
+        boolean isStopOk = comport.writeByte(STOP_REQUEST);
+        if (isStopOk) {
+            // give ads time to stop
+            try {
+                Thread.sleep(SLEEP_TIME_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return isStopOk;
     }
 
 
@@ -258,62 +276,29 @@ public class Ads {
      * @throws IllegalStateException if Ads was disconnected and its work is finalised
      */
     public boolean stop() throws IllegalStateException {
-        if (!isConnected) {
+        if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
-
-        // cancel starting
-        if (startFuture != null) {
-            startFuture.cancel(true);
-        }
         // create frame decoder to handle ads messages
-        if (frameDecoder == null) {
-            frameDecoder = createAndConfigureFrameDecoder(null);
-            comport.addListener(frameDecoder);
-        } else {
-            frameDecoder.removeDataListener();
-        }
-        // cancel monitoring
-        monitoringTask.cancel();
-        // stop
-        pingTask.cancel();
-        boolean isStopOk = comport.writeByte(STOP_REQUEST);
-        if (isStopOk) {
-            // give the ads time to stop
-            try {
-                Thread.sleep(SLEEP_TIME_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
-            adsStateAtomicReference.set(AdsState.UNDEFINED);
-        }
-        return isStopOk;
+        comport.addListener(createAndConfigureFrameDecoder(null));
+
+        return stop1();
     }
 
 
 
     public boolean disconnect() {
-        if(!isConnected) {
+        if(!comport.isOpened()) {
             return true;
         }
-        // cancel starting
-        if (startFuture != null) {
-            startFuture.cancel(true);
+        stop1();
+        if(comport.close()) {
+            singleThreadExecutor.shutdownNow();
+            removeDataListener();
+            removeMessageListener();
+            return true;
         }
-        comport.writeByte(STOP_REQUEST);
-        adsStateAtomicReference.set(AdsState.UNDEFINED);
-        if(!comport.close()) {
-            if (!startExecutor.isShutdown()) {
-                startExecutor.shutdownNow();
-            }
-            timer.cancel();
-            isConnected = false;
-        }
-
-        return !isConnected;
-
+        return false;
     }
 
 
@@ -517,19 +502,33 @@ public class Ads {
         throw new IllegalArgumentException(msg);
     }
 
-    class PingTask extends TimerTask {
+    class PingTask implements Runnable {
         @Override
         public void run() {
-            comport.writeByte(PING_COMMAND);
-
+            while (! Thread.currentThread().isInterrupted()) {
+                comport.writeByte(PING_COMMAND);
+                try {
+                    Thread.sleep(PING_PERIOD_MS);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
         }
     }
 
-    class MonitoringTask extends TimerTask {
+    class MonitoringTask implements Runnable {
         @Override
         public void run() {
-            comport.writeByte(HARDWARE_REQUEST);
+            while (! Thread.currentThread().isInterrupted()) {
+                comport.writeByte(HARDWARE_REQUEST);
+                try {
+                    Thread.sleep(MONITORING_PERIOD_MS);
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
         }
+
     }
 
     class NullMessageListener implements MessageListener {

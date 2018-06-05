@@ -60,24 +60,27 @@ class Comport implements SerialPortEventListener {
         return serialPort.isOpened();
     }
 
-
     public boolean close() {
-        removeListener();
         // if port already closed we do nothing
         if(!serialPort.isOpened()) {
             return true;
         }
+        boolean isCloseOk = false;
         try {
              /*
              * This block is synchronized on the Class object
              *  to avoid its simultaneous execution with the static method
              *  getAvailableComportNames()!!!
              */
+            ;
             synchronized (Comport.class) {
-                return serialPort.closePort();
+                isCloseOk = serialPort.closePort();
             }
-        } catch (SerialPortException ex) {
-            return false;
+            if(isCloseOk) {
+                removeListener();
+            }
+        } finally {
+            return isCloseOk;
         }
     }
 
