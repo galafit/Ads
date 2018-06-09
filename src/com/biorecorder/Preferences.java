@@ -5,4 +5,5 @@ package com.biorecorder;
  */
 public interface Preferences {
     public void saveConfig(AppConfig appConfig);
+    public AppConfig getConfig();
 }

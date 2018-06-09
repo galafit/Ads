@@ -32,7 +32,7 @@ class Comport implements SerialPortEventListener {
             /*
              * This block is synchronized on the Class object
              *  to avoid its simultaneous execution with the static method
-             *  getAvailableComportNames()!!!
+             *  getAvailableComports()!!!
              */
             synchronized (Comport.class) {
                 serialPort = new SerialPort(comportName);
@@ -70,7 +70,7 @@ class Comport implements SerialPortEventListener {
              /*
              * This block is synchronized on the Class object
              *  to avoid its simultaneous execution with the static method
-             *  getAvailableComportNames()!!!
+             *  getAvailableComports()!!!
              */
             ;
             synchronized (Comport.class) {

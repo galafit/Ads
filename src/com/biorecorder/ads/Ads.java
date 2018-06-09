@@ -10,9 +10,11 @@ import org.apache.commons.logging.LogFactory;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.biorecorder.ads.Divider.D10;
+
 /**
  * Ads packs samples from all channels received during the
- * time = MaxDiv/SampleRate (getDurationOfDataRecord)
+ * time = MaxDiv/getSampleRate (getDurationOfDataRecord)
  * in one array of int. Every array (data record or data package) has
  * the following structure (in case of 8 channels):
  * <p>
@@ -52,6 +54,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);
+
     private final int COMPORT_SPEED = 460800;
     private final byte PING_COMMAND = (byte) (0xFB & 0xFF);
     private final byte HELLO_REQUEST = (byte) (0xFD & 0xFF);
@@ -106,7 +109,7 @@ public class Ads {
      * Ads is connected and ok. Can be called only if Ads is NOT recording
      *
      * @throws IllegalStateException if Ads was disconnected and its work is finalised
-     * or if it is recording and should be stopped first
+     *                               or if it is recording and should be stopped first
      */
     public void startMonitoring() throws IllegalStateException {
         if (!comport.isOpened()) {
@@ -119,10 +122,10 @@ public class Ads {
         // create frame decoder to handle ads messages
         comport.addListener(createAndConfigureFrameDecoder(null));
 
-        if(adsStateAtomicReference.get() == AdsState.UNDEFINED) {
+        if (adsStateAtomicReference.get() == AdsState.UNDEFINED) {
             comport.writeByte(STOP_REQUEST);
         }
-        if(executorFuture == null || executorFuture.isDone()) {
+        if (executorFuture == null || executorFuture.isDone()) {
             executorFuture = singleThreadExecutor.submit(new MonitoringTask());
         }
     }
@@ -136,9 +139,8 @@ public class Ads {
      * and false otherwise. Usually starting fails due to device is not connected
      * or wrong device type is specified in config (that does not coincide
      * with the really connected device type)
-     *
      * @throws IllegalStateException if Ads was disconnected and its work was finalised
-     *  or if it is already recording and should be stopped first
+     *                               or if it is already recording and should be stopped first
      */
     public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException {
         if (!comport.isOpened()) {
@@ -149,7 +151,7 @@ public class Ads {
             throw new IllegalStateException(RECORDING_MSG);
         }
         // stop monitoring
-        if(executorFuture != null && !executorFuture.isDone()) {
+        if (executorFuture != null && !executorFuture.isDone()) {
             executorFuture.cancel(true);
         }
 
@@ -176,7 +178,7 @@ public class Ads {
         public Boolean call() throws Exception {
             try {
                 boolean isStartOk = start();
-                if(!isStartOk) {
+                if (!isStartOk) {
                     // 4) start ping timer
                     // ping timer permits Ads to detect bluetooth connection problems
                     // and restart connection when it is necessary
@@ -203,7 +205,7 @@ public class Ads {
                 }
             }
             // if adsType is ok
-            if(!Thread.currentThread().isInterrupted() && adsType != null && adsType == config.getAdsType()) {
+            if (!Thread.currentThread().isInterrupted() && adsType != null && adsType == config.getAdsType()) {
                 // 2) try to stop ads first if it was not stopped before
                 if (stateBeforeStart == AdsState.UNDEFINED) {
                     if (comport.writeByte(STOP_REQUEST)) {
@@ -216,7 +218,7 @@ public class Ads {
                     }
                 }
 
-                if(!Thread.currentThread().isInterrupted()) {
+                if (!Thread.currentThread().isInterrupted()) {
                     // 3) send "start" command
                     boolean startOk = comport.writeBytes(config.getAdsConfigurationCommand());
                     if (startOk) {
@@ -228,10 +230,10 @@ public class Ads {
                                 return false;
                             }
                         }
-                        if(isDataReceived) {
+                        if (isDataReceived) {
                             return true;
                         }
-                   }
+                    }
                 }
             }
             return false;
@@ -253,7 +255,7 @@ public class Ads {
             executorFuture.cancel(true);
         }
 
-        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
+        if (adsStateAtomicReference.get() == AdsState.RECORDING) {
             adsStateAtomicReference.set(AdsState.UNDEFINED);
         }
         // send stop command
@@ -268,7 +270,6 @@ public class Ads {
         }
         return isStopOk;
     }
-
 
     /**
      * Stops ads measurements or monitoring
@@ -285,14 +286,12 @@ public class Ads {
         return stop1();
     }
 
-
-
     public boolean disconnect() {
-        if(!comport.isOpened()) {
+        if (!comport.isOpened()) {
             return true;
         }
         stop1();
-        if(comport.close()) {
+        if (comport.close()) {
             singleThreadExecutor.shutdownNow();
             removeDataListener();
             removeMessageListener();
@@ -300,7 +299,6 @@ public class Ads {
         }
         return false;
     }
-
 
     /**
      * This method return true if last ads monitoring message (device_type)
@@ -314,7 +312,7 @@ public class Ads {
     }
 
     public boolean isRecording() {
-        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
+        if (adsStateAtomicReference.get() == AdsState.RECORDING) {
             return true;
         }
         return false;
@@ -339,7 +337,7 @@ public class Ads {
      * the old one are automatically removed
      */
     public void addMessageListener(MessageListener listener) {
-        if(listener != null) {
+        if (listener != null) {
             messageListener = listener;
         }
     }
@@ -376,17 +374,20 @@ public class Ads {
             if (adsConfig.isAdsChannelEnabled(i)) {
                 edfConfig.addSignal();
                 int signalNumber = edfConfig.signalsCount() - 1;
+                int channelSampleRate = adsConfig.getSampleRate().getValue() / adsConfig.getAdsChannelDivider(i);
                 edfConfig.setTransducer(signalNumber, "Unknown");
                 edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
                 edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
                 edfConfig.setDigitalRange(signalNumber, adsConfig.getAdsChannelsDigitalMin(), adsConfig.getAdsChannelsDigitalMax());
-                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAdsChannelSampleRate(i));
+                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * channelSampleRate);
                 edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 edfConfig.setLabel(signalNumber, adsConfig.getAdsChannelName(i));
             }
         }
 
         if (adsConfig.isAccelerometerEnabled()) {
+            int accSampleRate = adsConfig.getSampleRate().getValue() / adsConfig.getAccelerometerDivider();
+
             if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
                 edfConfig.addSignal();
                 int signalNumber = edfConfig.signalsCount() - 1;
@@ -395,7 +396,7 @@ public class Ads {
                 edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
                 edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
                 edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
-                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
+                int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * accSampleRate);
                 edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
             } else {
                 String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
@@ -407,7 +408,7 @@ public class Ads {
                     edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
                     edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
                     edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
-                    int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * adsConfig.getAccelerometerSampleRate());
+                    int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * accSampleRate);
                     edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 }
             }
@@ -458,7 +459,6 @@ public class Ads {
      * @param adsChannelsCount - number of ads channels (2 or 8)
      * @return leadOff detection mask or null if ads is stopped or
      * leadOff detection is disabled
-     *
      * @throws IllegalArgumentException if specified number of ads channels != 2 or 8
      */
     public static boolean[] leadOffIntToBitMask(int leadOffInt, int adsChannelsCount) throws IllegalArgumentException {
@@ -505,11 +505,11 @@ public class Ads {
     class PingTask implements Runnable {
         @Override
         public void run() {
-            while (! Thread.currentThread().isInterrupted()) {
-                comport.writeByte(PING_COMMAND);
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    comport.writeByte(PING_COMMAND);
                     Thread.sleep(PING_PERIOD_MS);
-                } catch (InterruptedException e) {
+                } catch (Exception ex) {
                     break;
                 }
             }
@@ -519,11 +519,11 @@ public class Ads {
     class MonitoringTask implements Runnable {
         @Override
         public void run() {
-            while (! Thread.currentThread().isInterrupted()) {
-                comport.writeByte(HARDWARE_REQUEST);
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    comport.writeByte(HARDWARE_REQUEST);
                     Thread.sleep(MONITORING_PERIOD_MS);
-                } catch (InterruptedException e) {
+                } catch (Exception ex) {
                     break;
                 }
             }
@@ -534,7 +534,7 @@ public class Ads {
     class NullMessageListener implements MessageListener {
         @Override
         public void onMessage(AdsMessageType messageType, String message) {
-           // do nothing;
+            // do nothing;
         }
     }
 
@@ -547,7 +547,7 @@ public class Ads {
 
     FrameDecoder createAndConfigureFrameDecoder(@Nullable AdsConfig adsConfig) {
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-        if(adsConfig != null) {
+        if (adsConfig != null) {
             frameDecoder.addDataListener(new NumberedDataListener() {
                 @Override
                 public void onDataReceived(int[] dataRecord, int dataRecordNumber) {

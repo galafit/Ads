@@ -125,7 +125,7 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
 
     private int testSignalEnabledBits(AdsConfig adsConfig) {
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-           if(adsConfig.isAdsChannelEnabled(i) && adsConfig.getAdsChannelCommutatorState(i).equals(CommutatorState.TEST_SIGNAL)) {
+           if(adsConfig.isAdsChannelEnabled(i) && adsConfig.getAdsChannelCommutatorState(i).equals(Commutator.TEST_SIGNAL)) {
                return 0x10;
            }
         }

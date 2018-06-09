@@ -14,37 +14,16 @@ public class RecorderConfig {
         return adsConfig;
     }
 
-    public int[] getChannelsAvailableDividers() {
-        return adsConfig.getAdsChannelsAvailableDividers();
+    public void setChannelDivider(int channelNumber, RecorderDivider recorderDivider) {
+        adsConfig.setAdsChannelDivider(channelNumber, recorderDivider.getAdsDivider());
     }
 
-    public int[] getAccelerometerAvailableDividers() {
-        return adsConfig.getAccelerometerAvailableDividers();
+    public int getAccelerometerDivider() {
+        return adsConfig.getAccelerometerDivider();
     }
 
-    public int getChannelFrequency(int channelNumber){
-        return adsConfig.getAdsChannelSampleRate(channelNumber);
-    }
-
-    public int getAccelerometerFrequency(){
-        return adsConfig.getAccelerometerSampleRate();
-    }
-
-    /**
-     * for channels possible values are dividers of 10: {1, 2, 5, 10}
-     * @param channelNumber
-     * @param divider
-     */
-    public void setChannelDivider(int channelNumber, int divider) {
-        adsConfig.setAdsChannelDivider(channelNumber, Divider.valueOf(divider));
-    }
-
-    /**
-     * for accelerometer possible values: 10
-     * @param divider = 10
-     */
-    public void setAccelerometerDivider(int divider) {
-        adsConfig.setAccelerometerDivider(Divider.valueOf(divider));
+    public int getChannelDivider(int channelNumber) {
+        return adsConfig.getAdsChannelDivider(channelNumber);
     }
 
 
@@ -56,11 +35,11 @@ public class RecorderConfig {
         return adsConfig.getAdsChannelsCount();
     }
 
-    public RecorderSampleRate getRecorderSampleRate() {
-        return RecorderSampleRate.valueOf(adsConfig.getSampleRate());
+    public int getSampleRate() {
+        return adsConfig.getSampleRate().getValue();
     }
 
-    public void setRecorderSampleRate(RecorderSampleRate sampleRate) {
+    public void setSampleRate(RecorderSampleRate sampleRate) {
         adsConfig.setSampleRate(sampleRate.getAdsSps());
     }
 
@@ -128,12 +107,12 @@ public class RecorderConfig {
         adsConfig.setAdsChannelGain(channelNumber, recorderGain.getAdsGain());
     }
 
-    public RecordingMode getChannelRecordingMode(int channelNumber) {
-        return RecordingMode.valueOf(adsConfig.getAdsChannelCommutatorState(channelNumber));
+    public RecorderCommutator getChannelCommutator(int channelNumber) {
+        return RecorderCommutator.valueOf(adsConfig.getAdsChannelCommutatorState(channelNumber));
     }
 
-    public void setChannelRecordingMode(int channelNumber, RecordingMode recordingMode) {
-        adsConfig.setAdsChannelCommutatorState(channelNumber, recordingMode.getAdsCommutatorState());
+    public void setChannelCommutator(int channelNumber, RecorderCommutator recorderCommutator) {
+        adsConfig.setAdsChannelCommutatorState(channelNumber, recorderCommutator.getAdsCommutator());
     }
 
     public boolean isChannelEnabled(int channelNumber) {

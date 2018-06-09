@@ -238,7 +238,7 @@ public class EdfWriter {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
-                // do nothing;
+                Thread.currentThread().interrupt();
             }
         }
         try {

@@ -25,11 +25,12 @@ public class MessageSender {
         messagesHandlingThread = new Thread("«Messages handling» thread") {
             @Override
             public void run() {
-                while (! isStopped) {
+                while (!isStopped) {
                     try {
                         messageListener.onMessage(messagesQueue.take());
                     } catch (InterruptedException ie) {
-                        // stop
+                        isStopped = true;
+                        Thread.currentThread().interrupt();
                         break;
                     }
                 }
@@ -61,7 +62,7 @@ public class MessageSender {
         try {
             messagesQueue.put(message);
         } catch (InterruptedException e) {
-           // do nothing just put the flag for the case
+            isStopped = true;
             Thread.currentThread().interrupt();
         }
     }

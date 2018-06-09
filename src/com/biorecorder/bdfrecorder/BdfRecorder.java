@@ -119,14 +119,12 @@ public class BdfRecorder {
         return createResultantDataSender(ads, recorderConfig).dataConfig();
     }
 
+    public RecorderType getDeviceType() {
+        return RecorderType.valueOf(ads.getAdsType());
+    }
 
     public static String[] getAvailableComportNames() {
         return Ads.getAvailableComportNames();
-    }
-
-
-    public RecorderType getDeviceType() {
-        return RecorderType.valueOf(ads.getAdsType());
     }
 
 

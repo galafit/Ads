@@ -1,16 +1,15 @@
 package com.biorecorder.ads;
 
-import com.biorecorder.dataformat.DataConfig;
-
 import java.util.ArrayList;
 
 /**
  * Class-structure to store info about Ads configuration
  */
 public class AdsConfig {
+    private Divider accelerometerDivider = Divider.D10;
+
     private AdsType adsType = AdsType.ADS_2;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
-    private Divider accelerometerDivider = Divider.D10;
     private boolean isAccelerometerEnabled = true;
     private boolean isAccelerometerOneChannelMode = true;
     private boolean isBatteryVoltageMeasureEnabled = false;
@@ -28,28 +27,6 @@ public class AdsConfig {
 
     public byte[] getAdsConfigurationCommand() {
         return getAdsType().getAdsConfigurationCommand(this);
-    }
-
-    public int getMaxDiv() {
-        return adsType.getMaxDiv().getValue();
-    }
-
-    public int[] getAdsChannelsAvailableDividers() {
-        Divider[] dividers = adsType.getChannelsAvailableDividers();
-        int[] values = new int[dividers.length];
-        for (int i = 0; i < values.length; i++) {
-           values[i] = dividers[i].getValue();
-        }
-        return values;
-    }
-
-    public int[] getAccelerometerAvailableDividers() {
-        Divider[] dividers = adsType.getGetAccelerometerAvailableDividers();
-        int[] values = new int[dividers.length];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = dividers[i].getValue();
-        }
-        return values;
     }
 
     public boolean isLeadOffEnabled() {
@@ -91,18 +68,6 @@ public class AdsConfig {
 
     public int getAccelerometerDivider() {
         return accelerometerDivider.getValue();
-    }
-
-    public void setAccelerometerDivider(Divider divider) {
-        int[] availableDividers = getAccelerometerAvailableDividers();
-        for (int availableDivider : availableDividers) {
-            if(availableDivider == divider.getValue()) {
-                accelerometerDivider = divider;
-                return;
-            }
-        }
-        String msg = "Invalid Accelerometer divider: "+divider;
-        throw new IllegalArgumentException(msg);
     }
 
     public AdsType getAdsType() {
@@ -159,12 +124,12 @@ public class AdsConfig {
         adsChannels.get(adsChannelNumber).setGain(gain);
     }
 
-    public CommutatorState getAdsChannelCommutatorState(int adsChannelNumber) {
-        return adsChannels.get(adsChannelNumber).getCommutatorState();
+    public Commutator getAdsChannelCommutatorState(int adsChannelNumber) {
+        return adsChannels.get(adsChannelNumber).getCommutator();
     }
 
-    public void setAdsChannelCommutatorState(int adsChannelNumber, CommutatorState commutatorState) {
-        adsChannels.get(adsChannelNumber).setCommutatorState(commutatorState);
+    public void setAdsChannelCommutatorState(int adsChannelNumber, Commutator commutator) {
+        adsChannels.get(adsChannelNumber).setCommutator(commutator);
     }
 
     public int getAdsChannelDivider(int adsChannelNumber) {
@@ -172,15 +137,7 @@ public class AdsConfig {
     }
 
     public void setAdsChannelDivider(int adsChannelNumber, Divider divider) {
-        int[] availableDividers = getAdsChannelsAvailableDividers();
-        for (int availableDivider : availableDividers) {
-            if(availableDivider == divider.getValue()) {
-                adsChannels.get(adsChannelNumber).setDivider(divider);
-                return;
-            }
-        }
-        String msg = "Invalid Ads Channel divider: "+divider;
-        throw new IllegalArgumentException(msg);
+        adsChannels.get(adsChannelNumber).setDivider(divider);
     }
 
     public boolean isAdsChannelEnabled(int adsChannelNumber) {
@@ -191,8 +148,17 @@ public class AdsConfig {
         adsChannels.get(adsChannelNumber).setEnabled(enabled);
     }
 
+    public static int getMaxDivider() {
+        int maxDiv = 1;
+        Divider[] dividers = Divider.values();
+        for (int i = 0; i < dividers.length; i++) {
+            maxDiv = Math.max(maxDiv, dividers[i].getValue());
+        }
+        return maxDiv;
+    }
+
     public double getDurationOfDataRecord() {
-        return (1.0 * getMaxDiv())/getSampleRate().getValue();
+        return (1.0 * getMaxDivider())/getSampleRate().getValue();
     }
 
     public double getAdsChannelPhysicalMax(int adsChannelNumber) {
@@ -211,9 +177,6 @@ public class AdsConfig {
         return Math.round(-8388608 / getNoiseDivider());
     }
 
-    public int getAdsChannelSampleRate(int adsChannelNumber){
-        return getSampleRate().getValue() / getAdsChannelDivider(adsChannelNumber);
-    }
 
     public String getAdsChannelsPhysicalDimension() {
         return "uV";
@@ -241,9 +204,6 @@ public class AdsConfig {
         return 4190;
     }
 
-    public int getAccelerometerSampleRate(){
-        return getSampleRate().getValue() / getAccelerometerDivider();
-    }
 
     public String getAccelerometerPhysicalDimension() {
         if(isAccelerometerOneChannelMode()) {
@@ -315,5 +275,4 @@ public class AdsConfig {
         }
         return count;
     }
-
 }

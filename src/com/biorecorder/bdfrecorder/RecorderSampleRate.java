@@ -27,7 +27,7 @@ public enum RecorderSampleRate {
             }
 
         }
-        String msg = "Invalid Ads sps: "+adsSps;
+        String msg = "Invalid sps: "+adsSps;
         throw new IllegalArgumentException(msg);
     }
 

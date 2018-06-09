@@ -11,69 +11,42 @@ import java.util.concurrent.Future;
  * Created by galafit on 4/6/18.
  */
 public class ConcurrentTest {
-    ExecutorService startExecutor;
-    Future  galaResult;
-    Future  sashaResult;
+    Timer timer = new Timer();
 
     public ConcurrentTest() {
-        startExecutor = Executors.newSingleThreadExecutor();
-       // galaResult = startExecutor.submit(new Gala());
 
+        timer.schedule(new Gala(), 1000, 1000);
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-       // sashaResult = startExecutor.submit(new Sasha());
+
+        timer.schedule(new Sasha(), 2000, 2000);
 
 
         try {
-            Thread.sleep(3000);
+            Thread.sleep(10000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        galaResult.cancel(true);
-        try {
-            Thread.sleep(6000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        sashaResult.cancel(true);
-        startExecutor.shutdown();
+
+        timer.cancel();
     }
 
-    class Gala implements Runnable {
+    class Gala extends TimerTask {
         int i;
         @Override
         public void run() {
-            while (! Thread.currentThread().isInterrupted()) {
-                System.out.println(i++ + " gala");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-           // executorResult = startExecutor.submit(new Sasha());
-
+            System.out.println(i++ + " gala");
         }
     }
 
-    class Sasha implements Callable<Boolean> {
+    class Sasha extends TimerTask {
         int i;
-
         @Override
-        public Boolean call() throws Exception {
-            while (! Thread.currentThread().isInterrupted()) {
-                System.out.println(i++ + " sasha");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-            return true;
-
+        public void run() {
+            System.out.println(i++ + " sasha");
         }
     }
 

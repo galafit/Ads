@@ -11,6 +11,7 @@ public class JsonPreferences implements Preferences {
     private static final Log log = LogFactory.getLog(JsonPreferences.class);
     private static final String fileName = "config.json";
 
+    @Override
     public AppConfig getConfig() {
         File propertyFile = getPropertyFileInProjectDir();
         if(!propertyFile.exists() || ! propertyFile.isFile()) {
@@ -60,7 +61,7 @@ public class JsonPreferences implements Preferences {
         }
         try {
             JsonProperties properties = new JsonProperties(propertyFile);
-            properties.saveCongfig(appConfig);
+            properties.saveConfig(appConfig);
 
         } catch (IOException e) {
             String errMsg = "Error during saving app config in json file: " + propertyFile;

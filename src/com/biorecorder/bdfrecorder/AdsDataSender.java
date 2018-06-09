@@ -2,7 +2,7 @@ package com.biorecorder.bdfrecorder;
 
 import com.biorecorder.ads.Ads;
 import com.biorecorder.ads.AdsConfig;
-import com.biorecorder.ads.CommutatorState;
+import com.biorecorder.ads.Commutator;
 import com.biorecorder.ads.NumberedDataListener;
 import com.biorecorder.dataformat.DataConfig;
 import com.biorecorder.dataformat.DataListener;
@@ -63,7 +63,7 @@ class AdsDataSender implements DataSender {
                     Boolean[] resultantLoffMask = new Boolean[loffMask.length];
                     for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
                         if (adsConfig.isAdsChannelEnabled(i) && adsConfig.isAdsChannelLeadOffEnable(i)
-                                && adsConfig.getAdsChannelCommutatorState(i).equals(CommutatorState.INPUT)) {
+                                && adsConfig.getAdsChannelCommutatorState(i).equals(Commutator.INPUT)) {
                             resultantLoffMask[2 * i] = loffMask[2 * i];
                             resultantLoffMask[2 * i + 1] = loffMask[2 * i + 1];
                         }

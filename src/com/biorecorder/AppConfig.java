@@ -1,12 +1,9 @@
 package com.biorecorder;
 
 import com.biorecorder.bdfrecorder.*;
-import com.biorecorder.filters.DigitalFilter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by galafit on 30/3/18.
@@ -96,7 +93,6 @@ public class AppConfig {
         return dir.toString();*/
     }
 
-
     public void setDirToSave(String dirToSave) {
         this.dirToSave = dirToSave;
     }
@@ -109,49 +105,32 @@ public class AppConfig {
         this.fileName = fileName;
     }
 
-    public int[] getChannelsAvailableDividers() {
-        return recorderConfig.getChannelsAvailableDividers();
+
+    public int getChannelSampleRate(int channelNumber) {
+        return recorderConfig.getSampleRate() / recorderConfig.getChannelDivider(channelNumber);
     }
 
-    public int[] getAccelerometerAvailableDividers() {
-        return recorderConfig.getAccelerometerAvailableDividers();
+    public int getAccelerometerSampleRate() {
+        return recorderConfig.getSampleRate() / recorderConfig.getAccelerometerDivider();
     }
 
-    public int getChannelFrequency(int channelNumber) {
-        return recorderConfig.getChannelFrequency(channelNumber);
-    }
-
-    public int getAccelerometerFrequency() {
-        return recorderConfig.getAccelerometerFrequency();
-    }
-
-    /**
-     * for channels possible values are dividers of 10: {1, 2, 5, 10}
-     * @param channelNumber
-     * @param divider
-     */
-    public void setChannelDivider(int channelNumber, int divider) {
-        recorderConfig.setChannelDivider(channelNumber, divider);
-    }
-
-    /**
-     * for accelerometer possible values: 10
-     * @param divider = 10
-     */
-    public void setAccelerometerDivider(int divider) {
-        recorderConfig.setAccelerometerDivider(divider);
+    public void setSampleRates(int sampleRate, int[] adsChannelsFrequencies) {
+        recorderConfig.setSampleRate(RecorderSampleRate.valueOf(sampleRate));
+         for (int i = 0; i < adsChannelsFrequencies.length; i++) {
+            recorderConfig.setChannelDivider(i, RecorderDivider.valueOf(sampleRate / adsChannelsFrequencies[i]));
+        }
     }
 
     public boolean isLeadOffEnabled() {
         return recorderConfig.isLeadOffEnabled();
     }
 
-    public int getNumberOfChannels() {
+    public int getChannelsCount() {
         return recorderConfig.getChannelsCount();
     }
 
     public int getSampleRate() {
-        return recorderConfig.getRecorderSampleRate().getValue();
+        return recorderConfig.getSampleRate();
     }
 
     public boolean isAccelerometerEnabled() {
@@ -174,8 +153,8 @@ public class AppConfig {
         return recorderConfig.getDeviceType().name();
     }
 
-    public void setDeviceType(String recorderTypeName) {
-        recorderConfig.setDeviceType(RecorderType.valueOf(recorderTypeName));
+    public void setDeviceType(String recorderType) {
+        recorderConfig.setDeviceType(RecorderType.valueOf(recorderType));
     }
 
     public boolean isAccelerometerOneChannelMode() {
@@ -219,12 +198,12 @@ public class AppConfig {
     }
 
 
-    public String getChannelRecordingMode(int channelNumber) {
-        return recorderConfig.getChannelRecordingMode(channelNumber).name();
+    public String getChannelCommutator(int channelNumber) {
+        return recorderConfig.getChannelCommutator(channelNumber).name();
     }
 
-    public void setChannelRecordinMode(int channelNumber, String recordingModeName) {
-        recorderConfig.setChannelRecordingMode(channelNumber, RecordingMode.valueOf(recordingModeName));
+    public void setChannelCommutator(int channelNumber, String commutator) {
+        recorderConfig.setChannelCommutator(channelNumber, RecorderCommutator.valueOf(commutator));
     }
 
     public boolean isChannelEnabled(int channelNumber) {
@@ -235,32 +214,25 @@ public class AppConfig {
         recorderConfig.setChannelEnabled(channelNumber, enabled);
     }
 
-    public Integer[] getChannelsAvailableFrequencies(int sampleRate) {
-        int[] dividers = recorderConfig.getChannelsAvailableDividers();
+
+    public Integer[] getChannelsAvailableSampleRates() {
+        RecorderDivider[] dividers = RecorderDivider.values();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
-            frequencies[i] = sampleRate / dividers[i];
+            frequencies[i] = getSampleRate() / dividers[i].getValue();
         }
         return frequencies;
     }
 
-    public Integer[] getAccelerometerAvailableFrequencies(int sampleRate) {
-        int[] dividers = recorderConfig.getAccelerometerAvailableDividers();
-        Integer[] frequencies = new Integer[dividers.length];
-        for (int i = 0; i < dividers.length; i++) {
-            frequencies[i] = sampleRate / dividers[i];
+    public static Integer[] getAvailableSampleRates() {
+        RecorderSampleRate[] sampleRates = RecorderSampleRate.values();
+        Integer[] values = new Integer[sampleRates.length];
+        for (int i = 0; i < sampleRates.length; i++) {
+            values[i] = sampleRates[i].getValue();
         }
-        return frequencies;
+        return values;
     }
 
-
-    public void setFrequencies(int sampleRate, int accelerometerFrequency, int[] adsChannelsFrequencies) {
-        recorderConfig.setRecorderSampleRate(RecorderSampleRate.valueOf(sampleRate));
-        recorderConfig.setAccelerometerDivider((sampleRate / accelerometerFrequency));
-        for (int i = 0; i < adsChannelsFrequencies.length; i++) {
-            recorderConfig.setChannelDivider(i, (sampleRate / adsChannelsFrequencies[i]));
-        }
-    }
 
     public static Integer[] getAvailableGains() {
         RecorderGain[] gains = RecorderGain.values();
@@ -271,17 +243,9 @@ public class AppConfig {
         return values;
     }
 
-    public static Integer[] getAvailableFrequencies() {
-        RecorderSampleRate[] sampleRates = RecorderSampleRate.values();
-        Integer[] values = new Integer[sampleRates.length];
-        for (int i = 0; i < sampleRates.length; i++) {
-            values[i] = sampleRates[i].getValue();
-        }
-        return values;
-    }
 
     public static String[] getAvailableRecordingModes() {
-        RecordingMode[] modes = RecordingMode.values();
+        RecorderCommutator[] modes = RecorderCommutator.values();
         String[] names = new String[modes.length];
         for (int i = 0; i < modes.length; i++) {
             names[i] = modes[i].name();
@@ -297,4 +261,5 @@ public class AppConfig {
         }
         return names;
     }
+
 }

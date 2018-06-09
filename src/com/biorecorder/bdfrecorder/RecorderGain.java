@@ -34,7 +34,7 @@ public enum RecorderGain {
                 return recorderGain;
             }
         }
-        String msg = "Invalid Ads Gain: "+adsGain;
+        String msg = "Invalid gain: "+adsGain;
         throw new IllegalArgumentException(msg);
     }
 

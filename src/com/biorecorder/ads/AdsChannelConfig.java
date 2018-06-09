@@ -1,15 +1,15 @@
 package com.biorecorder.ads;
 
 /**
- * Class-structure to store info about Ads-channels
+ * Created by galafit on 7/6/18.
  */
 class AdsChannelConfig {
     private String name = "Channel";
     private Divider divider = Divider.D1;
     private boolean isEnabled = true;
     private Gain gain = Gain.G2;
-    private CommutatorState commutatorState = CommutatorState.INPUT;
-    private boolean isLoffEnable = true;
+    private Commutator commutator = Commutator.INPUT;
+    private boolean isLoffEnable = false;
     private boolean isRldSenseEnabled = false;
 
     public String getName() {
@@ -44,12 +44,12 @@ class AdsChannelConfig {
         this.gain = gain;
     }
 
-    public CommutatorState getCommutatorState() {
-        return (!isEnabled) ? CommutatorState.INPUT_SHORT : commutatorState;
+    public Commutator getCommutator() {
+        return (!isEnabled) ? Commutator.INPUT_SHORT : commutator;
     }
 
-    public void setCommutatorState(CommutatorState commutatorState) {
-        this.commutatorState = commutatorState;
+    public void setCommutator(Commutator commutator) {
+        this.commutator = commutator;
     }
 
     public Divider getDivider() {
@@ -74,9 +74,10 @@ class AdsChannelConfig {
                 "divider=" + divider +
                 ", isEnabled=" + isEnabled +
                 ", calculateGain=" + gain +
-                ", commutatorState=" + commutatorState +
+                ", commutator=" + commutator +
                 ", isLoffEnable=" + isLoffEnable +
                 ", isRldSenseEnabled=" + isRldSenseEnabled +
                 '}' + "\n";
     }
 }
+

@@ -30,7 +30,7 @@ public enum RecorderType {
                 return recorderType;
             }
         }
-        String msg = "Invalid AdsType: "+adsType;
+        String msg = "Invalid device type: "+adsType;
         throw new IllegalArgumentException(msg);
     }
 

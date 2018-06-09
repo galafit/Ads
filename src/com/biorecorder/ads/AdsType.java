@@ -1,24 +1,16 @@
 package com.biorecorder.ads;
 
 
-
-import static com.biorecorder.ads.Divider.*;
-
 public enum AdsType {
-    ADS_2(2, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10}),
-    ADS_8(8, D10, new Divider[]{D1, D2, D5, D10}, new Divider[]{D10});
+    ADS_2(2),
+    ADS_8(8);
 
     private int numberOfAdsChannels;
-    private Divider[] channelsAvailableDividers;
-    private Divider[] getAccelerometerAvailableDividers;
-    private Divider maxDiv;
+
     private AdsConfigurator adsConfigurator;
 
-    private AdsType(int numberOfAdsChannels, Divider maxDiv, Divider[] channelsAvailableDividers, Divider[] getAccelerometerAvailableDividers) {
-        this.maxDiv = maxDiv;
+    private AdsType(int numberOfAdsChannels) {
         this.numberOfAdsChannels = numberOfAdsChannels;
-        this.channelsAvailableDividers = channelsAvailableDividers;
-        this.getAccelerometerAvailableDividers = getAccelerometerAvailableDividers;
 
         if(numberOfAdsChannels == 2){
             adsConfigurator = new AdsConfigurator2Ch();
@@ -43,18 +35,6 @@ public enum AdsType {
 
     public int getAdsChannelsCount() {
         return numberOfAdsChannels;
-    }
-
-    Divider getMaxDiv(){
-        return maxDiv;
-    }
-
-    Divider[] getChannelsAvailableDividers() {
-        return channelsAvailableDividers;
-    }
-
-    Divider[] getGetAccelerometerAvailableDividers() {
-        return getAccelerometerAvailableDividers;
     }
 
     byte[] getAdsConfigurationCommand(AdsConfig adsConfig){

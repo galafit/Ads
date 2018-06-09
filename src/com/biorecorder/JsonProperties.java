@@ -27,7 +27,7 @@ public class JsonProperties {
      * Converts AdsConfig object to JSON and saves it in file
      * @throws IOException
      */
-    public void saveCongfig(Object object) throws IOException {
+    public void saveConfig(Object object) throws IOException {
         ObjectWriter ow = mapper.writer().withDefaultPrettyPrinter();
 
         ow.writeValue(jsonFile, object);

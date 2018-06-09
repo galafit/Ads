@@ -111,7 +111,7 @@ class AdsConfigurator2Ch implements AdsConfigurator{
     private int testSignalEnabledBits(AdsConfig configuration) {
         int result = 0x00;
         for (int i = 0; i < configuration.getAdsChannelsCount(); i++) {
-            if (configuration.getAdsChannelCommutatorState(i).equals(CommutatorState.TEST_SIGNAL)) {
+            if (configuration.getAdsChannelCommutatorState(i).equals(Commutator.TEST_SIGNAL)) {
                 result = 0x03;
             }
         }
