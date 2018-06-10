@@ -10,8 +10,6 @@ import org.apache.commons.logging.LogFactory;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.biorecorder.ads.Divider.D10;
-
 /**
  * Ads packs samples from all channels received during the
  * time = MaxDiv/getSampleRate (getDurationOfDataRecord)
@@ -69,7 +67,9 @@ public class Ads {
     private static final int MAX_STARTING_TIME_MS = 30 * 1000;
 
     private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
-    private static final String RECORDING_MSG = "Device is recording. Stop it first";
+    private static final String RECORDING_MSG = "Ads is recording. Stop it first";
+    private static final String ALL_CHANNELS_DISABLED_MSG = "All Ads channels are disabled. Recording Impossible";
+
 
     private final Comport comport;
 
@@ -130,7 +130,6 @@ public class Ads {
         }
     }
 
-
     /**
      * Start Ads measurements. Stop monitoring if it was activated before
      *
@@ -141,8 +140,11 @@ public class Ads {
      * with the really connected device type)
      * @throws IllegalStateException if Ads was disconnected and its work was finalised
      *                               or if it is already recording and should be stopped first
+     * @throws IllegalArgumentException if all Ads channels are disabled
+     *
      */
-    public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException {
+
+    public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException, IllegalArgumentException {
         if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
@@ -150,6 +152,19 @@ public class Ads {
         if (adsStateAtomicReference.get() == AdsState.RECORDING) {
             throw new IllegalStateException(RECORDING_MSG);
         }
+
+        boolean isAllChannelsDisabled = true;
+        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
+            if(adsConfig.isAdsChannelEnabled(i)) {
+                isAllChannelsDisabled = false;
+                break;
+            }
+        }
+        if(isAllChannelsDisabled) {
+            throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
+        }
+
+
         // stop monitoring
         if (executorFuture != null && !executorFuture.isDone()) {
             executorFuture.cancel(true);
@@ -164,6 +179,7 @@ public class Ads {
         executorFuture = singleThreadExecutor.submit(new StartingTask(adsConfig, stateBeforeStart));
         return executorFuture;
     }
+
 
     class StartingTask implements Callable<Boolean> {
         private AdsConfig config;

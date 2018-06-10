@@ -29,6 +29,7 @@ import java.util.concurrent.Future;
  */
 public class BdfRecorder {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
+    private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Recording Impossible";
 
     private final Ads ads;
     private volatile DataListener dataListener = new com.biorecorder.dataformat.NullDataListener();
@@ -70,8 +71,9 @@ public class BdfRecorder {
      * with the really connected device type)
      * @throws IllegalStateException if Recorder was disconnected and
      * its work was finalised or if it is already recording and should be stopped first
+     * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
-    public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException {
+    public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
         DataSender adsFilterDataSender = createResultantDataSender(ads, recorderConfig);
         adsFilterDataSender.addDataListener(dataListener);
         return ads.startRecording(recorderConfig.getAdsConfig());
@@ -202,8 +204,28 @@ public class BdfRecorder {
     }
 
 
-    private DataSender createResultantDataSender(Ads ads, RecorderConfig recorderConfig) {
+    private DataSender createResultantDataSender(Ads ads, RecorderConfig recorderConfig) throws IllegalArgumentException {
         AdsConfig adsConfig = recorderConfig.getAdsConfig();
+        boolean isAllChannelsDisabled = true;
+        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
+            if(adsConfig.isAdsChannelEnabled(i)) {
+                isAllChannelsDisabled = false;
+                break;
+            }
+        }
+        boolean isAccelerometerOnly = false;
+        if(isAllChannelsDisabled) {
+            if(!adsConfig.isAccelerometerEnabled()) {
+                throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
+            } else { // we enable some ads channel to make possible accelerometer measuring
+                 isAccelerometerOnly = true;
+                 adsConfig.setAdsChannelEnabled(0, true);
+                 adsConfig.setAdsChannelDivider(0, Divider.D10);
+                 adsConfig.setSampleRate(Sps.S500);
+            }
+        }
+
+        DataConfig adsDataConfig = ads.getDataConfig(adsConfig);
         AdsDataSender adsDataSender = new AdsDataSender(ads, recorderConfig.getAdsConfig());
         // join DataRecords to have data records length = resultantDataRecordDuration;
         int numberOfFramesToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
@@ -211,29 +233,35 @@ public class BdfRecorder {
 
         // Add digital filters to ads channels
         SignalsFilter signalsFilter = new SignalsFilter(edfJoiner);
-        int enableChannelsCount = 0;
-        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-            if(adsConfig.isAdsChannelEnabled(i)) {
-                List<NamedDigitalFilter> channelFilters = filters.get(i);
-                for (NamedDigitalFilter filter : channelFilters) {
-                    signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
+        if(!isAccelerometerOnly) {
+            int enableChannelsCount = 0;
+            for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
+                if(adsConfig.isAdsChannelEnabled(i)) {
+                    List<NamedDigitalFilter> channelFilters = filters.get(i);
+                    for (NamedDigitalFilter filter : channelFilters) {
+                        signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
+                    }
+                    enableChannelsCount++;
                 }
-                enableChannelsCount++;
             }
         }
 
         // Remove helper channels
         SignalsRemover signalsRemover = new SignalsRemover(signalsFilter);
+        if(isAccelerometerOnly) {
+            // delete helper enabled channel
+            signalsRemover.removeSignal(0);
+        }
         if (adsConfig.isLeadOffEnabled()) {
             // delete helper Lead-off channel
-            signalsRemover.removeSignal(adsConfig.allEnableChannelsCount() - 1);
+            signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
         }
         if (adsConfig.isBatteryVoltageMeasureEnabled()) {
             // delete helper BatteryVoltage channel
             if (adsConfig.isLeadOffEnabled()) {
-                signalsRemover.removeSignal(adsConfig.allEnableChannelsCount() - 2);
+                signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);
             } else {
-                signalsRemover.removeSignal(adsConfig.allEnableChannelsCount() - 1);
+                signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
             }
         }
 

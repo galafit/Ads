@@ -157,7 +157,7 @@ public class AdsConfig {
     }
 
     public double getAdsChannelPhysicalMax(int adsChannelNumber) {
-        return 2400000 / getAdsChannelGain(adsChannelNumber).getValue();
+        return 2400000 / adsChannels.get(adsChannelNumber).getGain().getValue();
     }
 
     public double getAdsChannelPhysicalMin(int adsChannelNumber) {
@@ -165,11 +165,11 @@ public class AdsConfig {
     }
 
     public int getAdsChannelsDigitalMax() {
-        return Math.round(8388607 / getNoiseDivider());
+        return Math.round(8388607 / noiseDivider);
     }
 
     public int getAdsChannelsDigitalMin() {
-        return Math.round(-8388608 / getNoiseDivider());
+        return Math.round(-8388608 / noiseDivider);
     }
 
 
@@ -201,7 +201,7 @@ public class AdsConfig {
 
 
     public String getAccelerometerPhysicalDimension() {
-        if(isAccelerometerOneChannelMode()) {
+        if(isAccelerometerOneChannelMode) {
             return "m/sec^3";
         }
         return "mg";
@@ -209,7 +209,7 @@ public class AdsConfig {
 
 
     public double getBatteryVoltagePhysicalMax() {
-        return 50;
+        return 5;
     }
 
     public double getBatteryVoltagePhysicalMin() {
@@ -248,26 +248,4 @@ public class AdsConfig {
         return "Bit mask";
     }
 
-    public int allEnableChannelsCount() {
-        int count = 0;
-        for (int i = 0; i < getAdsChannelsCount(); i++) {
-            if(isAdsChannelEnabled(i)) {
-                count++;
-            }
-        }
-        if(isAccelerometerEnabled()) {
-            if(isAccelerometerOneChannelMode()) {
-                count++;
-            } else {
-                count += 3;
-            }
-        }
-        if(isBatteryVoltageMeasureEnabled()) {
-            count++;
-        }
-        if(isLeadOffEnabled()) {
-            count++;
-        }
-        return count;
-    }
 }

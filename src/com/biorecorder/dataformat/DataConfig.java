@@ -159,4 +159,13 @@ public interface DataConfig {
         return dataConfig.getPhysicalMax(signalNumber) / gain(dataConfig, signalNumber) - dataConfig.getDigitalMax(signalNumber);
     }
 
+    public static int physicalToDigital(DataConfig dataConfig, int signalNumber, double physValue) {
+        return (int) (physValue / gain(dataConfig, signalNumber) - offset(dataConfig, signalNumber));
+    }
+
+    public static double digitalToPysical(DataConfig dataConfig, int signalNumber, int digValue) {
+        return (digValue + offset(dataConfig, signalNumber)) * gain(dataConfig, signalNumber);
+    }
+
+
 }

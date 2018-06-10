@@ -23,9 +23,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private static final int PATIENT_LENGTH = 28;
     private static final int RECORDING_LENGTH = 28;
 
-    private static final Color COLOR_PROCESS = Color.GREEN;
-    private static final Color COLOR_PROBLEM = Color.RED;
-    private static final Color COLOR_INFO = Color.GRAY;
+    Color COLOR_CONNECTED = Color.GREEN;
+    Color COLOR_DISCONNECTED = Color.GRAY;
 
     private static final Icon ICON_SHOW = new ImageIcon("img/arrow-open.png");
     private static final Icon ICON_HIDE = new ImageIcon("img/arrow-close.png");
@@ -57,8 +56,13 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
     private JButton checkImpedanceButton = new JButton("Check impedance");
 
-    private MarkerLabel markerLabel = new MarkerLabel();
-    private JLabel reportLabel = new JLabel(" ");
+    private ColoredMarker stateMarker = new ColoredMarker(COLOR_DISCONNECTED);
+    private JLabel stateField = new JLabel("Disconnected");
+
+    private JLabel batteryLabel = new JLabel("Battery:");
+    private JLabel batteryField = new JLabel("undefined");
+
+
     private String title = "BioRecorder";
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"),
             new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Impedance"), new JLabel(" "), new JLabel("50 Hz Filter")};
@@ -93,7 +97,9 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                         }
                     }
                 }
-
+                if(recorder.isRecording()) {
+                    recorder.stop();
+                }
                 OperationResult actionResult = recorder.startRecording(saveData(), false);
                 if (!actionResult.isMessageEmpty()) {
                     showMessage(actionResult.getMessage());
@@ -105,6 +111,9 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 saveData();
+                if(recorder.isRecording()) {
+                    recorder.stop();
+                }
                 OperationResult actionResult = recorder.startRecording(saveData(), true);
                 if (!actionResult.isMessageEmpty()) {
                     showMessage(actionResult.getMessage());
@@ -255,15 +264,16 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 // Here, we can safely update the GUI
                 // because we'll be called from the
                 // event dispatch thread
-                Color activeColor = Color.GREEN;
-                Color nonActiveColor = Color.GRAY;
-                Color stateColor = nonActiveColor;
+                Color stateColor = COLOR_DISCONNECTED;
                 if (recorder.isActive()) {
-                    stateColor = activeColor;
+                    stateColor = COLOR_CONNECTED;
                 }
                 if (recorder.isRecording()) {
-                    stateColor = activeColor;
+                    stateColor = COLOR_CONNECTED;
                     stopButton.setVisible(true);
+                    if(recorder.getBatteryVoltage() != null) {
+                        batteryField.setText(recorder.getBatteryVoltage() + "V");
+                    }
                     if (recorder.isLoffDetecting()) {
                         checkImpedanceButton.setVisible(false);
                         updateLeadOffStatus(recorder.getLeadOffMask());
@@ -363,11 +373,21 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         identificationBorderPanel.setBorder(BorderFactory.createTitledBorder("Identification"));
         identificationBorderPanel.add(identificationPanel);
 
-        hgap = 10;
-        vgap = 5;
+        hgap = 3;
+        vgap = 0;
         JPanel reportPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        reportPanel.add(markerLabel);
-        reportPanel.add(reportLabel);
+        reportPanel.add(stateMarker);
+        reportPanel.add(stateField);
+
+        JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        batteryPanel.add(batteryLabel);
+        batteryPanel.add(batteryField);
+
+        hgap = 30;
+        vgap = 5;
+        JPanel statePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        statePanel.add(reportPanel);
+        statePanel.add(batteryPanel);
 
         hgap = 0;
         vgap = 5;
@@ -379,7 +399,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         // Root Panel of the BdfRecorderWindow
         add(topPanel, BorderLayout.NORTH);
         add(adsPanel, BorderLayout.CENTER);
-        add(reportPanel, BorderLayout.SOUTH);
+        add(statePanel, BorderLayout.SOUTH);
 
         // set the same size for identificationPanel and  saveAsPanel
         int height = Math.max(identificationBorderPanel.getPreferredSize().height, fileToSaveUI.getPreferredSize().height);
@@ -430,8 +450,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private void setReport(String report, Color markerColor) {
         int rowLength = 100;
         String htmlReport = convertToHtml(report, rowLength);
-        reportLabel.setText(htmlReport);
-        markerLabel.setColor(markerColor);
+        stateField.setText(htmlReport);
+        stateMarker.setColor(markerColor);
     }
 
     private AppConfig saveData() {

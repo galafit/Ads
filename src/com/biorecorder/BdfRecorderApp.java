@@ -36,7 +36,8 @@ public class BdfRecorderApp {
     private static final String COMPORT_NOT_FOUND_MSG = "ComPort: {0} is not found.";
     private static final String COMPORT_NULL_MSG = "Comport name can not be null or empty";
 
-     private static final String ALREADY_RECORDING_MSG = "Recorder is already recording. Stop it first";
+    private static final String ALREADY_RECORDING_MSG = "Recorder is already recording. Stop it first";
+    private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Enable something to record";
 
     private static final String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped.";
 
@@ -210,6 +211,20 @@ public class BdfRecorderApp {
 
         if(comportName == null || comportName.isEmpty()) {
             return new OperationResult(false, COMPORT_NULL_MSG);
+        }
+
+        boolean isAllChannelsDisabled = true;
+        for (int i = 0; i < config.getChannelsCount(); i++) {
+            if(config.isChannelEnabled(i)) {
+                isAllChannelsDisabled = false;
+                break;
+            }
+        }
+        if(config.isAccelerometerEnabled()) {
+            isAllChannelsDisabled = false;
+        }
+        if(isAllChannelsDisabled) {
+            return new OperationResult(false, ALL_CHANNELS_DISABLED_MSG);
         }
 
         this.comportName = comportName;

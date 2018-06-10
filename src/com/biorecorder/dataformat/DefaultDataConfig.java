@@ -220,8 +220,6 @@ public class DefaultDataConfig implements DataConfig {
         private double physicalMin;
         private double physicalMax;
         private String physicalDimension = "";  // uV or Ohm
-        private double gain;
-        private double offset;
 
 
         public int getDigitalMin() {
@@ -248,49 +246,15 @@ public class DefaultDataConfig implements DataConfig {
             return numberOfSamplesInEachDataRecord;
         }
 
-        public int physToDig(double physValue) {
-            return (int) (physValue / gain - offset);
-        }
-
-        public double digToPys(int digValue) {
-            return (digValue + offset) * gain;
-        }
-
         public void setDigitalRange(int digitalMin, int digitalMax) {
             this.digitalMin = digitalMin;
             this.digitalMax = digitalMax;
-            gain = calculateGain();
-            offset = calculateOffset();
         }
 
         public void setPhysicalRange(double physicalMin, double physicalMax) {
             this.physicalMin = physicalMin;
             this.physicalMax = physicalMax;
-            gain = calculateGain();
-            offset = calculateOffset();
         }
-
-        /**
-         * Calculate the Gain calibration (adjust) factor of the signal on the base
-         * of its physical and digital maximums and minimums
-         *
-         * @return Gain = (physMax - physMin) / (digMax - digMin)
-         */
-        public double calculateGain() {
-            return (physicalMax - physicalMin) / (digitalMax - digitalMin);
-        }
-
-
-        /**
-         * Calculate the Offset calibration (adjust) factor of the signal on the base
-         * of its physical and digital maximums and minimums
-         *
-         * @return Offset = getPhysicalMax / calculateGain() - getDigitalMax;
-         */
-        public double calculateOffset() {
-            return (physicalMax / gain) - digitalMax;
-        }
-
 
         public void setPhysicalDimension(String physicalDimension) {
             this.physicalDimension = physicalDimension;
@@ -325,13 +289,6 @@ public class DefaultDataConfig implements DataConfig {
             this.label = label;
         }
 
-        public double getGain() {
-            return gain;
-        }
-
-        public double getOffset() {
-            return offset;
-        }
     }
 
 }

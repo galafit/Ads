@@ -6,26 +6,24 @@ import java.awt.*;
 /**
  *
  */
-public class MarkerLabel extends JLabel {
+public class ColoredMarker extends JLabel {
 
     private Color  backgroundColor;
     private Dimension defaultDimension = new Dimension(10,10);
 
-    public MarkerLabel() {
+    public ColoredMarker(Color backgroundColor) {
         setPreferredSize(defaultDimension);
         setOpaque(true);
-        backgroundColor = getBackground();
+        setBackground(backgroundColor);
     }
 
-    public MarkerLabel(Dimension dimension) {
-        this();
-        setPreferredSize(dimension);
+    public ColoredMarker() {
+        setPreferredSize(defaultDimension);
     }
 
-    public MarkerLabel(Icon icon) {
-        this();
+
+    public ColoredMarker(Icon icon) {
         setIcon(icon);
-
     }
 
     public void setIcon(Icon icon) {
@@ -38,9 +36,5 @@ public class MarkerLabel extends JLabel {
     public void setColor(Color color) {
         setBackground(color);
         setIcon(null);
-    }
-
-    public void setBackgroundColor(){
-        setColor(backgroundColor);
     }
 }

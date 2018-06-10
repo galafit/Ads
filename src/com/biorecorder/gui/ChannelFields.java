@@ -23,8 +23,8 @@ public class ChannelFields {
     private JCheckBox isEnableField;
     private JCheckBox is50HzFilterEnableField;
     private JTextField nameField;
-    private MarkerLabel loffPositiveField;
-    private MarkerLabel loffNegativeField;
+    private ColoredMarker loffPositiveField;
+    private ColoredMarker loffNegativeField;
 
     private int channelNumber;
 
@@ -43,8 +43,8 @@ public class ChannelFields {
         nameField.setDocument(new FixSizeDocument(NAME_LENGTH));
         nameField.setText(config.getChannelName(channelNumber));
 
-        loffPositiveField = new MarkerLabel(ICON_DISABLED);
-        loffNegativeField = new MarkerLabel(ICON_DISABLED);
+        loffPositiveField = new ColoredMarker(ICON_DISABLED);
+        loffNegativeField = new ColoredMarker(ICON_DISABLED);
         isEnableField = new JCheckBox();
         isEnableField.addItemListener(new ItemListener() {
             @Override
