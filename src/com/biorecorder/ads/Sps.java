@@ -25,7 +25,7 @@ public enum Sps {
                 return sps;
             }
         }
-        String msg = "Invalid Sps value";
+        String msg = "Invalid Sps value: "+value;
         throw new IllegalArgumentException(msg);
     }
 

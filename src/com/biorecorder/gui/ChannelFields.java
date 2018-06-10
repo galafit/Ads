@@ -3,7 +3,6 @@ package com.biorecorder.gui;
 import com.biorecorder.AppConfig;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
@@ -27,34 +26,34 @@ public class ChannelFields {
     private MarkerLabel loffPositiveField;
     private MarkerLabel loffNegativeField;
 
-    private Integer channelNumber;
+    private int channelNumber;
 
     public ChannelFields(AppConfig config, int channelNumber) {
-        boolean isChannelEnable = config.isChannelEnabled(channelNumber);
         this.channelNumber = channelNumber;
-        frequencyField = new JComboBox(config.getChannelsAvailableSampleRates());
+        frequencyField = new JComboBox(AppConfig.getChannelsAvailableSampleRates(config.getSampleRate()));
         frequencyField.setSelectedItem(config.getChannelSampleRate(channelNumber));
-        gainField = new JComboBox(AppConfig.getAvailableGains());
+        gainField = new JComboBox(AppConfig.getChannelsAvailableGains());
         gainField.setSelectedItem(config.getChannelGain(channelNumber));
-        commutatorField = new JComboBox(AppConfig.getAvailableRecordingModes());
+        commutatorField = new JComboBox(AppConfig.getChannelsAvailableCommutators());
         commutatorField.setSelectedItem(config.getChannelCommutator(channelNumber));
+
+        is50HzFilterEnableField = new JCheckBox();
+        is50HzFilterEnableField.setSelected(config.is50HzFilterEnabled(channelNumber));
+        nameField = new JTextField(NAME_LENGTH);
+        nameField.setDocument(new FixSizeDocument(NAME_LENGTH));
+        nameField.setText(config.getChannelName(channelNumber));
+
+        loffPositiveField = new MarkerLabel(ICON_DISABLED);
+        loffNegativeField = new MarkerLabel(ICON_DISABLED);
         isEnableField = new JCheckBox();
-        isEnableField.setSelected(isChannelEnable);
         isEnableField.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 setEnabled(isEnableField.isSelected());
             }
         });
+        isEnableField.setSelected(config.isChannelEnabled(channelNumber));
 
-        is50HzFilterEnableField = new JCheckBox();
-        is50HzFilterEnableField.setSelected(config.is50HzFilterEnabled(channelNumber));
-        nameField = new JTextField(config.getChannelName(channelNumber), NAME_LENGTH);
-        nameField.setDocument(new FixSizeDocument(NAME_LENGTH));
-
-        loffPositiveField = new MarkerLabel(ICON_DISABLED);
-        loffNegativeField = new MarkerLabel(ICON_DISABLED);
-        setEnabled(isChannelEnable);
     }
 
     public void setEnabled(boolean isEnabled) {
@@ -66,17 +65,17 @@ public class ChannelFields {
     }
 
     public void setLoffStatus(Boolean loffPositive, Boolean loffNegative) {
-        if(loffNegative == null) {
+        if (loffNegative == null) {
             loffNegativeField.setIcon(ICON_DISABLED);
-        } else if(loffNegative == true) {
+        } else if (loffNegative == true) {
             loffNegativeField.setIcon(ICON_DISCONNECTED);
         } else {
             loffNegativeField.setIcon(ICON_CONNECTED);
         }
 
-        if(loffPositive == null) {
+        if (loffPositive == null) {
             loffPositiveField.setIcon(ICON_DISABLED);
-        } else if(loffPositive == true) {
+        } else if (loffPositive == true) {
             loffPositiveField.setIcon(ICON_DISCONNECTED);
         } else {
             loffPositiveField.setIcon(ICON_CONNECTED);
@@ -84,9 +83,12 @@ public class ChannelFields {
 
     }
 
+    public void updateFrequencyField(int sampleRate) {
+        frequencyField.setModel(new DefaultComboBoxModel(AppConfig.getChannelsAvailableSampleRates(sampleRate)));
+    }
 
     public void addToPanel(JPanel channelsPanel) {
-        channelsPanel.add(new JLabel(channelNumber.toString()));
+        channelsPanel.add(new JLabel(new Integer(channelNumber + 1).toString()));
         channelsPanel.add(isEnableField);
         channelsPanel.add(nameField);
         channelsPanel.add(frequencyField);
@@ -122,9 +124,5 @@ public class ChannelFields {
 
     public String getName() {
         return nameField.getText();
-    }
-
-    public Dimension getCommutatorFieldPreferredSize() {
-        return commutatorField.getPreferredSize();
     }
 }

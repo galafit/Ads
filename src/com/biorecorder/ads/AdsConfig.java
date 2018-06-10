@@ -6,24 +6,28 @@ import java.util.ArrayList;
  * Class-structure to store info about Ads configuration
  */
 public class AdsConfig {
-    private Divider accelerometerDivider = Divider.D10;
 
     private AdsType adsType = AdsType.ADS_2;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
-    private boolean isAccelerometerEnabled = true;
-    private boolean isAccelerometerOneChannelMode = true;
+
     private boolean isBatteryVoltageMeasureEnabled = false;
     private int noiseDivider = 2;
+
+    private boolean isAccelerometerEnabled = true;
+    private boolean isAccelerometerOneChannelMode = true;
+    private Divider accelerometerDivider = AdsType.ACCELEROMETER_DIVIDER;
+
 
     private ArrayList<AdsChannelConfig> adsChannels = new ArrayList<AdsChannelConfig>(8);
 
     public AdsConfig() {
-        for(int i = 0; i < 8; i++) {
+        for(int i = 0; i < AdsType.getMaxChannelsCount() ; i++) {
             AdsChannelConfig channel = new AdsChannelConfig();
             channel.setName("Channel "+(i+1));
             adsChannels.add(channel);
         }
     }
+
 
     public byte[] getAdsConfigurationCommand() {
         return getAdsType().getAdsConfigurationCommand(this);
@@ -148,17 +152,8 @@ public class AdsConfig {
         adsChannels.get(adsChannelNumber).setEnabled(enabled);
     }
 
-    public static int getMaxDivider() {
-        int maxDiv = 1;
-        Divider[] dividers = Divider.values();
-        for (int i = 0; i < dividers.length; i++) {
-            maxDiv = Math.max(maxDiv, dividers[i].getValue());
-        }
-        return maxDiv;
-    }
-
     public double getDurationOfDataRecord() {
-        return (1.0 * getMaxDivider())/getSampleRate().getValue();
+        return (1.0 * Divider.getMaxDivider().getValue())/getSampleRate().getValue();
     }
 
     public double getAdsChannelPhysicalMax(int adsChannelNumber) {

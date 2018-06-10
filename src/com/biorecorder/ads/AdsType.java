@@ -5,6 +5,8 @@ public enum AdsType {
     ADS_2(2),
     ADS_8(8);
 
+    public static Divider ACCELEROMETER_DIVIDER = Divider.D10;
+
     private int numberOfAdsChannels;
 
     private AdsConfigurator adsConfigurator;
@@ -17,7 +19,7 @@ public enum AdsType {
         } else if(numberOfAdsChannels == 8) {
             adsConfigurator =  new AdsConfigurator8Ch();
         } else {
-            String msg = "Invalid Ads channels count: "+numberOfAdsChannels+ ". Number of Ads channels should be 2 or 8";
+            String msg = "Invalid Ads channels count: "+numberOfAdsChannels+ ". Number of Ads channels may be 2 or 8";
             throw new IllegalArgumentException(msg);
         }
     }
@@ -29,7 +31,7 @@ public enum AdsType {
             }
 
         }
-        String msg = "Invalid Ads channels count: "+channelsCount+ ". Number of Ads channels should be 2 or 8";
+        String msg = "Invalid Ads channels count: "+channelsCount+ ". Number of Ads channels may be 2 or 8";
         throw new IllegalArgumentException(msg);
     }
 
@@ -40,4 +42,9 @@ public enum AdsType {
     byte[] getAdsConfigurationCommand(AdsConfig adsConfig){
        return  adsConfigurator.getAdsConfigurationCommand(adsConfig);
     }
+
+    public static int getMaxChannelsCount() {
+        return 8;
+    }
+
 }

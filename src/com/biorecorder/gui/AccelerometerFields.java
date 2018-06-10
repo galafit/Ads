@@ -3,7 +3,6 @@ package com.biorecorder.gui;
 import com.biorecorder.AppConfig;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
@@ -12,56 +11,52 @@ import java.awt.event.ItemListener;
  */
 public class AccelerometerFields {
     private static final int NAME_LENGTH = 16;
-    private static  final String[] COMMUTATORS = {"1 Channel", "3 Channels"};
-    private JComboBox commutatorField = new JComboBox(COMMUTATORS);
-    private JTextField nameField = new JTextField("Accelerometer", NAME_LENGTH);
-    private JCheckBox isEnabledField = new JCheckBox();
-    private JLabel frequencyField;
+    private JComboBox commutatorField;
+    private JLabel nameField;
+    private JCheckBox isEnabledField;
+    private JComboBox frequencyField;
+    private Integer number;
 
     public AccelerometerFields(AppConfig config) {
-        nameField.setEnabled(false);
+        number = config.getChannelsCount() + 1;
+        nameField = new JLabel(config.getAccelerometerName());
+        Integer[] frequencies = {AppConfig.getAccelerometerSampleRate(config.getSampleRate())};
+        frequencyField = new JComboBox(frequencies);
+        commutatorField = new JComboBox(AppConfig.getAccelerometerAvailableCommutators());
+        commutatorField.setSelectedItem(config.getAccelerometerCommutator());
+        isEnabledField = new JCheckBox();
         isEnabledField.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 setEnabled(isEnabledField.isSelected());
             }
         });
-        frequencyField = new JLabel(new Integer(config.getAccelerometerSampleRate()).toString());
-        if (config.isAccelerometerOneChannelMode()) {
-            commutatorField.setSelectedIndex(0);
-        } else {
-            commutatorField.setSelectedIndex(1);
-        }
-        setEnabled(config.isAccelerometerEnabled());
+        isEnabledField.setSelected(config.isAccelerometerEnabled());
+    }
+
+    public String getCommutator() {
+        return (String)commutatorField.getSelectedItem();
+    }
+
+    public void updateFrequencyField(int sampleRate) {
+        Integer[] frequencies = {AppConfig.getAccelerometerSampleRate(sampleRate)};
+        frequencyField.setModel(new DefaultComboBoxModel(frequencies));
+
     }
 
     public void setEnabled(boolean isEnabled) {
         commutatorField.setEnabled(isEnabled);
+        frequencyField.setEnabled(isEnabled);
     }
 
     public void addToPanel(JPanel channelsPanel) {
-        channelsPanel.add(new JLabel(" "));
+        channelsPanel.add(new JLabel(number.toString()));
         channelsPanel.add(isEnabledField);
         channelsPanel.add(nameField);
         channelsPanel.add(frequencyField);
         channelsPanel.add(new JLabel(" "));
         channelsPanel.add(commutatorField);
      }
-
-    public void setCommutatorFieldPreferredSize(Dimension preferredSize) {
-        commutatorField.setPreferredSize(preferredSize);
-    }
-
-    public boolean isOneChannelMode() {
-        if(commutatorField.getSelectedItem() == COMMUTATORS[0]) {
-            return true;
-        }
-        return false;
-    }
-
-    public String getName() {
-        return nameField.getText();
-    }
 
     public boolean isEnabled() {
         return isEnabledField.isSelected();

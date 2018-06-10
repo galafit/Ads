@@ -290,7 +290,9 @@ public class Ads {
         if (!comport.isOpened()) {
             return true;
         }
-        stop1();
+        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
+           stop1();
+        }
         if (comport.close()) {
             singleThreadExecutor.shutdownNow();
             removeDataListener();

@@ -2,14 +2,16 @@ package com.biorecorder.bdfrecorder;
 
 
 import com.biorecorder.ads.AdsType;
+import com.biorecorder.ads.Divider;
 
 /**
  * Created by galafit on 30/3/18.
  */
 public enum RecorderType {
-    CHANNELS_2(AdsType.ADS_2),
-    CHANNELS_8(AdsType.ADS_8);
+    RECORDER_2(AdsType.ADS_2),
+    RECORDER_8(AdsType.ADS_8);
 
+    public static RecorderDivider ACCELEROMETER_DIVIDER = RecorderDivider.valueOf(Divider.D10);
     private AdsType adsType;
 
     RecorderType(AdsType adsType) {
@@ -37,6 +39,10 @@ public enum RecorderType {
     @Override
     public String toString(){
         return  getChannelsCount() + " channels";
+    }
+
+    public static int getMaxChannelsCount() {
+        return AdsType.getMaxChannelsCount();
     }
 
 }

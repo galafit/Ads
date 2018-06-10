@@ -20,8 +20,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
 
     private static final int IDENTIFICATION_LENGTH = 80;
-    private static final int PATIENT_LENGTH = 30;
-    private static final int RECORDING_LENGTH = 30;
+    private static final int PATIENT_LENGTH = 28;
+    private static final int RECORDING_LENGTH = 28;
 
     private static final Color COLOR_PROCESS = Color.GREEN;
     private static final Color COLOR_PROBLEM = Color.RED;
@@ -36,21 +36,21 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private ChannelFields[] channels;
     private AccelerometerFields accelerometer;
 
-    private JLabel spsLabel = new JLabel("Maximum Frequency (Hz)");
-    private JComboBox spsField = new JComboBox(AppConfig.getAvailableSampleRates());
+    private JLabel spsLabel = new JLabel("Max Frequency (Hz)");
+    private JComboBox spsField;
 
     private JLabel patientIdentificationLabel = new JLabel("Patient");
     private JLabel recordingIdentificationLabel = new JLabel("Record");
-    private JTextField patientIdentificationField = new JTextField(PATIENT_LENGTH);
-    private JTextField recordingIdentificationField = new JTextField(RECORDING_LENGTH);
+    private JTextField patientIdentificationField;
+    private JTextField recordingIdentificationField;
 
-    private JLabel comportLabel = new JLabel("ComPort:");
-    private JComboBox comportField = new JComboBox();
+    private JLabel comportLabel = new JLabel("ComPort");
+    private JComboBox comportField;
 
-    private JLabel deviceTypeLabel = new JLabel("Device:");
-    private JComboBox deviceTypeField = new JComboBox(AppConfig.getAvailableDeviseTypes());
+    private JLabel deviceTypeLabel = new JLabel("Device");
+    private JComboBox deviceTypeField;
 
-    private FileToSaveUI fileToSaveUI = new FileToSaveUI();
+    private FileToSaveUI fileToSaveUI;
 
     private JButton startButton = new JButton("Start");
     private JButton stopButton = new JButton("Stop");
@@ -59,20 +59,14 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
     private MarkerLabel markerLabel = new MarkerLabel();
     private JLabel reportLabel = new JLabel(" ");
-    private String title = "EDF Recorder";
+    private String title = "BioRecorder";
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"),
             new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Impedance"), new JLabel(" "), new JLabel("50 Hz Filter")};
 
 
     public BdfRecorderWindow(BdfRecorderApp recorder) {
         this.recorder = recorder;
-
         setTitle(title);
-
-        stopButton.setVisible(false);
-        patientIdentificationField.setDocument(new FixSizeDocument(IDENTIFICATION_LENGTH));
-        recordingIdentificationField.setDocument(new FixSizeDocument(IDENTIFICATION_LENGTH));
-        loadData(recorder.getConfig());
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -80,66 +74,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 recorder.closeApplication(saveData());
             }
         });
-
-        deviceTypeField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-               /* recorder.changeDeviceType((String)deviceTypeField.getSelectedItem());
-                AppConfig config = recorder.getConfig();
-                createChannelsAndAccelerometerFields(config);
-                arrangeForm();
-                pack();*/
-            }
-        });
-
-        // init available comportField list every time we "open" JComboBox (mouse over «arrow button»)
-        comportField.addPopupMenuListener(new PopupMenuListener() {
-            @Override
-            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
-                comportField.setModel(new DefaultComboBoxModel(recorder.getAvailableComports()));
-                BdfRecorderWindow.this.pack();
-            }
-
-            @Override
-            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
-
-            }
-
-            @Override
-            public void popupMenuCanceled(PopupMenuEvent e) {
-
-            }
-        });
-
-        comportField.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!recorder.setComportName((String) comportField.getSelectedItem())) {
-                    comportField.setSelectedItem(recorder.getComportName());
-                }
-                System.out.println("set comportField: "+ comportField.getSelectedItem());
-            }
-        });
-
-
-        comportField.setModel(new DefaultComboBoxModel(recorder.getAvailableComports()));
-        String selectedComport = recorder.getComportName();
-        if (selectedComport != null && !selectedComport.isEmpty()) {
-            comportField.setSelectedItem(selectedComport);
-        } else if (comportField.getItemCount() > 0) {
-            comportField.setSelectedIndex(0);
-        }
-
-
-        spsField.addItemListener(new ItemListener() {
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-                createChannelsAndAccelerometerFields(saveData());
-                arrangeForm();
-                pack();
-            }
-        });
-
 
         startButton.addActionListener(new ActionListener() {
             @Override
@@ -188,6 +122,97 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 }
             }
         });
+        stopButton.setVisible(false);
+
+        init(recorder.getConfig());
+        arrangeForm();
+        pack();
+        // place the window to the screen center
+        setLocationRelativeTo(null);
+        setVisible(true);
+    }
+
+
+    private void init(AppConfig config) {
+        deviceTypeField = new JComboBox(AppConfig.getAvailableDeviseTypes());
+        deviceTypeField.setSelectedItem(config.getDeviceType());
+
+        comportField = new JComboBox(recorder.getAvailableComports());
+        String comportName = config.getComportName();
+        if (comportName != null && !comportName.isEmpty()) {
+            comportField.setSelectedItem(comportName);
+        }
+
+        spsField = new JComboBox(AppConfig.getAvailableSampleRates());
+        spsField.setSelectedItem(config.getSampleRate());
+
+        channels = new ChannelFields[config.getChannelsCount()];
+        for (int i = 0; i < channels.length; i++) {
+            channels[i] = new ChannelFields(config, i);
+        }
+        accelerometer = new AccelerometerFields(config);
+
+        patientIdentificationField = new JTextField(PATIENT_LENGTH);
+        recordingIdentificationField = new JTextField(RECORDING_LENGTH);
+        patientIdentificationField.setDocument(new FixSizeDocument(IDENTIFICATION_LENGTH));
+        recordingIdentificationField.setDocument(new FixSizeDocument(IDENTIFICATION_LENGTH));
+        patientIdentificationField.setText(config.getPatientIdentification());
+        recordingIdentificationField.setText(config.getRecordingIdentification());
+
+        fileToSaveUI = new FileToSaveUI();
+        fileToSaveUI.setDirectory(config.getDirToSave());
+
+        deviceTypeField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                recorder.changeDeviceType((String)deviceTypeField.getSelectedItem());
+                AppConfig config = recorder.getConfig();
+                init(config);
+                arrangeForm();
+                pack();
+            }
+        });
+
+        // init available comportField list every time we "open" JComboBox (mouse over «arrow button»)
+        comportField.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                comportField.setModel(new DefaultComboBoxModel(recorder.getAvailableComports()));
+                BdfRecorderWindow.this.pack();
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+
+            }
+        });
+
+        comportField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!recorder.setComportName((String) comportField.getSelectedItem())) {
+                    comportField.setSelectedItem(recorder.getComportName());
+                }
+            }
+        });
+
+        spsField.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                int sps = (Integer) spsField.getSelectedItem();
+                for (ChannelFields channel : channels) {
+                    channel.updateFrequencyField(sps);
+                }
+                accelerometer.updateFrequencyField(sps);
+                arrangeForm();
+                pack();
+            }
+        });
 
         patientIdentificationField.addFocusListener(new FocusAdapter() {
             @Override
@@ -204,39 +229,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
             }
         });
 
-        arrangeForm();
-        pack();
-        // place the window to the screen center
-        setLocationRelativeTo(null);
-        setVisible(true);
     }
-
-    private void loadData(AppConfig config) {
-        comportField.setModel(new DefaultComboBoxModel(recorder.getAvailableComports()));
-        String selectedComport = recorder.getComportName();
-        if (selectedComport != null && !selectedComport.isEmpty()) {
-            comportField.setSelectedItem(selectedComport);
-        } else if (comportField.getItemCount() > 0) {
-            comportField.setSelectedIndex(0);
-        }
-
-        spsField.setSelectedItem(config.getSampleRate());
-        deviceTypeField.setSelectedItem(config.getDeviceType());
-        fileToSaveUI.setDirectory(config.getDirToSave());
-        patientIdentificationField.setText(config.getPatientIdentification());
-        recordingIdentificationField.setText(config.getRecordingIdentification());
-        createChannelsAndAccelerometerFields(config);
-
-    }
-
-    private void createChannelsAndAccelerometerFields(AppConfig config) {
-        channels = new ChannelFields[config.getChannelsCount()];
-        for (int i = 0; i < channels.length; i++) {
-            channels[i] = new ChannelFields(config, i);
-        }
-        accelerometer = new AccelerometerFields(config);
-    }
-
 
     private boolean confirm(String message) {
         int answer = JOptionPane.showConfirmDialog(BdfRecorderWindow.this, message, null, JOptionPane.YES_NO_OPTION);
@@ -262,7 +255,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 // Here, we can safely update the GUI
                 // because we'll be called from the
                 // event dispatch thread
-                updateLeadOffStatus(recorder.getLeadOffMask());
                 Color activeColor = Color.GREEN;
                 Color nonActiveColor = Color.GRAY;
                 Color stateColor = nonActiveColor;
@@ -274,6 +266,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                     stopButton.setVisible(true);
                     if (recorder.isLoffDetecting()) {
                         checkImpedanceButton.setVisible(false);
+                        updateLeadOffStatus(recorder.getLeadOffMask());
                     } else {
                         startButton.setVisible(false);
                     }
@@ -289,25 +282,22 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         });
     }
 
-
     private void arrangeForm() {
         getContentPane().removeAll();
-        JPanel buttonPanel = new JPanel();
+        int hgap = 0;
+        int vgap = 0;
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         buttonPanel.add(startButton);
         // stopButton.setPreferredSize(startButton.getPreferredSize());
         buttonPanel.add(stopButton);
         buttonPanel.add(checkImpedanceButton);
 
-
-        int hgap = 5;
-        int vgap = 0;
+        hgap = 3;
+        vgap = 0;
         JPanel spsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         spsPanel.add(spsLabel);
         spsPanel.add(spsField);
 
-
-        hgap = 5;
-        vgap = 0;
         JPanel comportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         comportPanel.add(comportLabel);
         comportPanel.add(comportField);
@@ -317,7 +307,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         devicePanel.add(deviceTypeField);
 
 
-        hgap = 20;
+        hgap = 15;
         vgap = 5;
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         topPanel.add(devicePanel);
@@ -328,11 +318,12 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
         hgap = 9;
         vgap = 0;
-        JPanel channelsPanel = new JPanel(new TableLayout(channelsHeaders.length, new TableOption(TableOption.CENTRE, TableOption.CENTRE), hgap, vgap));
+        TableLayout tableLayout = new TableLayout(channelsHeaders.length, new TableOption(TableOption.FILL, TableOption.CENTRE), hgap, vgap);
+        JPanel channelsPanel = new JPanel(tableLayout);
 
         // add headers
         for (JComponent component : channelsHeaders) {
-            channelsPanel.add(component);
+            channelsPanel.add(component, new TableOption(TableOption.CENTRE, TableOption.CENTRE));
         }
 
         // add channels
@@ -342,7 +333,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
         // Add accelerometer
         accelerometer.addToPanel(channelsPanel);
-        accelerometer.setCommutatorFieldPreferredSize(channels[0].getCommutatorFieldPreferredSize());
+
 
         hgap = 0;
         vgap = 10;
@@ -350,7 +341,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         channelsBorderPanel.setBorder(BorderFactory.createTitledBorder("Channels"));
         channelsBorderPanel.add(channelsPanel);
 
-        hgap = 5;
+        hgap = 3;
         vgap = 0;
         JPanel patientPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         patientPanel.add(patientIdentificationLabel);
@@ -360,13 +351,13 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         recordingPanel.add(recordingIdentificationLabel);
         recordingPanel.add(recordingIdentificationField);
 
-        hgap = 0;
+        hgap = 5;
         vgap = 0;
         JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
         identificationPanel.add(patientPanel);
         identificationPanel.add(recordingPanel);
 
-        hgap = 15;
+        hgap = 0;
         vgap = 5;
         JPanel identificationBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         identificationBorderPanel.setBorder(BorderFactory.createTitledBorder("Identification"));
@@ -462,7 +453,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         int spsValue = (Integer) spsField.getSelectedItem();
         config.setSampleRates(spsValue, adsChannelsFrequencies);
         config.setAccelerometerEnabled(accelerometer.isEnabled());
-        config.setAccelerometerOneChannelMode(accelerometer.isOneChannelMode());
+        config.setAccelerometerCommutator(accelerometer.getCommutator());
         config.setFileName(fileToSaveUI.getFilename());
         config.setDirToSave(fileToSaveUI.getDirectory());
         return config;

@@ -9,11 +9,13 @@ import java.io.File;
  * Created by galafit on 30/3/18.
  */
 public class AppConfig {
+    private static final String[] ACCELEROMETR_COMMUTATORS = {"1 Channel", "3 Channels"};
+
     private RecorderConfig recorderConfig = new RecorderConfig();
     private boolean isDurationOfDataRecordComputable = true;
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    private boolean[] filter50HzMask = new boolean[recorderConfig.getChannelsCount()];
+    private boolean[] filter50HzMask;
 
     private String comportName;
     private String dirToSave;
@@ -21,6 +23,7 @@ public class AppConfig {
     private String fileName;
 
     public AppConfig() {
+        filter50HzMask = new boolean[RecorderType.getMaxChannelsCount()];
         for (int i = 0; i < filter50HzMask.length; i++) {
             filter50HzMask[i] = true;
         }
@@ -105,22 +108,6 @@ public class AppConfig {
         this.fileName = fileName;
     }
 
-
-    public int getChannelSampleRate(int channelNumber) {
-        return recorderConfig.getSampleRate() / recorderConfig.getChannelDivider(channelNumber);
-    }
-
-    public int getAccelerometerSampleRate() {
-        return recorderConfig.getSampleRate() / recorderConfig.getAccelerometerDivider();
-    }
-
-    public void setSampleRates(int sampleRate, int[] adsChannelsFrequencies) {
-        recorderConfig.setSampleRate(RecorderSampleRate.valueOf(sampleRate));
-         for (int i = 0; i < adsChannelsFrequencies.length; i++) {
-            recorderConfig.setChannelDivider(i, RecorderDivider.valueOf(sampleRate / adsChannelsFrequencies[i]));
-        }
-    }
-
     public boolean isLeadOffEnabled() {
         return recorderConfig.isLeadOffEnabled();
     }
@@ -155,14 +142,6 @@ public class AppConfig {
 
     public void setDeviceType(String recorderType) {
         recorderConfig.setDeviceType(RecorderType.valueOf(recorderType));
-    }
-
-    public boolean isAccelerometerOneChannelMode() {
-        return recorderConfig.isAccelerometerOneChannelMode();
-    }
-
-    public void setAccelerometerOneChannelMode(boolean accelerometerOneChannelMode) {
-        recorderConfig.setAccelerometerOneChannelMode(accelerometerOneChannelMode);
     }
 
     public String getChannelName(int channelNumber) {
@@ -214,14 +193,34 @@ public class AppConfig {
         recorderConfig.setChannelEnabled(channelNumber, enabled);
     }
 
+    public void setSampleRates(int sampleRate, int[] adsChannelsFrequencies) {
+        recorderConfig.setSampleRate(RecorderSampleRate.valueOf(sampleRate));
+        for (int i = 0; i < adsChannelsFrequencies.length; i++) {
+            recorderConfig.setChannelDivider(i, RecorderDivider.valueOf(sampleRate / adsChannelsFrequencies[i]));
+        }
+    }
 
-    public Integer[] getChannelsAvailableSampleRates() {
+    public int getChannelSampleRate(int channelNumber) {
+        return recorderConfig.getSampleRate() / recorderConfig.getChannelDivider(channelNumber);
+    }
+
+    public String getAccelerometerName() {
+        return "Accelerometer";
+    }
+
+
+
+    public static Integer[] getChannelsAvailableSampleRates(int sampleRates) {
         RecorderDivider[] dividers = RecorderDivider.values();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
-            frequencies[i] = getSampleRate() / dividers[i].getValue();
+            frequencies[i] = sampleRates / dividers[i].getValue();
         }
         return frequencies;
+    }
+
+    public static int getAccelerometerSampleRate(int sampleRates) {
+        return sampleRates / RecorderType.ACCELEROMETER_DIVIDER.getValue();
     }
 
     public static Integer[] getAvailableSampleRates() {
@@ -234,7 +233,7 @@ public class AppConfig {
     }
 
 
-    public static Integer[] getAvailableGains() {
+    public static Integer[] getChannelsAvailableGains() {
         RecorderGain[] gains = RecorderGain.values();
         Integer[] values = new Integer[gains.length];
         for (int i = 0; i < gains.length; i++) {
@@ -244,7 +243,28 @@ public class AppConfig {
     }
 
 
-    public static String[] getAvailableRecordingModes() {
+    public String getAccelerometerCommutator() {
+        if(recorderConfig.isAccelerometerOneChannelMode()) {
+            return ACCELEROMETR_COMMUTATORS[0];
+        }
+        return ACCELEROMETR_COMMUTATORS[1];
+    }
+
+    public void setAccelerometerCommutator(String commutator) {
+        if(commutator != null && commutator.equals(ACCELEROMETR_COMMUTATORS[0])) {
+            recorderConfig.setAccelerometerOneChannelMode(true);
+        } else {
+            recorderConfig.setAccelerometerOneChannelMode(false);
+        }
+
+    }
+
+    public static String[] getAccelerometerAvailableCommutators() {
+        return ACCELEROMETR_COMMUTATORS;
+    }
+
+
+    public static String[] getChannelsAvailableCommutators() {
         RecorderCommutator[] modes = RecorderCommutator.values();
         String[] names = new String[modes.length];
         for (int i = 0; i < modes.length; i++) {

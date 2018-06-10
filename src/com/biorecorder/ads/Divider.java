@@ -21,7 +21,7 @@ public enum Divider {
                 return divider;
             }
         }
-        String msg = "Invalid Divider value";
+        String msg = "Invalid Divider value: "+value;
         throw new IllegalArgumentException(msg);
     }
 
@@ -32,5 +32,9 @@ public enum Divider {
     @Override
     public String toString(){
         return new Integer(value).toString();
+    }
+
+    public static Divider getMaxDivider() {
+        return D10;
     }
 }

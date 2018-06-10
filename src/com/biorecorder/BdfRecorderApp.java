@@ -76,15 +76,24 @@ public class BdfRecorderApp {
     private final MessageSender messageSender = new MessageSender();
     private volatile NotificationListener notificationListener;
 
-    private volatile String comportName = "";
+    private volatile String comportName;
     private volatile TimerTask connectionTask = new ConnectionTask();
     private volatile TimerTask startFutureHandlingTask;
+    private volatile TimerTask createAvailableComportsTask = new CreateAvailableComportsTask();
     private volatile boolean isLoffDetecting;
-
 
     public BdfRecorderApp(Preferences preferences) {
         this.preferences = preferences;
+        AppConfig config = preferences.getConfig();
+        comportName = config.getComportName();
         availableComports = checkAvailableComports();
+        if(comportName == null || comportName.isEmpty()) {
+            if(availableComports.length > 0) {
+                comportName = availableComports[0];
+                config.setComportName(comportName);
+                preferences.saveConfig(config);
+            }
+        }
         notificationListener = new NullNotificationListener();
         timer.schedule(new TimerTask() {
             @Override
@@ -92,32 +101,35 @@ public class BdfRecorderApp {
                 fireNotification();
             }
         }, NOTIFICATION_PERIOD_MS, NOTIFICATION_PERIOD_MS);
-        setComportName(preferences.getConfig().getComportName());
-    }
+        if(comportName != null && !comportName.isEmpty()) {
+            timer.schedule(connectionTask, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+        }
 
-    public boolean setComportName(String comportName) {
-        if(comportName != null && comportName == this.comportName) {
-            return true;
-        }
-        if(comportName == null || comportName.isEmpty() || isRecording()) {
-            return false;
-        }
-        this.comportName = comportName;
-        availableComports = checkAvailableComports();
-        connectionTask.cancel();
-        connectionTask = new ConnectionTask();
-        timer.schedule(connectionTask, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
-        return true;
-    }
+        timer.schedule(createAvailableComportsTask, COMPORT_LIST_PERIOD_MS, COMPORT_LIST_PERIOD_MS);
+      }
 
     public AppConfig getConfig() {
         return preferences.getConfig();
     }
 
-    public void changeDeviceType(String recorderType) {
+    public void changeDeviceType(String deviceType) {
         AppConfig config = preferences.getConfig();
-        config.setDeviceType(recorderType);
+        config.setDeviceType(deviceType);
         preferences.saveConfig(config);
+    }
+
+    public boolean setComportName(String comportName) {
+        if(comportName == null || comportName.isEmpty() || isRecording()) {
+            return false;
+        }
+        this.comportName = comportName;
+        AppConfig config = preferences.getConfig();
+        config.setComportName(comportName);
+        preferences.saveConfig(config);
+        connectionTask.cancel();
+        connectionTask = new ConnectionTask();
+        timer.schedule(connectionTask, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
+        return true;
     }
 
     public String getComportName() {
@@ -171,6 +183,7 @@ public class BdfRecorderApp {
         bdfRecorder.addEventsListener(new EventsListener() {
             @Override
             public void handleLowBattery() {
+                stop1();
                 sendMessage(LOW_BUTTERY_MSG);
             }
         });
@@ -188,32 +201,12 @@ public class BdfRecorderApp {
         }
     }
 
-    private synchronized Future<Boolean> startRecorder(RecorderConfig recorderConfig) throws IllegalStateException {
-        return bdfRecorder.startRecording(recorderConfig);
-    }
-
-    private synchronized boolean stopRecorder() {
-        if(bdfRecorder != null) {
-            return bdfRecorder.stop();
-        }
-        return true;
-    }
-
-    private synchronized boolean disconnectRecorder() {
-        if(bdfRecorder != null) {
-            boolean isDisconnectOk = bdfRecorder.disconnect();
-            bdfRecorder = null;
-            return isDisconnectOk;
-        }
-        return true;
-    }
-
-    public OperationResult startRecording(AppConfig appConfig, boolean isLoffDetection) {
+    public synchronized OperationResult startRecording(AppConfig config, boolean isLoffDetection) {
         if(isRecording()) {
             return new OperationResult(false, ALREADY_RECORDING_MSG);
         }
 
-        String comportName = appConfig.getComportName();
+        String comportName = config.getComportName();
 
         if(comportName == null || comportName.isEmpty()) {
             return new OperationResult(false, COMPORT_NULL_MSG);
@@ -221,6 +214,7 @@ public class BdfRecorderApp {
 
         this.comportName = comportName;
         connectionTask.cancel();
+        createAvailableComportsTask.cancel();
         this.isLoffDetecting = isLoffDetection;
 
         try {
@@ -240,11 +234,13 @@ public class BdfRecorderApp {
         // remove all previously added filters
         bdfRecorder.removeChannelsFilters();
 
-
-        if(isLoffDetection) {
+        if(isLoffDetection) { // lead off detection
             leadOffBitMask = null;
-            for (int i = 0; i < appConfig.getChannelsCount(); i++) {
-                appConfig.setChannelLeadOffEnable(i, true);
+            RecorderConfig recorderConfig = config.getRecorderConfig();
+            recorderConfig.setSampleRate(RecorderSampleRate.S500);
+            for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+                recorderConfig.setChannelLeadOffEnable(i, true);
+                recorderConfig.setChannelDivider(i, RecorderDivider.D10);
             }
 
             bdfRecorder.addLeadOffListener(new LeadOffListener() {
@@ -253,20 +249,20 @@ public class BdfRecorderApp {
                     leadOffBitMask = leadOffMask;
                 }
             });
-        } else {
-            for (int i = 0; i < appConfig.getChannelsCount(); i++) {
-                appConfig.setChannelLeadOffEnable(i, false);
-            }
+        } else { // normal recording and writing to the file
 
-            // Apply MovingAverage filters to to ads channels to reduce 50Hz noise
-            for (int i = 0; i < appConfig.getChannelsCount(); i++) {
-                if (appConfig.is50HzFilterEnabled(i)) {
-                    int numberOfAveragingPoints = appConfig.getChannelSampleRate(i) / 50;
+            for (int i = 0; i < config.getChannelsCount(); i++) {
+                config.setChannelLeadOffEnable(i, false);
+
+                if (config.is50HzFilterEnabled(i)) {
+                    // Apply MovingAverage filter to the channel to reduce 50Hz noise
+                    int numberOfAveragingPoints = config.getChannelSampleRate(i) / 50;
                     bdfRecorder.addChannelFilter(i, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:"+ numberOfAveragingPoints);
                 }
             }
 
-            String dirToSave = appConfig.getDirToSave();
+            // check if directory exist
+            String dirToSave = config.getDirToSave();
             if(!isDirectoryExist(dirToSave)) {
                 String errMSg = MessageFormat.format(DIRECTORY_NOT_EXIST_MSG, dirToSave);
                 return new OperationResult(false, errMSg);
@@ -274,13 +270,13 @@ public class BdfRecorderApp {
 
             numberOfWrittenDataRecords.set(0);
 
-            edfFile = new File(dirToSave, normalizeFilename(appConfig.getFileName()));
+            edfFile = new File(dirToSave, normalizeFilename(config.getFileName()));
 
-            DataConfig dataConfig = bdfRecorder.getDataConfig(appConfig.getRecorderConfig());
+            DataConfig dataConfig = bdfRecorder.getDataConfig(config.getRecorderConfig());
             // copy data from dataConfig to the EdfHeader
             EdfHeader edfHeader = configToHeader(dataConfig);
-            edfHeader.setPatientIdentification(appConfig.getPatientIdentification());
-            edfHeader.setRecordingIdentification(appConfig.getRecordingIdentification());
+            edfHeader.setPatientIdentification(config.getPatientIdentification());
+            edfHeader.setRecordingIdentification(config.getRecordingIdentification());
 
             try {
                 edfWriter = new EdfWriter(edfFile, edfHeader);
@@ -289,7 +285,7 @@ public class BdfRecorderApp {
                 String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_MSG, edfFile);
                 return new OperationResult(false, errMSg);
             }
-            edfWriter.setDurationOfDataRecordsComputable(appConfig.isDurationOfDataRecordComputable());
+            edfWriter.setDurationOfDataRecordsComputable(config.isDurationOfDataRecordComputable());
 
             bdfRecorder.addDataListener(new DataListener() {
                 @Override
@@ -318,30 +314,40 @@ public class BdfRecorderApp {
             });
         }
 
-        Future<Boolean> startFuture = startRecorder(appConfig.getRecorderConfig());
-        startFutureHandlingTask = new StartFutureHandlerTask(startFuture, edfWriter, RecorderType.valueOf(appConfig.getDeviceType()));
+        Future<Boolean> startFuture = bdfRecorder.startRecording(config.getRecorderConfig());
+        startFutureHandlingTask = new StartFutureHandlerTask(startFuture, edfWriter, config.getRecorderConfig().getDeviceType());
         timer.schedule(startFutureHandlingTask, START_FUTURE_CHECKING_PERIOD_MS, START_FUTURE_CHECKING_PERIOD_MS);
         return new OperationResult(true);
     }
 
-    private OperationResult stop1() {
-        boolean isStopSuccess = true;
-        boolean isFileCloseSuccess = true;
+    private synchronized OperationResult stop1() {
+        boolean isStopOk = true;
+        boolean isFileCloseOk = true;
         String msg = "";
-        isStopSuccess = stopRecorder();
-        if(startFutureHandlingTask != null) {
-            startFutureHandlingTask.cancel();
+        if(bdfRecorder != null) {
+            isStopOk = bdfRecorder.stop();
         }
-        isLoffDetecting = false;
-        if(!isStopSuccess) {
+        if(!isStopOk) {
             log.error(FAILED_STOP_MSG);
             msg = FAILED_STOP_MSG;
         }
+
+        isLoffDetecting = false;
+
+        if(startFutureHandlingTask != null) {
+            startFutureHandlingTask.cancel();
+        }
+
+        createAvailableComportsTask.cancel();
+        createAvailableComportsTask = new CreateAvailableComportsTask();
+        timer.schedule(createAvailableComportsTask, COMPORT_LIST_PERIOD_MS, COMPORT_LIST_PERIOD_MS);
+
+
         if(edfWriter != null) {
             try {
                 edfWriter.close();
             } catch (Exception ex) {
-                isFileCloseSuccess = false;
+                isFileCloseOk = false;
                 log.error(ex);
                 if(!msg.isEmpty()) {
                     msg = "msg"+"\n";
@@ -349,7 +355,7 @@ public class BdfRecorderApp {
                 msg = msg + MessageFormat.format(FAILED_CLOSE_FILE_MSG, edfFile)+"\n" + ex.getMessage();
             }
         }
-        return new OperationResult(isStopSuccess && isFileCloseSuccess, msg);
+        return new OperationResult(isStopOk && isFileCloseOk, msg);
     }
 
 
@@ -359,17 +365,23 @@ public class BdfRecorderApp {
         return stopResult;
     }
 
-    public void closeApplication(AppConfig appConfig) {
-        OperationResult stopResult = stop1();
-        if(!stopResult.isSuccess) {
-            log.error(stopResult.getMessage());
+    private synchronized void disconnectRecorder() {
+        if(bdfRecorder != null) {
+            if(!bdfRecorder.disconnect()) {
+                String errMsg = MessageFormat.format(FAILED_DISCONNECT_MSG, bdfRecorder.getComportName());
+                log.error(errMsg);
+            }
+            bdfRecorder = null;
         }
+    }
+
+    public void closeApplication(AppConfig appConfig) {
+       if(isRecording()) {
+           stop1();
+       }
+       disconnectRecorder();
         timer.cancel();
         messageSender.stop();
-        if(!disconnectRecorder()) {
-            String errMsg = MessageFormat.format(FAILED_DISCONNECT_MSG, bdfRecorder.getComportName());
-            log.error(errMsg);
-        }
         try{
             preferences.saveConfig(appConfig);
         } catch (Exception ex) {
@@ -417,6 +429,7 @@ public class BdfRecorderApp {
             }
 
         } catch (Exception ex) {
+            log.error(ex);
             String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir) + "\n"+ex.getMessage();
             return new OperationResult(false, errMSg);
         }
@@ -490,6 +503,7 @@ public class BdfRecorderApp {
         return stateString;
     }
 
+
     public static String normalizeFilename(@Nullable String filename) {
         String FILE_EXTENSION = "bdf";
         String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
@@ -540,7 +554,7 @@ public class BdfRecorderApp {
         }
     }
 
-    class CheckAvailableComportsTask extends TimerTask {
+    class CreateAvailableComportsTask extends TimerTask {
         @Override
         public void run() {
             availableComports = checkAvailableComports();
