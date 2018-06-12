@@ -11,7 +11,7 @@ import java.awt.event.ItemListener;
  * Created by galafit on 8/6/18.
  */
 public class ChannelFields {
-    private static final int NAME_LENGTH = 16;
+    private static final int NAME_LENGTH = 10;
     private static final Icon ICON_CONNECTED = new ImageIcon("img/greenBall.png");
     private static final Icon ICON_DISCONNECTED = new ImageIcon("img/redBall.png");
     private static final Icon ICON_DISABLED = new ImageIcon("img/grayBall.png");

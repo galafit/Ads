@@ -267,6 +267,7 @@ public class BdfRecorderApp {
                 recorderConfig.setChannelLeadOffEnable(i, true);
                 recorderConfig.setChannelDivider(i, RecorderDivider.D10);
             }
+            bdfRecorder.removeDataListener();
         } else { // normal recording and writing to the file
 
             for (int i = 0; i < config.getChannelsCount(); i++) {
@@ -578,7 +579,7 @@ public class BdfRecorderApp {
             }
         } else {
             if(numberOfWrittenDataRecords.get() > 0) {
-                stateString = "Saved to file: " + edfFile;
+                stateString = "Saved to file: " + edfFile.getName();
             }
         }
         return stateString;

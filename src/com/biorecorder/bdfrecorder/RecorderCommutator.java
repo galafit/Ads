@@ -6,9 +6,9 @@ import com.biorecorder.ads.Commutator;
  * Created by galafit on 30/3/18.
  */
 public enum RecorderCommutator {
-    INPUT(Commutator.INPUT),
-    INPUT_SHORT(Commutator.INPUT_SHORT),
-    TEST_SIGNAL(Commutator.TEST_SIGNAL);
+    input(Commutator.INPUT),
+    input_short(Commutator.INPUT_SHORT),
+    test_signal(Commutator.TEST_SIGNAL);
 
     private Commutator adsCommutator;
 

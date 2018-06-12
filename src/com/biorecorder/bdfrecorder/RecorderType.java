@@ -8,8 +8,8 @@ import com.biorecorder.ads.Divider;
  * Created by galafit on 30/3/18.
  */
 public enum RecorderType {
-    RECORDER_2(AdsType.ADS_2),
-    RECORDER_8(AdsType.ADS_8);
+    Recorder_2(AdsType.ADS_2),
+    Recorder_8(AdsType.ADS_8);
 
     public static RecorderDivider ACCELEROMETER_DIVIDER = RecorderDivider.valueOf(Divider.D10);
     private AdsType adsType;

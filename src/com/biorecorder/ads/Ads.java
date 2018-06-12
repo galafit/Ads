@@ -503,7 +503,7 @@ public class Ads {
      * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
      * contact or disconnecting. Therefore in Lead-Off detection mask TRUE means DISCONNECTED and
      * FALSE means CONNECTED (or if the channel is disabled or its lead-off detection disabled or
-     * its commutator state != "INPUT").
+     * its commutator state != "input").
      * <p>
      * Every ads-channel has 2 electrodes (Positive and Negative) so in leadOff detection mask:
      * <br>

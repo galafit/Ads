@@ -20,8 +20,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
 
     private static final int IDENTIFICATION_LENGTH = 80;
-    private static final int PATIENT_LENGTH = 28;
-    private static final int RECORDING_LENGTH = 28;
+    private static final int PATIENT_LENGTH = 24;
+    private static final int RECORDING_LENGTH = 24;
 
     Color COLOR_CONNECTED = Color.GREEN;
     Color COLOR_DISCONNECTED = Color.GRAY;
@@ -37,7 +37,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private ChannelFields[] channels;
     private AccelerometerFields accelerometer;
 
-    private JLabel spsLabel = new JLabel("Max Frequency (Hz)");
+    private JLabel spsLabel = new JLabel("<html>Max (Hz)<br>Frequency </html>");
     private JComboBox spsField;
 
     private JLabel patientIdentificationLabel = new JLabel("Patient");
@@ -61,11 +61,11 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private JLabel stateField = new JLabel("Disconnected");
 
     private ColoredMarker batteryIcon = new ColoredMarker(new Dimension(45, 16));
-    private JLabel batteryLevel = new JLabel();
+    private JLabel batteryLevel = new JLabel("    ");
 
     private String title = "BioRecorder";
-    private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"),
-            new JLabel("Gain"), new JLabel("Commutator State"), new JLabel("Impedance"), new JLabel(" "), new JLabel("50 Hz Filter")};
+    private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name"), new JLabel("Frequency"),
+            new JLabel("Gain"), new JLabel("Commutator"), new JLabel("Impedance"), new JLabel(" "), new JLabel("Filter 50 Hz")};
 
 
     public BdfRecorderWindow(BdfRecorderApp recorder) {
@@ -293,6 +293,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                     batteryLevel.setText(level + "%  ");
                 }
                 setReport(recorder.getStateReport(), stateColor);
+                pack();
             }
         });
     }
@@ -301,11 +302,10 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         getContentPane().removeAll();
         int hgap = 5;
         int vgap = 0;
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        buttonPanel.add(startButton);
-        // stopButton.setPreferredSize(startButton.getPreferredSize());
-        buttonPanel.add(stopButton);
-        buttonPanel.add(checkImpedanceButton);
+
+        JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        batteryPanel.add(batteryIcon);
+        batteryPanel.add(batteryLevel);
 
         hgap = 3;
         vgap = 0;
@@ -318,16 +318,16 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportPanel.add(comportField);
 
 
-        hgap = 15;
-        vgap = 15;
+        hgap = 10;
+        vgap = 10;
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         topPanel.add(deviceTypeField);
         topPanel.add(comportPanel);
         topPanel.add(spsPanel);
-        topPanel.add(buttonPanel);
+        topPanel.add(batteryPanel);
 
 
-        hgap = 9;
+        hgap = 10;
         vgap = 0;
         TableLayout tableLayout = new TableLayout(channelsHeaders.length, new TableOption(TableOption.FILL, TableOption.CENTRE), hgap, vgap);
         JPanel channelsPanel = new JPanel(tableLayout);
@@ -347,7 +347,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
 
         hgap = 0;
-        vgap = 10;
+        vgap = 0;
         JPanel channelsBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         channelsBorderPanel.setBorder(BorderFactory.createTitledBorder("Channels"));
         channelsBorderPanel.add(channelsPanel);
@@ -376,20 +376,30 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
         hgap = 5;
         vgap = 5;
-        JPanel reportPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        JPanel reportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         reportPanel.add(stateMarker);
         reportPanel.add(stateField);
 
-        hgap = 5;
-        JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        batteryPanel.add(batteryIcon);
-        batteryPanel.add(batteryLevel);
+        hgap = 10;
+        vgap = 0;
+        JPanel reportWrapperPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        reportWrapperPanel.add(reportPanel);
 
         hgap = 5;
-        vgap = 5;
+        vgap = 0;
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
+        buttonPanel.add(startButton);
+        // stopButton.setPreferredSize(startButton.getPreferredSize());
+        buttonPanel.add(stopButton);
+        buttonPanel.add(checkImpedanceButton);
+
+
+        hgap = 5;
+        vgap = 0;
         JPanel statePanel = new JPanel(new BorderLayout(hgap, vgap));
-        statePanel.add(reportPanel, BorderLayout.CENTER);
-        statePanel.add(batteryPanel, BorderLayout.EAST);
+        statePanel.add(reportWrapperPanel, BorderLayout.WEST);
+        statePanel.add(buttonPanel, BorderLayout.EAST);
+
 
         hgap = 0;
         vgap = 5;

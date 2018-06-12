@@ -20,12 +20,12 @@ public class FileToSaveUI extends JPanel {
 
     public FileToSaveUI() {
 
-        int fieldLength = 16;
+        int fieldLength = 18;
         filename = new JTextField(fieldLength);
         filename.setText(FILENAME_PATTERN);
 
         directory = new DirectoryField();
-        fieldLength = 60;
+        fieldLength = 50;
         directory.setLength(fieldLength);
 
         int hgap = 3;

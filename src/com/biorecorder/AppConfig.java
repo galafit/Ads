@@ -9,7 +9,7 @@ import java.io.File;
  * Created by galafit on 30/3/18.
  */
 public class AppConfig {
-    private static final String[] ACCELEROMETR_COMMUTATORS = {"1 Channel", "3 Channels"};
+    private static final String[] ACCELEROMETR_COMMUTATORS = {"1 channel", "3 channels"};
 
     private RecorderConfig recorderConfig = new RecorderConfig();
     private boolean isDurationOfDataRecordComputable = true;
