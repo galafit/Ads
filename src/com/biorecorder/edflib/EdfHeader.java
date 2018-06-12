@@ -42,7 +42,7 @@ import java.util.Date;
 public class EdfHeader {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
-    private long recordingStartTime = -1;
+    private long recordingStartTime = 0;
     private int numberOfDataRecords = -1;
     private DataFormat dataFormat = DataFormat.EDF_16BIT;
     private double durationOfDataRecord = 1; // sec

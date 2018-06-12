@@ -299,7 +299,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
     private void arrangeForm() {
         getContentPane().removeAll();
-        int hgap = 0;
+        int hgap = 5;
         int vgap = 0;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         buttonPanel.add(startButton);
@@ -307,7 +307,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         buttonPanel.add(stopButton);
         buttonPanel.add(checkImpedanceButton);
 
-        hgap = 0;
+        hgap = 3;
         vgap = 0;
         JPanel spsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         spsPanel.add(spsLabel);

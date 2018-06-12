@@ -69,7 +69,7 @@ public class EdfWriter {
         fileOutputStream = new FileOutputStream(file);
         recordSize = header.getDataRecordSize();
         this.header.setNumberOfDataRecords(-1);
-        if(header.getRecordingStartTimeMs() < 0) {
+        if(header.getRecordingStartTimeMs() == 0) {
             isStartTimeUndefined = true;
         } else {
             isStartTimeUndefined = false;
