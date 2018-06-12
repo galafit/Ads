@@ -46,7 +46,7 @@ class AdsChannelConfig {
     }
 
     public boolean isRldSenseEnabled() {
-        return isEnabled ? isRldSenseEnabled : false;
+        return isRldSenseEnabled;
     }
 
     public Gain getGain() {
@@ -58,7 +58,7 @@ class AdsChannelConfig {
     }
 
     public Commutator getCommutator() {
-        return (!isEnabled) ? Commutator.INPUT_SHORT : commutator;
+        return commutator;
     }
 
     public void setCommutator(Commutator commutator) {

@@ -133,7 +133,7 @@ public class Ads {
     /**
      * Start Ads measurements. Stop monitoring if it was activated before
      *
-     * @param adsConfig object with ads config info
+     * @param config object with ads config info
      * @return Future<Boolean> that get true if starting  was successful
      * and false otherwise. Usually starting fails due to device is not connected
      * or wrong device type is specified in config (that does not coincide
@@ -144,7 +144,7 @@ public class Ads {
      *
      */
 
-    public Future<Boolean> startRecording(AdsConfig adsConfig) throws IllegalStateException, IllegalArgumentException {
+    public Future<Boolean> startRecording(AdsConfig config) throws IllegalStateException, IllegalArgumentException {
         if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
@@ -152,12 +152,15 @@ public class Ads {
         if (adsStateAtomicReference.get() == AdsState.RECORDING) {
             throw new IllegalStateException(RECORDING_MSG);
         }
-
+        // copy config because we will change it
+        AdsConfig adsConfig = new AdsConfig(config);
         boolean isAllChannelsDisabled = true;
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if(adsConfig.isAdsChannelEnabled(i)) {
                 isAllChannelsDisabled = false;
-                break;
+            } else {
+                adsConfig.setAdsChannelCommutatorState(i, Commutator.INPUT_SHORT);
+                adsConfig.setAdsChannelRldSenseEnabled(i, false);
             }
         }
         if(isAllChannelsDisabled) {
