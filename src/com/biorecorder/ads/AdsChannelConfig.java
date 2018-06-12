@@ -6,11 +6,24 @@ package com.biorecorder.ads;
 class AdsChannelConfig {
     private String name = "Channel";
     private Divider divider = Divider.D1;
-    private boolean isEnabled = true;
     private Gain gain = Gain.G2;
     private Commutator commutator = Commutator.INPUT;
+    private boolean isEnabled = true;
     private boolean isLoffEnable = false;
     private boolean isRldSenseEnabled = false;
+
+    public AdsChannelConfig() {
+    }
+
+    public AdsChannelConfig(AdsChannelConfig configToCopy) {
+        name = configToCopy.name;
+        divider = configToCopy.divider;
+        isEnabled = configToCopy.isEnabled;
+        gain = configToCopy.gain;
+        commutator = configToCopy.commutator;
+        isLoffEnable = configToCopy.isLoffEnable;
+        isRldSenseEnabled = configToCopy.isRldSenseEnabled;
+    }
 
     public String getName() {
         return name;

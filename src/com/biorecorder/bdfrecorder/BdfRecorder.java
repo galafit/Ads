@@ -210,7 +210,7 @@ public class BdfRecorder {
 
 
     private DataSender createAdsListener(Ads ads, RecorderConfig recorderConfig) throws IllegalArgumentException {
-        AdsConfig adsConfig = recorderConfig.getAdsConfig();
+        AdsConfig adsConfig = new AdsConfig(recorderConfig.getAdsConfig());
         boolean isAllChannelsDisabled = true;
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if(adsConfig.isAdsChannelEnabled(i)) {

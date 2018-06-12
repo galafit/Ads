@@ -29,6 +29,19 @@ public class AppConfig {
         }
     }
 
+    public AppConfig(AppConfig configToCopy) {
+        recorderConfig = new RecorderConfig(configToCopy.recorderConfig);
+        isDurationOfDataRecordComputable = configToCopy.isDurationOfDataRecordComputable;
+        patientIdentification = configToCopy.patientIdentification;
+        recordingIdentification = configToCopy.recordingIdentification;
+        comportName = configToCopy.comportName;
+        dirToSave = configToCopy.dirToSave;
+        fileName = configToCopy.fileName;
+        for (int i = 0; i < filter50HzMask.length; i++) {
+            filter50HzMask[i] = configToCopy.filter50HzMask[i];
+        }
+    }
+
     RecorderConfig getRecorderConfig() {
         return recorderConfig;
     }

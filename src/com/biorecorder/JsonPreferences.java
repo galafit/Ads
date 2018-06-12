@@ -22,6 +22,9 @@ public class JsonPreferences implements Preferences {
             JsonProperties properties = new JsonProperties(propertyFile);
             try {
                 AppConfig appConfig = (AppConfig) properties.getConfig(AppConfig.class);
+                System.out.println(1 +" commutator "+appConfig.getChannelCommutator(0));
+                System.out.println(2 +" commutator "+appConfig.getChannelCommutator(1));
+
                 return appConfig;
             } catch (IOException e) {
                 log.error("Error during property file reading: " + propertyFile, e);

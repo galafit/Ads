@@ -63,10 +63,6 @@ public class  SignalsRemover extends FilterDataSender {
      */
     @Override
     protected void filterData(int[] inputRecord) {
-        for (Integer integer : signalsToRemove) {
-            System.out.println(signalsToRemove.contains(integer)+" signal to remove "+ integer);
-        }
-        System.out.println();
         int[] resultantRecord = new int[resultantRecordSize];
 
         int inputSignalNumber = 0;

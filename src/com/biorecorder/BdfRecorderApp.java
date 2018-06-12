@@ -234,9 +234,9 @@ public class BdfRecorderApp {
             if(isLoffDetection) {
                 return new OperationResult(false, ALL_CHANNELS_DISABLED_MSG);
             }
-
         }
 
+        preferences.saveConfig(config);
         this.comportName = comportName;
         connectionTask.cancel();
         createAvailableComportsTask.cancel();

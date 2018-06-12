@@ -28,6 +28,19 @@ public class AdsConfig {
         }
     }
 
+    public AdsConfig(AdsConfig configToCopy) {
+        adsType = configToCopy.adsType;
+        sps = configToCopy.sps;
+        isBatteryVoltageMeasureEnabled = configToCopy.isBatteryVoltageMeasureEnabled;
+        noiseDivider = configToCopy.noiseDivider;
+        isAccelerometerEnabled = configToCopy.isAccelerometerEnabled;
+        isAccelerometerOneChannelMode = configToCopy.isAccelerometerOneChannelMode;
+        accelerometerDivider = configToCopy.accelerometerDivider;
+        for (AdsChannelConfig adsChannel : configToCopy.adsChannels) {
+            adsChannels.add(new AdsChannelConfig(adsChannel));
+        }
+    }
+
 
     public byte[] getAdsConfigurationCommand() {
         return getAdsType().getAdsConfigurationCommand(this);

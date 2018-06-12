@@ -7,8 +7,15 @@ import com.biorecorder.ads.*;
  */
 public class RecorderConfig {
     private double durationOfDataRecord = 1; // sec
-
     private AdsConfig adsConfig = new AdsConfig();
+
+    public RecorderConfig() {
+    }
+
+    public RecorderConfig(RecorderConfig configToCopy) {
+        durationOfDataRecord = configToCopy.durationOfDataRecord;
+        adsConfig = new AdsConfig(configToCopy.adsConfig);
+    }
 
     AdsConfig getAdsConfig() {
         return adsConfig;
