@@ -12,7 +12,7 @@ public class MessageSender {
     private static final int DEFAULT_MESSAGE_QUEUE_CAPACITY = 10;
     private final LinkedBlockingQueue<String> messagesQueue;
     private final Thread messagesHandlingThread;
-    private volatile boolean isStopped;
+    private volatile boolean isStopped = false;
     private volatile MessageListener messageListener;
 
     public MessageSender() {
@@ -27,7 +27,8 @@ public class MessageSender {
             public void run() {
                 while (!isStopped) {
                     try {
-                        messageListener.onMessage(messagesQueue.take());
+                        String msg = messagesQueue.take();
+                        messageListener.onMessage(msg);
                     } catch (InterruptedException ie) {
                         isStopped = true;
                         Thread.currentThread().interrupt();

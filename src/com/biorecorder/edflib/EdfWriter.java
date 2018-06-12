@@ -306,10 +306,10 @@ public class EdfWriter {
             header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
         }
         if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
-            double durationOfRecord = (lastRecordTime - firstRecordTime) * 1000 / numberOfReceivedRecords;
-            header.setDurationOfDataRecord(durationOfRecord);
+            double durationOfRecord_ms = (lastRecordTime - firstRecordTime)  /  numberOfReceivedRecords;
+            header.setDurationOfDataRecord(durationOfRecord_ms / 1000);
         }
-        if(isStartTimeUndefined) {
+        if(numberOfReceivedRecords > 0 && isStartTimeUndefined) {
             header.setRecordingStartTimeMs(firstRecordTime  - (long) (header.getDurationOfDataRecord() * 1000));
         }
         FileChannel fileChannel = fileOutputStream.getChannel();

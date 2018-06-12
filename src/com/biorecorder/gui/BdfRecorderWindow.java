@@ -26,9 +26,11 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     Color COLOR_CONNECTED = Color.GREEN;
     Color COLOR_DISCONNECTED = Color.GRAY;
 
-    private static final Icon ICON_SHOW = new ImageIcon("img/arrow-open.png");
-    private static final Icon ICON_HIDE = new ImageIcon("img/arrow-close.png");
-
+    private static final Icon BATTERY_ICON_1 = new ImageIcon("img/battery_1_small.png");
+    private static final Icon BATTERY_ICON_2 = new ImageIcon("img/battery_2_small.png");
+    private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
+    private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
+    private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
 
     private final BdfRecorderApp recorder;
 
@@ -46,7 +48,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private JLabel comportLabel = new JLabel("ComPort");
     private JComboBox comportField;
 
-    private JLabel deviceTypeLabel = new JLabel("Device");
     private JComboBox deviceTypeField;
 
     private FileToSaveUI fileToSaveUI;
@@ -54,14 +55,13 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private JButton startButton = new JButton("Start");
     private JButton stopButton = new JButton("Stop");
 
-    private JButton checkImpedanceButton = new JButton("Check impedance");
+    private JButton checkImpedanceButton = new JButton("Impedance");
 
     private ColoredMarker stateMarker = new ColoredMarker(COLOR_DISCONNECTED);
     private JLabel stateField = new JLabel("Disconnected");
 
-    private JLabel batteryLabel = new JLabel("Battery:");
-    private JLabel batteryField = new JLabel("undefined");
-
+    private ColoredMarker batteryIcon = new ColoredMarker(new Dimension(45, 16));
+    private JLabel batteryLevel = new JLabel();
 
     private String title = "BioRecorder";
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel("Enable"), new JLabel("Name"), new JLabel("Frequency (Hz)"),
@@ -97,9 +97,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                         }
                     }
                 }
-                if(recorder.isRecording()) {
-                    recorder.stop();
-                }
                 OperationResult actionResult = recorder.startRecording(saveData(), false);
                 if (!actionResult.isMessageEmpty()) {
                     showMessage(actionResult.getMessage());
@@ -111,9 +108,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 saveData();
-                if(recorder.isRecording()) {
-                    recorder.stop();
-                }
                 OperationResult actionResult = recorder.startRecording(saveData(), true);
                 if (!actionResult.isMessageEmpty()) {
                     showMessage(actionResult.getMessage());
@@ -271,21 +265,30 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 if (recorder.isRecording()) {
                     stateColor = COLOR_CONNECTED;
                     stopButton.setVisible(true);
-                    if(recorder.getBatteryVoltage() != null) {
-                        batteryField.setText(recorder.getBatteryVoltage() + "V");
-                    }
-                    if (recorder.isLoffDetecting()) {
-                        checkImpedanceButton.setVisible(false);
-                        updateLeadOffStatus(recorder.getLeadOffMask());
-                    } else {
-                        startButton.setVisible(false);
-                    }
+                    checkImpedanceButton.setVisible(false);
+                    startButton.setVisible(false);
                     disableFields();
                 } else {
                     stopButton.setVisible(false);
                     startButton.setVisible(true);
                     checkImpedanceButton.setVisible(true);
                     enableFields();
+                }
+                updateLeadOffStatus(recorder.getLeadOffMask());
+                Integer level = recorder.getBatteryLevel();
+                if(level != null) {
+                    if(level < 20) {
+                        batteryIcon.setIcon(BATTERY_ICON_1);
+                    } else if(level < 40) {
+                        batteryIcon.setIcon(BATTERY_ICON_2);
+                    } else if(level < 60) {
+                        batteryIcon.setIcon(BATTERY_ICON_3);
+                    } else if(level < 80) {
+                        batteryIcon.setIcon(BATTERY_ICON_4);
+                    } else {
+                        batteryIcon.setIcon(BATTERY_ICON_5);
+                    }
+                    batteryLevel.setText(level + "%  ");
                 }
                 setReport(recorder.getStateReport(), stateColor);
             }
@@ -302,7 +305,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         buttonPanel.add(stopButton);
         buttonPanel.add(checkImpedanceButton);
 
-        hgap = 3;
+        hgap = 0;
         vgap = 0;
         JPanel spsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         spsPanel.add(spsLabel);
@@ -312,15 +315,11 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportPanel.add(comportLabel);
         comportPanel.add(comportField);
 
-        JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        devicePanel.add(deviceTypeLabel);
-        devicePanel.add(deviceTypeField);
 
-
-        hgap = 15;
+        hgap = 10;
         vgap = 5;
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        topPanel.add(devicePanel);
+        topPanel.add(deviceTypeField);
         topPanel.add(comportPanel);
         topPanel.add(spsPanel);
         topPanel.add(buttonPanel);
@@ -373,21 +372,22 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         identificationBorderPanel.setBorder(BorderFactory.createTitledBorder("Identification"));
         identificationBorderPanel.add(identificationPanel);
 
-        hgap = 3;
-        vgap = 0;
+        hgap = 5;
+        vgap = 5;
         JPanel reportPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         reportPanel.add(stateMarker);
         reportPanel.add(stateField);
 
+        hgap = 5;
         JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        batteryPanel.add(batteryLabel);
-        batteryPanel.add(batteryField);
+        batteryPanel.add(batteryIcon);
+        batteryPanel.add(batteryLevel);
 
-        hgap = 30;
+        hgap = 5;
         vgap = 5;
-        JPanel statePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        statePanel.add(reportPanel);
-        statePanel.add(batteryPanel);
+        JPanel statePanel = new JPanel(new BorderLayout(hgap, vgap));
+        statePanel.add(reportPanel, BorderLayout.CENTER);
+        statePanel.add(batteryPanel, BorderLayout.EAST);
 
         hgap = 0;
         vgap = 5;
@@ -412,6 +412,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private void disableFields() {
         boolean isEnable = false;
 
+        deviceTypeField.setEnabled(isEnable);
         spsField.setEnabled(isEnable);
         patientIdentificationField.setEnabled(isEnable);
         recordingIdentificationField.setEnabled(isEnable);
@@ -426,6 +427,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
     private void enableFields() {
         boolean isEnable = true;
+
+        deviceTypeField.setEnabled(isEnable);
         spsField.setEnabled(isEnable);
         patientIdentificationField.setEnabled(isEnable);
         recordingIdentificationField.setEnabled(isEnable);

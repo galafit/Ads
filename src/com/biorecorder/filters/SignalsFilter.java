@@ -86,11 +86,11 @@ public class SignalsFilter extends FilterDataSender {
             List<NamedFilter> signalFilters = filters.get(signalNumber);
             if(signalFilters != null) {
                 // for filtering we use (digValue + offset) that is proportional physValue !!!
-                double digValue = inputRecord[i] + offsets[i];
+                double digValue = inputRecord[i] + offsets[signalNumber];
                 for (DigitalFilter filter : signalFilters) {
                     digValue = filter.filteredValue(digValue);
                 }
-                resultantRecord[i] = new Double(digValue - offsets[i]).intValue();
+                resultantRecord[i] = new Double(digValue - offsets[signalNumber]).intValue();
             } else {
                 resultantRecord[i] = inputRecord[i];
             }

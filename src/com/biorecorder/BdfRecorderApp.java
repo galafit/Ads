@@ -37,7 +37,8 @@ public class BdfRecorderApp {
     private static final String COMPORT_NULL_MSG = "Comport name can not be null or empty";
 
     private static final String ALREADY_RECORDING_MSG = "Recorder is already recording. Stop it first";
-    private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Enable something to record";
+    private static final String ALL_CHANNELS_AND_ACCELEROMETER_DISABLED_MSG = "All channels and accelerometer are disabled.\nEnable some of them to record";
+    private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and disabled.\nEnable some of them to check impedance";
 
     private static final String LOW_BUTTERY_MSG = "The buttery is low. BdfRecorder was stopped.";
 
@@ -63,7 +64,7 @@ public class BdfRecorderApp {
     private volatile File edfFile;
     private volatile EdfWriter edfWriter;
     private volatile Boolean[] leadOffBitMask;
-    private volatile Integer batteryVoltage;
+    private volatile Integer batteryLevel;
     private volatile String[] availableComports;
 
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
@@ -188,10 +189,16 @@ public class BdfRecorderApp {
                 sendMessage(LOW_BUTTERY_MSG);
             }
         });
-        bdfRecorder.addButteryVoltageListener(new BatteryVoltageListener() {
+        bdfRecorder.addButteryLevelListener(new BatteryLevelListener() {
             @Override
-            public void onBatteryVoltageReceived(int batteryVoltage1) {
-                batteryVoltage = batteryVoltage1;
+            public void onBatteryLevelReceived(int batteryLevel) {
+                BdfRecorderApp.this.batteryLevel = batteryLevel;
+            }
+        });
+        bdfRecorder.addLeadOffListener(new LeadOffListener() {
+            @Override
+            public void onLeadOffMaskReceived(Boolean[] leadOffMask) {
+                leadOffBitMask = leadOffMask;
             }
         });
     }
@@ -220,11 +227,14 @@ public class BdfRecorderApp {
                 break;
             }
         }
-        if(config.isAccelerometerEnabled()) {
-            isAllChannelsDisabled = false;
-        }
         if(isAllChannelsDisabled) {
-            return new OperationResult(false, ALL_CHANNELS_DISABLED_MSG);
+            if(!config.isAccelerometerEnabled()) {
+                return new OperationResult(false, ALL_CHANNELS_AND_ACCELEROMETER_DISABLED_MSG);
+            }
+            if(isLoffDetection) {
+                return new OperationResult(false, ALL_CHANNELS_DISABLED_MSG);
+            }
+
         }
 
         this.comportName = comportName;
@@ -257,13 +267,6 @@ public class BdfRecorderApp {
                 recorderConfig.setChannelLeadOffEnable(i, true);
                 recorderConfig.setChannelDivider(i, RecorderDivider.D10);
             }
-
-            bdfRecorder.addLeadOffListener(new LeadOffListener() {
-                @Override
-                public void onLeadOffMaskReceived(Boolean[] leadOffMask) {
-                    leadOffBitMask = leadOffMask;
-                }
-            });
         } else { // normal recording and writing to the file
 
             for (int i = 0; i < config.getChannelsCount(); i++) {
@@ -341,6 +344,7 @@ public class BdfRecorderApp {
         String msg = "";
         if(bdfRecorder != null) {
             isStopOk = bdfRecorder.stop();
+            bdfRecorder.removeDataListener();
         }
         if(!isStopOk) {
             log.error(FAILED_STOP_MSG);
@@ -370,6 +374,7 @@ public class BdfRecorderApp {
                 msg = msg + MessageFormat.format(FAILED_CLOSE_FILE_MSG, edfFile)+"\n" + ex.getMessage();
             }
         }
+
         return new OperationResult(isStopOk && isFileCloseOk, msg);
     }
 
@@ -412,8 +417,8 @@ public class BdfRecorderApp {
         return null;
     }
 
-    public Integer getBatteryVoltage() {
-        return batteryVoltage;
+    public Integer getBatteryLevel() {
+        return batteryLevel;
     }
 
     public boolean isDirectoryExist(String directory) {
@@ -489,11 +494,11 @@ public class BdfRecorderApp {
         }
     }
 
-    public void setNotificationListener(NotificationListener l) {
+    public void addNotificationListener(NotificationListener l) {
         notificationListener = l;
     }
 
-    public void setMessageListener(MessageListener l) {
+    public void addMessageListener(MessageListener l) {
         messageSender.addMessageListener(l);
     }
 
@@ -505,10 +510,19 @@ public class BdfRecorderApp {
         }
 
         if(isRecording()) {
-            if(numberOfWrittenDataRecords.get() == 0) {
-                stateString = "Starting...";
+            if(isLoffDetecting) {
+                if(leadOffBitMask == null) {
+                    stateString = "Starting...";
+                } else {
+                    stateString = "Checking impedance";
+                }
+
             } else {
-                stateString = "Recording... " + numberOfWrittenDataRecords + " data records";
+                if(numberOfWrittenDataRecords.get() == 0) {
+                    stateString = "Starting...";
+                } else {
+                    stateString = "Recording:  " + numberOfWrittenDataRecords + " data records";
+                }
             }
         } else {
             if(numberOfWrittenDataRecords.get() > 0) {
@@ -607,7 +621,8 @@ public class BdfRecorderApp {
                     String errMsg = START_FAILED_MSG;
                     if(!future.get()) {
                         cancelStart();
-                        if(recorderType != bdfRecorder.getDeviceType()) {
+                        RecorderType realDeviceType = bdfRecorder.getDeviceType();
+                        if(realDeviceType != null && realDeviceType != recorderType) {
                             errMsg = MessageFormat.format(WRONG_DEVICE_TYPE_MSG, recorderType, bdfRecorder.getDeviceType());
                         }
                         sendMessage(errMsg);
@@ -626,9 +641,11 @@ public class BdfRecorderApp {
 
         private void cancelStart() {
             try {
-                edfWriter1.close();
-                File writtenFile = edfWriter1.getFile();
-                writtenFile.delete();
+                if(edfWriter1 != null) {
+                    edfWriter1.close();
+                    File writtenFile = edfWriter1.getFile();
+                    writtenFile.delete();
+                }
                 startMonitoring();
             } catch (Exception ex) {
                 log.error(ex);

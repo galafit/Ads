@@ -7,7 +7,7 @@ public class Start {
         JsonPreferences preferences = new JsonPreferences();
         BdfRecorderApp bdfRecorder = new BdfRecorderApp(preferences);
         BdfRecorderWindow bdfRecorderWindow = new BdfRecorderWindow(bdfRecorder);
-        bdfRecorder.setMessageListener(bdfRecorderWindow);
-        bdfRecorder.setNotificationListener(bdfRecorderWindow);
+        bdfRecorder.addMessageListener(bdfRecorderWindow);
+        bdfRecorder.addNotificationListener(bdfRecorderWindow);
     }
 }

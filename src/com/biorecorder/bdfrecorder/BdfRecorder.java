@@ -34,7 +34,7 @@ public class BdfRecorder {
     private final Ads ads;
     private volatile DataListener dataListener = new com.biorecorder.dataformat.NullDataListener();
     private volatile EventsListener eventsListener = new NullEventsListener();
-    private volatile BatteryVoltageListener batteryListener = new NullBatteryVoltageListener();
+    private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
 
     private Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
@@ -74,8 +74,7 @@ public class BdfRecorder {
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
     public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
-        DataSender adsFilterDataSender = createResultantDataSender(ads, recorderConfig);
-        adsFilterDataSender.addDataListener(dataListener);
+        createAdsListener(ads, recorderConfig);
         return ads.startRecording(recorderConfig.getAdsConfig());
     }
 
@@ -87,7 +86,7 @@ public class BdfRecorder {
     public boolean disconnect() {
         if(ads.disconnect()) {
             removeDataListener();
-            removeButteryVoltageListener();
+            removeButteryLevelListener();
             removeLeadOffListener();
             removeEventsListener();
             return true;
@@ -118,11 +117,17 @@ public class BdfRecorder {
      * @return object describing data records structure
      */
     public DataConfig getDataConfig(RecorderConfig recorderConfig) {
-        return createResultantDataSender(ads, recorderConfig).dataConfig();
+        DataConfig dataConfig = createAdsListener(ads, recorderConfig).dataConfig();
+        ads.removeDataListener();
+        return dataConfig;
     }
 
     public RecorderType getDeviceType() {
-        return RecorderType.valueOf(ads.getAdsType());
+        AdsType adsType = ads.getAdsType();
+        if(adsType == null) {
+            return null;
+        }
+        return RecorderType.valueOf(adsType);
     }
 
     public static String[] getAvailableComportNames() {
@@ -162,14 +167,14 @@ public class BdfRecorder {
      * Recorder permits to add only ONE ButteryVoltageListener! So if a new listener added
      * the old one are automatically removed
      */
-    public void addButteryVoltageListener(BatteryVoltageListener listener) {
+    public void addButteryLevelListener(BatteryLevelListener listener) {
       if(listener != null)  {
           batteryListener = listener;
       }
     }
 
-    public void removeButteryVoltageListener() {
-        batteryListener = new NullBatteryVoltageListener();
+    public void removeButteryLevelListener() {
+        batteryListener = new NullBatteryLevelListener();
     }
 
     /**
@@ -204,7 +209,7 @@ public class BdfRecorder {
     }
 
 
-    private DataSender createResultantDataSender(Ads ads, RecorderConfig recorderConfig) throws IllegalArgumentException {
+    private DataSender createAdsListener(Ads ads, RecorderConfig recorderConfig) throws IllegalArgumentException {
         AdsConfig adsConfig = recorderConfig.getAdsConfig();
         boolean isAllChannelsDisabled = true;
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
@@ -227,6 +232,9 @@ public class BdfRecorder {
 
         DataConfig adsDataConfig = ads.getDataConfig(adsConfig);
         AdsDataSender adsDataSender = new AdsDataSender(ads, recorderConfig.getAdsConfig());
+        adsDataSender.addButteryLevelListener(batteryListener);
+        adsDataSender.addLeadOffListener(leadOffListener);
+
         // join DataRecords to have data records length = resultantDataRecordDuration;
         int numberOfFramesToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
         DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfFramesToJoin);
@@ -238,10 +246,13 @@ public class BdfRecorder {
             for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
                 if(adsConfig.isAdsChannelEnabled(i)) {
                     List<NamedDigitalFilter> channelFilters = filters.get(i);
-                    for (NamedDigitalFilter filter : channelFilters) {
-                        signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
+                    if(channelFilters != null) {
+                        for (NamedDigitalFilter filter : channelFilters) {
+                            signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
+                        }
+                        enableChannelsCount++;
                     }
-                    enableChannelsCount++;
+
                 }
             }
         }
@@ -258,13 +269,13 @@ public class BdfRecorder {
         }
         if (adsConfig.isBatteryVoltageMeasureEnabled()) {
             // delete helper BatteryVoltage channel
-            if (adsConfig.isLeadOffEnabled()) {
+             if (adsConfig.isLeadOffEnabled()) {
                 signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);
             } else {
                 signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
             }
         }
-
+        signalsRemover.addDataListener(dataListener);
         return signalsRemover;
     }
 
@@ -282,9 +293,9 @@ public class BdfRecorder {
         }
     }
 
-    class NullBatteryVoltageListener implements BatteryVoltageListener {
+    class NullBatteryLevelListener implements BatteryLevelListener {
         @Override
-        public void onBatteryVoltageReceived(int batteryVoltage) {
+        public void onBatteryLevelReceived(int batteryLevel) {
             // do nothing;
         }
     }

@@ -10,7 +10,7 @@ public class AdsConfig {
     private AdsType adsType = AdsType.ADS_2;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
 
-    private boolean isBatteryVoltageMeasureEnabled = false;
+    private boolean isBatteryVoltageMeasureEnabled = true;
     private int noiseDivider = 2;
 
     private boolean isAccelerometerEnabled = true;

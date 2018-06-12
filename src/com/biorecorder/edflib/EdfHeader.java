@@ -588,6 +588,7 @@ public class EdfHeader {
             signal.setDigitalRange(-8388608, 8388607);
             signal.setPhysicalRange(-8388608, 8388607);
         }
+        signals.add(signal);
     }
 
     class Signal {

@@ -198,6 +198,7 @@ public class DefaultDataConfig implements DataConfig {
         signal.setLabel("Channel_" + signals.size());
         signal.setDigitalRange(Integer.MIN_VALUE, Integer.MAX_VALUE);
         signal.setPhysicalRange(Integer.MIN_VALUE, Integer.MAX_VALUE);
+        signals.add(signal);
     }
 
     /**

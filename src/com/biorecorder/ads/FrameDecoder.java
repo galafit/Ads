@@ -54,7 +54,7 @@ class FrameDecoder implements ComportListener {
         rowFrameSizeInBytes = getRawFrameSize();
         decodedFrameSizeInInts = getDecodedFrameSize();
         rawFrame = new byte[Math.max(rowFrameSizeInBytes, MAX_MESSAGE_SIZE)];
-        log.info("Com port frame size: " + decodedFrameSizeInInts + " bytes");
+        log.info("frame size: " + rowFrameSizeInBytes + " bytes");
     }
 
     /**

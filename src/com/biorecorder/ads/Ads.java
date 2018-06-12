@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  n_acc_y samples from accelerometer_y channel
  * <br>  n_acc_z samples from accelerometer_Z channel
  * <br>  1 sample with BatteryVoltage info (if BatteryVoltageMeasure  enabled)
- * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
+ * <br>  1 sample with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
  * Where n_i = ads_channel_i_sampleRate * getDurationOfDataRecord
@@ -194,7 +194,7 @@ public class Ads {
         public Boolean call() throws Exception {
             try {
                 boolean isStartOk = start();
-                if (!isStartOk) {
+                if (isStartOk) {
                     // 4) start ping timer
                     // ping timer permits Ads to detect bluetooth connection problems
                     // and restart connection when it is necessary
@@ -239,6 +239,7 @@ public class Ads {
                     boolean startOk = comport.writeBytes(config.getAdsConfigurationCommand());
                     if (startOk) {
                         // 4) waiting for data
+
                         while (!Thread.currentThread().isInterrupted() && !isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_MS) {
                             try {
                                 Thread.sleep(SLEEP_TIME_MS);
@@ -458,7 +459,7 @@ public class Ads {
 
 
     /**
-     * Helper method to convert integer with lead-off info (last integer of data frame) to the bit-mask.
+     * Helper method to convert digital value (integer) with lead-off info (last integer of data frame) to the bit-mask.
      * <p>
      * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
      * contact or disconnecting. Therefore in Lead-Off detection mask TRUE means DISCONNECTED and
@@ -518,6 +519,22 @@ public class Ads {
 
         String msg = "Invalid Ads channels count: " + adsChannelsCount + ". Number of Ads channels should be 2 or 8";
         throw new IllegalArgumentException(msg);
+    }
+
+    /**
+     * Helper method to convert digital value (integer) with buttery charge value
+     * to buttery percentage level
+     * @param batteryInt - digital (int) value of battery charge
+     * @return battery level (percentage)
+     * @throws IllegalArgumentException if batteryInt < 0 or batteryInt > BatteryDigitalMax (10240)
+     */
+    public static int batteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
+        int batteryMax = 10240;
+        if(batteryInt < 0 || batteryInt > batteryMax) {
+            String errMsg = "Invalid battery digital value: "+batteryInt + " Expected > 0 and <= "+batteryMax;
+            throw new IllegalArgumentException(errMsg);
+        }
+        return 100 * batteryInt / batteryMax;
     }
 
     class PingTask implements Runnable {

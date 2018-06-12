@@ -22,14 +22,18 @@ public class ColoredMarker extends JLabel {
     }
 
 
-    public ColoredMarker(Icon icon) {
-        setIcon(icon);
+    public ColoredMarker(Dimension dimension) {
+        setPreferredSize(dimension);
     }
 
-    public void setIcon(Icon icon) {
+    public ColoredMarker(Icon icon) {
+        setIcon(icon);
         if(icon != null){
             setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
         }
+    }
+
+    public void setIcon(Icon icon) {
         super.setIcon(icon);
     }
 

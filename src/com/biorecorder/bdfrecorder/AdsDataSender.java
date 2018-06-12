@@ -22,7 +22,7 @@ class AdsDataSender implements DataSender {
     private final AdsConfig adsConfig;
     private int lastDataRecordNumber = -1;
     private volatile DataListener dataListener = new NullDataListener();
-    private volatile BatteryVoltageListener batteryListener = new NullBatteryVoltageListener();
+    private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
     private volatile Long startRecordingTime;
 
@@ -40,24 +40,31 @@ class AdsDataSender implements DataSender {
 
     @Override
     public void addDataListener(DataListener dataListener) {
+        this.dataListener = dataListener;
         ads.addDataListener(new NumberedDataListener() {
             @Override
             public void onDataReceived(int[] dataRecord, int recordNumber) {
                 if(recordNumber == 0) {
                     startRecordingTime = System.currentTimeMillis() - (long)(adsConfig.getDurationOfDataRecord() * 1000);
-                    lastDataRecordNumber = 0;
                 }
+                //long time_start = System.currentTimeMillis();
                 notifyDataListeners(dataRecord);
+               /* long time_end = System.currentTimeMillis();
+                long delta = (time_end - time_start);
+                if(delta > 0) {
+                    System.out.println("time "+ delta);
+                }*/
 
                 int numberOfLostFrames = recordNumber - lastDataRecordNumber - 1;
                 for (int i = 0; i < numberOfLostFrames; i++) {
                     notifyDataListeners(dataRecord);
                 }
+                lastDataRecordNumber++;
 
-                int batteryVoltage = dataRecord[dataRecord.length - 1];
+                int batteryCharge = dataRecord[dataRecord.length - 1];
 
                 if (adsConfig.isLeadOffEnabled()) {
-                    batteryVoltage = dataRecord[dataRecord.length - 2];
+                    batteryCharge = dataRecord[dataRecord.length - 2];
 
                     boolean[] loffMask = Ads.leadOffIntToBitMask(dataRecord[dataRecord.length - 1], adsConfig.getAdsChannelsCount());
                     Boolean[] resultantLoffMask = new Boolean[loffMask.length];
@@ -71,9 +78,8 @@ class AdsDataSender implements DataSender {
                     }
                     notifyLeadOffListeners(resultantLoffMask);
                 }
-
                 if(adsConfig.isBatteryVoltageMeasureEnabled()) {
-                    notifyBatteryVoltageListener(batteryVoltage);
+                    notifyBatteryLevelListener(Ads.batteryIntToPercentage(batteryCharge));
                 }
             }
         });
@@ -81,8 +87,8 @@ class AdsDataSender implements DataSender {
 
     @Override
     public void removeDataListener(DataListener dataListener) {
+        this.dataListener = new NullDataListener();
         ads.removeDataListener();
-
     }
 
     /**
@@ -98,7 +104,7 @@ class AdsDataSender implements DataSender {
         leadOffListener = listener;
     }
 
-    public void addButteryVoltageListener(BatteryVoltageListener listener) {
+    public void addButteryLevelListener(BatteryLevelListener listener) {
         batteryListener = listener;
     }
 
@@ -106,8 +112,8 @@ class AdsDataSender implements DataSender {
         dataListener.onDataReceived(dataRecord);
     }
 
-    private void notifyBatteryVoltageListener(int batteryVoltage) {
-        batteryListener.onBatteryVoltageReceived(batteryVoltage);
+    private void notifyBatteryLevelListener(int batteryVoltage) {
+        batteryListener.onBatteryLevelReceived(batteryVoltage);
     }
 
     private void notifyLeadOffListeners(Boolean[] leadOffMask) {
@@ -122,9 +128,9 @@ class AdsDataSender implements DataSender {
         }
     }
 
-    class NullBatteryVoltageListener implements BatteryVoltageListener {
+    class NullBatteryLevelListener implements BatteryLevelListener {
         @Override
-        public void onBatteryVoltageReceived(int batteryVoltage) {
+        public void onBatteryLevelReceived(int batteryLevel) {
             // do nothing;
         }
     }

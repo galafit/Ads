@@ -59,11 +59,11 @@ public class DataRecordsJoiner extends FilterDataSender {
         for (int inSamplePosition = 0; inSamplePosition < inRecordSize; inSamplePosition++) {
             int counter = 0;
             int signalNumber = 0;
-            int numberOfSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(0) * numberOfRecordsToJoin;
+            int numberOfSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(0);
             while (inSamplePosition >= counter + numberOfSamples) {
                 counter += numberOfSamples;
                 signalNumber++;
-                numberOfSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber) * numberOfRecordsToJoin;
+                numberOfSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
             }
 
             int outSamplePosition = counter * numberOfRecordsToJoin;

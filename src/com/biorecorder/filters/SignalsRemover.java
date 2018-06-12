@@ -41,7 +41,9 @@ public class SignalsRemover extends FilterDataSender {
         DefaultDataConfig resultantConfig = new DefaultDataConfig(in.dataConfig());
 
         for (int i = in.dataConfig().signalsCount() - 1; i >= 0 ; i--) {
-           resultantConfig.removeSignal(i);
+            if(signalsToRemove.contains(i)) {
+                resultantConfig.removeSignal(i);
+            }
         }
         return resultantConfig;
     }
