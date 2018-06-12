@@ -45,7 +45,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private JTextField patientIdentificationField;
     private JTextField recordingIdentificationField;
 
-    private JLabel comportLabel = new JLabel("ComPort");
+    private JLabel comportLabel = new JLabel("<html>Com<br>Port</html>\"");
     private JComboBox comportField;
 
     private JComboBox deviceTypeField;
@@ -307,7 +307,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         batteryPanel.add(batteryIcon);
         batteryPanel.add(batteryLevel);
 
-        hgap = 3;
+        hgap = 5;
         vgap = 0;
         JPanel spsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         spsPanel.add(spsLabel);
@@ -318,9 +318,9 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportPanel.add(comportField);
 
 
-        hgap = 10;
-        vgap = 10;
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        hgap = 25;
+        vgap = 5;
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         topPanel.add(deviceTypeField);
         topPanel.add(comportPanel);
         topPanel.add(spsPanel);
@@ -328,7 +328,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
 
         hgap = 10;
-        vgap = 0;
+        vgap = 3;
         TableLayout tableLayout = new TableLayout(channelsHeaders.length, new TableOption(TableOption.FILL, TableOption.CENTRE), hgap, vgap);
         JPanel channelsPanel = new JPanel(tableLayout);
 
@@ -352,7 +352,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         channelsBorderPanel.setBorder(BorderFactory.createTitledBorder("Channels"));
         channelsBorderPanel.add(channelsPanel);
 
-        hgap = 3;
+        hgap = 5;
         vgap = 0;
         JPanel patientPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         patientPanel.add(patientIdentificationLabel);
@@ -381,12 +381,12 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         reportPanel.add(stateField);
 
         hgap = 10;
-        vgap = 0;
+        vgap = 5;
         JPanel reportWrapperPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         reportWrapperPanel.add(reportPanel);
 
         hgap = 5;
-        vgap = 0;
+        vgap = 5;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
         buttonPanel.add(startButton);
         // stopButton.setPreferredSize(startButton.getPreferredSize());
