@@ -318,8 +318,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportPanel.add(comportField);
 
 
-        hgap = 10;
-        vgap = 5;
+        hgap = 15;
+        vgap = 15;
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         topPanel.add(deviceTypeField);
         topPanel.add(comportPanel);
@@ -437,17 +437,15 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         fileToSaveUI.setEnabled(isEnable);
         comportField.setEnabled(isEnable);
 
-        if(accelerometer.isEnabled()) {
-            accelerometer.setFullyEnabled(true);
-        } else {
-            accelerometer.setFullyEnabled(false);
+        accelerometer.setFullyEnabled(true);
+        if(!accelerometer.isEnabled()) {
+            accelerometer.setEnabled(false);
         }
 
         for (int i = 0; i < channels.length; i++) {
-            if(channels[i].isEnable()) {
-                channels[i].setFullyEnabled(true);
-            } else {
-                channels[i].setFullyEnabled(false);
+            channels[i].setFullyEnabled(true);
+            if(!channels[i].isEnable()) {
+                channels[i].setEnabled(false);
             }
         }
     }

@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Permit to omit samples from some channels (delete signals)
  */
-public class SignalsRemover extends FilterDataSender {
+public class  SignalsRemover extends FilterDataSender {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
     private int inRecordSize;
     private int resultantRecordSize;
@@ -63,6 +63,10 @@ public class SignalsRemover extends FilterDataSender {
      */
     @Override
     protected void filterData(int[] inputRecord) {
+        for (Integer integer : signalsToRemove) {
+            System.out.println(signalsToRemove.contains(integer)+" signal to remove "+ integer);
+        }
+        System.out.println();
         int[] resultantRecord = new int[resultantRecordSize];
 
         int inputSignalNumber = 0;
