@@ -18,14 +18,13 @@ import java.util.concurrent.Future;
 /**
  * Wrapper class that does some transformations with Ads data-frames:
  * <ul>
- *     <li>joins Ads data frames so that resultant frame has standard duration = 1 sec</li>
- *     <li>removes  helper technical info about lead-off status and battery charge</li>
- *     <li>permits to add to ads channels data some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
+ * <li>joins Ads data frames so that resultant frame has standard duration = 1 sec</li>
+ * <li>removes  helper technical info about lead-off status and battery charge</li>
+ * <li>permits to add to ads channels data some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
  * </ul>
- *
+ * <p>
  * Thus resultant DataFrames (that BdfRecorder sends to its listeners) have standard edf/bdf structure and could be
  * directly written to to bdf/edf file
- *
  */
 public class BdfRecorder {
     private static final Log log = LogFactory.getLog(BdfRecorder.class);
@@ -49,7 +48,7 @@ public class BdfRecorder {
 
     public void addChannelFilter(int channelNumber, DigitalFilter filter, String filterName) {
         List<NamedDigitalFilter> channelFilters = filters.get(channelNumber);
-        if(channelFilters == null) {
+        if (channelFilters == null) {
             channelFilters = new ArrayList();
             filters.put(channelNumber, channelFilters);
         }
@@ -69,13 +68,13 @@ public class BdfRecorder {
      * and false otherwise. Usually starting fails due to device is not connected
      * or wrong device type is specified in config (that does not coincide
      * with the really connected device type)
-     * @throws IllegalStateException if Recorder was disconnected and
-     * its work was finalised or if it is already recording and should be stopped first
+     * @throws IllegalStateException    if Recorder was disconnected and
+     *                                  its work was finalised or if it is already recording and should be stopped first
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
     public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
-        createAdsListener(ads, recorderConfig);
-        return ads.startRecording(recorderConfig.getAdsConfig());
+        AdsDataHandler adsDataHandler = new AdsDataHandler(ads, recorderConfig);
+        return adsDataHandler.startRecording();
     }
 
     public boolean stop() throws IllegalStateException {
@@ -84,7 +83,7 @@ public class BdfRecorder {
     }
 
     public boolean disconnect() {
-        if(ads.disconnect()) {
+        if (ads.disconnect()) {
             removeDataListener();
             removeButteryLevelListener();
             removeLeadOffListener();
@@ -94,7 +93,7 @@ public class BdfRecorder {
         return false;
     }
 
-    public void startMonitoring() throws IllegalStateException  {
+    public void startMonitoring() throws IllegalStateException {
         ads.startMonitoring();
     }
 
@@ -117,14 +116,14 @@ public class BdfRecorder {
      * @return object describing data records structure
      */
     public DataConfig getDataConfig(RecorderConfig recorderConfig) {
-        DataConfig dataConfig = createAdsListener(ads, recorderConfig).dataConfig();
+        DataConfig dataConfig = new AdsDataHandler(ads, recorderConfig).getResultantDataConfig();
         ads.removeDataListener();
         return dataConfig;
     }
 
     public RecorderType getDeviceType() {
         AdsType adsType = ads.getAdsType();
-        if(adsType == null) {
+        if (adsType == null) {
             return null;
         }
         return RecorderType.valueOf(adsType);
@@ -140,7 +139,7 @@ public class BdfRecorder {
      * the old one are automatically removed
      */
     public void addDataListener(DataListener listener) {
-        if(listener != null) {
+        if (listener != null) {
             dataListener = listener;
         }
     }
@@ -154,7 +153,7 @@ public class BdfRecorder {
      * the old one are automatically removed
      */
     public void addLeadOffListener(LeadOffListener listener) {
-        if(listener != null) {
+        if (listener != null) {
             leadOffListener = listener;
         }
     }
@@ -168,9 +167,9 @@ public class BdfRecorder {
      * the old one are automatically removed
      */
     public void addButteryLevelListener(BatteryLevelListener listener) {
-      if(listener != null)  {
-          batteryListener = listener;
-      }
+        if (listener != null) {
+            batteryListener = listener;
+        }
     }
 
     public void removeButteryLevelListener() {
@@ -182,16 +181,16 @@ public class BdfRecorder {
      * the old one are automatically removed
      */
     public void addEventsListener(EventsListener listener) {
-        if(listener != null) {
+        if (listener != null) {
             eventsListener = listener;
         }
         ads.addMessageListener(new MessageListener() {
             @Override
             public void onMessage(AdsMessageType messageType, String message) {
-                if(messageType == AdsMessageType.LOW_BATTERY) {
+                if (messageType == AdsMessageType.LOW_BATTERY) {
                     notifyEventsListeners();
                 }
-                if(messageType == AdsMessageType.FRAME_BROKEN) {
+                if (messageType == AdsMessageType.FRAME_BROKEN) {
                     log.info(message);
                 }
             }
@@ -208,76 +207,91 @@ public class BdfRecorder {
         eventsListener.handleLowBattery();
     }
 
+    class AdsDataHandler {
+        Ads ads;
+        AdsConfig adsConfig;
+        DataSender resultantDataSender;
 
-    private DataSender createAdsListener(Ads ads, RecorderConfig recorderConfig) throws IllegalArgumentException {
-        AdsConfig adsConfig = new AdsConfig(recorderConfig.getAdsConfig());
-        boolean isAllChannelsDisabled = true;
-        for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-            if(adsConfig.isAdsChannelEnabled(i)) {
-                isAllChannelsDisabled = false;
-                break;
-            }
-        }
-        boolean isAccelerometerOnly = false;
-        if(isAllChannelsDisabled) {
-            if(!adsConfig.isAccelerometerEnabled()) {
-                throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
-            } else { // we enable some ads channel to make possible accelerometer measuring
-                 isAccelerometerOnly = true;
-                 adsConfig.setAdsChannelEnabled(0, true);
-                 adsConfig.setAdsChannelDivider(0, Divider.D10);
-                 adsConfig.setSampleRate(Sps.S500);
-            }
-        }
-
-        DataConfig adsDataConfig = ads.getDataConfig(adsConfig);
-        AdsDataSender adsDataSender = new AdsDataSender(ads, recorderConfig.getAdsConfig());
-        adsDataSender.addButteryLevelListener(batteryListener);
-        adsDataSender.addLeadOffListener(leadOffListener);
-
-        // join DataRecords to have data records length = resultantDataRecordDuration;
-        int numberOfFramesToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
-        DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfFramesToJoin);
-
-        // Add digital filters to ads channels
-        SignalsFilter signalsFilter = new SignalsFilter(edfJoiner);
-        if(!isAccelerometerOnly) {
-            int enableChannelsCount = 0;
+        public AdsDataHandler(Ads ads, RecorderConfig recorderConfig) {
+            this.ads = ads;
+            adsConfig = new AdsConfig(recorderConfig.getAdsConfig());
+            boolean isAllChannelsDisabled = true;
             for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-                if(adsConfig.isAdsChannelEnabled(i)) {
-                    List<NamedDigitalFilter> channelFilters = filters.get(i);
-                    if(channelFilters != null) {
-                        for (NamedDigitalFilter filter : channelFilters) {
-                            signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
-                        }
-                        enableChannelsCount++;
-                    }
-
+                if (adsConfig.isAdsChannelEnabled(i)) {
+                    isAllChannelsDisabled = false;
+                    break;
                 }
             }
-        }
+            boolean isAccelerometerOnly = false;
+            if (isAllChannelsDisabled) {
+                if (!adsConfig.isAccelerometerEnabled()) {
+                    throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
+                } else { // we enable some ads channel to make possible accelerometer measuring
+                    isAccelerometerOnly = true;
+                    adsConfig.setAdsChannelEnabled(0, true);
+                    adsConfig.setAdsChannelDivider(0, Divider.D10);
+                    adsConfig.setSampleRate(Sps.S500);
+                }
+            }
 
-        // Remove helper channels
-        SignalsRemover signalsRemover = new SignalsRemover(signalsFilter);
-        if(isAccelerometerOnly) {
-            // delete helper enabled channel
-            signalsRemover.removeSignal(0);
-        }
-        if (adsConfig.isLeadOffEnabled()) {
-            // delete helper Lead-off channel
-            signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
-        }
-        if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-            // delete helper BatteryVoltage channel
-             if (adsConfig.isLeadOffEnabled()) {
-                signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);
-            } else {
+            AdsDataSender adsDataSender = new AdsDataSender(ads, adsConfig);
+            adsDataSender.addButteryLevelListener(batteryListener);
+            adsDataSender.addLeadOffListener(leadOffListener);
+
+            // join DataRecords to have data records length = resultantDataRecordDuration;
+            int numberOfFramesToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
+            DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfFramesToJoin);
+
+            // Add digital filters to ads channels
+            SignalsFilter signalsFilter = new SignalsFilter(edfJoiner);
+            if (!isAccelerometerOnly) {
+                int enableChannelsCount = 0;
+                for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
+                    if (adsConfig.isAdsChannelEnabled(i)) {
+                        List<NamedDigitalFilter> channelFilters = filters.get(i);
+                        if (channelFilters != null) {
+                            for (NamedDigitalFilter filter : channelFilters) {
+                                signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
+                            }
+                            enableChannelsCount++;
+                        }
+
+                    }
+                }
+            }
+
+            DataConfig adsDataConfig = ads.getDataConfig(adsConfig);
+            // Remove helper channels
+            SignalsRemover signalsRemover = new SignalsRemover(signalsFilter);
+            if (isAccelerometerOnly) {
+                // delete helper enabled channel
+                signalsRemover.removeSignal(0);
+            }
+            if (adsConfig.isLeadOffEnabled()) {
+                // delete helper Lead-off channel
                 signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
             }
+            if (adsConfig.isBatteryVoltageMeasureEnabled()) {
+                // delete helper BatteryVoltage channel
+                if (adsConfig.isLeadOffEnabled()) {
+                    signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);
+                } else {
+                    signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
+                }
+            }
+            signalsRemover.addDataListener(dataListener);
+            resultantDataSender = signalsRemover;
         }
-        signalsRemover.addDataListener(dataListener);
-        return signalsRemover;
+
+        public DataConfig getResultantDataConfig() {
+            return resultantDataSender.dataConfig();
+        }
+
+        public Future<Boolean> startRecording() throws IllegalStateException, IllegalArgumentException {
+            return ads.startRecording(adsConfig);
+        }
     }
+
 
     class NullLeadOffListener implements LeadOffListener {
         @Override

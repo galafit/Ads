@@ -9,6 +9,8 @@ import com.biorecorder.dataformat.DataListener;
 import com.biorecorder.dataformat.DataSender;
 import com.biorecorder.dataformat.NullDataListener;
 
+import java.util.concurrent.Future;
+
 
 /**
  * Helper class that convert Ads to DataSender for further data records
@@ -31,6 +33,7 @@ class AdsDataSender implements DataSender {
         this.ads = ads;
         this.adsConfig = adsConfig;
     }
+
 
 
     @Override
