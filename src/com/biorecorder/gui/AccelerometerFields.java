@@ -44,9 +44,22 @@ public class AccelerometerFields {
 
     }
 
+    /**
+     * enable/disable all fields EXCLUDING isEnabledField
+     * @param isEnabled
+     */
     public void setEnabled(boolean isEnabled) {
         commutatorField.setEnabled(isEnabled);
         frequencyField.setEnabled(isEnabled);
+    }
+
+    /**
+     * enable/disable all fields INCLUDING isEnabledField
+     * @param isEnabled
+     */
+    public void setFullyEnabled(boolean isEnabled) {
+        setEnabled(isEnabled);
+        isEnabledField.setEnabled(isEnabled);
     }
 
     public void addToPanel(JPanel channelsPanel) {

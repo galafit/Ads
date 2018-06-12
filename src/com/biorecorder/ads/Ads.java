@@ -319,6 +319,42 @@ public class Ads {
         return false;
     }
 
+    FrameDecoder createAndConfigureFrameDecoder(@Nullable AdsConfig adsConfig) {
+        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
+        if (adsConfig != null) {
+            frameDecoder.addDataListener(new NumberedDataListener() {
+                @Override
+                public void onDataReceived(int[] dataRecord, int dataRecordNumber) {
+                    lastEventTime = System.currentTimeMillis();
+                    isDataReceived = true;
+                    notifyDataListeners(dataRecord, dataRecordNumber);
+                }
+            });
+        }
+
+        frameDecoder.addMessageListener(new MessageListener() {
+            @Override
+            public void onMessage(AdsMessageType messageType, String message) {
+                if (messageType == AdsMessageType.ADS_2_CHANNELS) {
+                    adsType = AdsType.ADS_2;
+                    lastEventTime = System.currentTimeMillis();
+                }
+                if (messageType == AdsMessageType.ADS_8_CHANNELS) {
+                    adsType = AdsType.ADS_8;
+                    lastEventTime = System.currentTimeMillis();
+                }
+                if (messageType == AdsMessageType.STOP_RECORDING) {
+                    adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
+                }
+                if (messageType == AdsMessageType.FRAME_BROKEN) {
+                    log.info(message);
+                }
+                notifyMessageListeners(messageType, message);
+            }
+        });
+        return frameDecoder;
+    }
+
     /**
      * This method return true if last ads monitoring message (device_type)
      * or data_frame was received less then ACTIVE_PERIOD_MS (1 sec) ago
@@ -395,9 +431,9 @@ public class Ads {
                 int signalNumber = edfConfig.signalsCount() - 1;
                 int channelSampleRate = adsConfig.getSampleRate().getValue() / adsConfig.getAdsChannelDivider(i);
                 edfConfig.setTransducer(signalNumber, "Unknown");
-                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAdsChannelsPhysicalDimension());
-                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAdsChannelPhysicalMin(i), adsConfig.getAdsChannelPhysicalMax(i));
-                edfConfig.setDigitalRange(signalNumber, adsConfig.getAdsChannelsDigitalMin(), adsConfig.getAdsChannelsDigitalMax());
+                edfConfig.setPhysicalDimension(signalNumber, getAdsChannelsPhysicalDimension());
+                edfConfig.setPhysicalRange(signalNumber, getAdsChannelPhysicalMin(adsConfig.getAdsChannelGain(i)), getAdsChannelPhysicalMax(adsConfig.getAdsChannelGain(i)));
+                edfConfig.setDigitalRange(signalNumber, getAdsChannelsDigitalMin(adsConfig.getNoiseDivider()), getAdsChannelsDigitalMax(adsConfig.getNoiseDivider()));
                 int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * channelSampleRate);
                 edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 edfConfig.setLabel(signalNumber, adsConfig.getAdsChannelName(i));
@@ -412,9 +448,9 @@ public class Ads {
                 int signalNumber = edfConfig.signalsCount() - 1;
                 edfConfig.setLabel(signalNumber, "Accelerometer");
                 edfConfig.setTransducer(signalNumber, "None");
-                edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
-                edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
-                edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
+                edfConfig.setPhysicalDimension(signalNumber, getAccelerometerPhysicalDimension(adsConfig.isAccelerometerOneChannelMode()));
+                edfConfig.setPhysicalRange(signalNumber, getAccelerometerPhysicalMin(), getAccelerometerPhysicalMax());
+                edfConfig.setDigitalRange(signalNumber, getAccelerometerDigitalMin(adsConfig.isAccelerometerOneChannelMode()), getAccelerometerDigitalMax(adsConfig.isAccelerometerOneChannelMode()));
                 int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * accSampleRate);
                 edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
             } else {
@@ -424,9 +460,9 @@ public class Ads {
                     int signalNumber = edfConfig.signalsCount() - 1;
                     edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
                     edfConfig.setTransducer(signalNumber, "None");
-                    edfConfig.setPhysicalDimension(signalNumber, adsConfig.getAccelerometerPhysicalDimension());
-                    edfConfig.setPhysicalRange(signalNumber, adsConfig.getAccelerometerPhysicalMin(), adsConfig.getAccelerometerPhysicalMax());
-                    edfConfig.setDigitalRange(signalNumber, adsConfig.getAccelerometerDigitalMin(), adsConfig.getAccelerometerDigitalMax());
+                    edfConfig.setPhysicalDimension(signalNumber, getAccelerometerPhysicalDimension(adsConfig.isAccelerometerOneChannelMode()));
+                    edfConfig.setPhysicalRange(signalNumber, getAccelerometerPhysicalMin(), getAccelerometerPhysicalMax());
+                    edfConfig.setDigitalRange(signalNumber, getAccelerometerDigitalMin(adsConfig.isAccelerometerOneChannelMode()), getAccelerometerDigitalMax(adsConfig.isAccelerometerOneChannelMode()));
                     int nrOfSamplesInEachDataRecord = (int) Math.round(adsConfig.getDurationOfDataRecord() * accSampleRate);
                     edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
                 }
@@ -437,9 +473,9 @@ public class Ads {
             int signalNumber = edfConfig.signalsCount() - 1;
             edfConfig.setLabel(signalNumber, "Battery voltage");
             edfConfig.setTransducer(signalNumber, "None");
-            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getBatteryVoltageDimension());
-            edfConfig.setPhysicalRange(signalNumber, adsConfig.getBatteryVoltagePhysicalMin(), adsConfig.getBatteryVoltagePhysicalMax());
-            edfConfig.setDigitalRange(signalNumber, adsConfig.getBatteryVoltageDigitalMin(), adsConfig.getBatteryVoltageDigitalMax());
+            edfConfig.setPhysicalDimension(signalNumber, getBatteryVoltageDimension());
+            edfConfig.setPhysicalRange(signalNumber, getBatteryVoltagePhysicalMin(), getBatteryVoltagePhysicalMax());
+            edfConfig.setDigitalRange(signalNumber, getBatteryVoltageDigitalMin(), getBatteryVoltageDigitalMax());
             int nrOfSamplesInEachDataRecord = 1;
             edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
         }
@@ -448,9 +484,9 @@ public class Ads {
             int signalNumber = edfConfig.signalsCount() - 1;
             edfConfig.setLabel(signalNumber, "Lead Off Status");
             edfConfig.setTransducer(signalNumber, "None");
-            edfConfig.setPhysicalDimension(signalNumber, adsConfig.getLeadOffStatusDimension());
-            edfConfig.setPhysicalRange(signalNumber, adsConfig.getLeadOffStatusPhysicalMin(), adsConfig.getLeadOffStatusPhysicalMax());
-            edfConfig.setDigitalRange(signalNumber, adsConfig.getLeadOffStatusDigitalMin(), adsConfig.getLeadOffStatusDigitalMax());
+            edfConfig.setPhysicalDimension(signalNumber, getLeadOffStatusDimension());
+            edfConfig.setPhysicalRange(signalNumber, getLeadOffStatusPhysicalMin(), getLeadOffStatusPhysicalMax());
+            edfConfig.setDigitalRange(signalNumber, getLeadOffStatusDigitalMin(), getLeadOffStatusDigitalMax());
             int nrOfSamplesInEachDataRecord = 1;
             edfConfig.setNumberOfSamplesInEachDataRecord(signalNumber, nrOfSamplesInEachDataRecord);
         }
@@ -529,12 +565,103 @@ public class Ads {
      * @throws IllegalArgumentException if batteryInt < 0 or batteryInt > BatteryDigitalMax (10240)
      */
     public static int batteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
-        int batteryMax = 10240;
+        int batteryMax = getBatteryVoltageDigitalMax();
         if(batteryInt < 0 || batteryInt > batteryMax) {
             String errMsg = "Invalid battery digital value: "+batteryInt + " Expected > 0 and <= "+batteryMax;
             throw new IllegalArgumentException(errMsg);
         }
         return 100 * batteryInt / batteryMax;
+    }
+
+    public static double getAdsChannelPhysicalMax(Gain channelGain) {
+        return 2400000 / channelGain.getValue();
+    }
+
+    public static  double getAdsChannelPhysicalMin(Gain channelGain) {
+        return - getAdsChannelPhysicalMax(channelGain);
+    }
+
+    public static int getAdsChannelsDigitalMax(int noiseDivider) {
+        return Math.round(8388607 / noiseDivider);
+    }
+
+    public static int getAdsChannelsDigitalMin(int noiseDivider) {
+        return Math.round(-8388608 / noiseDivider);
+    }
+
+
+    public String getAdsChannelsPhysicalDimension() {
+        return "uV";
+    }
+
+    public static double getAccelerometerPhysicalMax() {
+        return 1000;
+    }
+
+    public static double getAccelerometerPhysicalMin() {
+        return - getAccelerometerPhysicalMax();
+    }
+
+    public static int getAccelerometerDigitalMax(boolean isAccelerometerOneChannelMode) {
+        if(isAccelerometerOneChannelMode) {
+            return 2000;
+        }
+        return 9610;
+    }
+
+    public static int getAccelerometerDigitalMin(boolean isAccelerometerOneChannelMode) {
+        if(isAccelerometerOneChannelMode) {
+            return -2000;
+        }
+        return 4190;
+    }
+
+
+    public static String getAccelerometerPhysicalDimension(boolean isAccelerometerOneChannelMode) {
+        if(isAccelerometerOneChannelMode) {
+            return "m/sec^3";
+        }
+        return "mg";
+    }
+
+    public static double getBatteryVoltagePhysicalMax() {
+        return 5;
+    }
+
+    public static double getBatteryVoltagePhysicalMin() {
+        return 0;
+    }
+
+    public static int getBatteryVoltageDigitalMax() {
+        return 10240;
+    }
+
+    public static int getBatteryVoltageDigitalMin() {
+        return 0;
+    }
+
+    public static String getBatteryVoltageDimension() {
+        return "V";
+    }
+
+    public static double getLeadOffStatusPhysicalMax() {
+        return 65536;
+    }
+
+    public static double getLeadOffStatusPhysicalMin() {
+        return 0;
+    }
+
+    public static int getLeadOffStatusDigitalMax() {
+        return 65536;
+    }
+
+    public static int getLeadOffStatusDigitalMin() {
+        return 0;
+    }
+
+    public static String getLeadOffStatusDimension() {
+        return "Bit mask";
     }
 
     class PingTask implements Runnable {
@@ -578,42 +705,6 @@ public class Ads {
         public void onDataReceived(int[] dataRecord, int dataRecordNumber) {
             // do nothing
         }
-    }
-
-    FrameDecoder createAndConfigureFrameDecoder(@Nullable AdsConfig adsConfig) {
-        FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
-        if (adsConfig != null) {
-            frameDecoder.addDataListener(new NumberedDataListener() {
-                @Override
-                public void onDataReceived(int[] dataRecord, int dataRecordNumber) {
-                    lastEventTime = System.currentTimeMillis();
-                    isDataReceived = true;
-                    notifyDataListeners(dataRecord, dataRecordNumber);
-                }
-            });
-        }
-
-        frameDecoder.addMessageListener(new MessageListener() {
-            @Override
-            public void onMessage(AdsMessageType messageType, String message) {
-                if (messageType == AdsMessageType.ADS_2_CHANNELS) {
-                    adsType = AdsType.ADS_2;
-                    lastEventTime = System.currentTimeMillis();
-                }
-                if (messageType == AdsMessageType.ADS_8_CHANNELS) {
-                    adsType = AdsType.ADS_8;
-                    lastEventTime = System.currentTimeMillis();
-                }
-                if (messageType == AdsMessageType.STOP_RECORDING) {
-                    adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
-                }
-                if (messageType == AdsMessageType.FRAME_BROKEN) {
-                    log.info(message);
-                }
-                notifyMessageListeners(messageType, message);
-            }
-        });
-        return frameDecoder;
     }
 
 }

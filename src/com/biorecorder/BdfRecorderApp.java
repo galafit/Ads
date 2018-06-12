@@ -338,6 +338,57 @@ public class BdfRecorderApp {
         return new OperationResult(true);
     }
 
+    class StartFutureHandlerTask extends TimerTask {
+        private Future<Boolean> future;
+        private EdfWriter edfWriter1;
+        private RecorderType recorderType;
+
+        public StartFutureHandlerTask(Future future, EdfWriter edfWriter, RecorderType recorderType) {
+            this.future = future;
+            this.edfWriter1 = edfWriter;
+            this.recorderType = recorderType;
+        }
+
+        @Override
+        public void run() {
+            if (future.isDone()){
+                try {
+                    String errMsg = START_FAILED_MSG;
+                    if(!future.get()) {
+                        cancelStart();
+                        RecorderType realDeviceType = bdfRecorder.getDeviceType();
+                        if(realDeviceType != null && realDeviceType != recorderType) {
+                            errMsg = MessageFormat.format(WRONG_DEVICE_TYPE_MSG, recorderType, bdfRecorder.getDeviceType());
+                        }
+                        sendMessage(errMsg);
+                    }
+                } catch (InterruptedException e) {
+                    cancelStart();
+                } catch (CancellationException e) {
+                    cancelStart();
+                } catch (ExecutionException e) {
+                    cancelStart();
+                    sendMessage(e.getMessage());
+                }
+                cancel(); // cancel this task
+            }
+        }
+
+        private void cancelStart() {
+            try {
+                if(edfWriter1 != null) {
+                    edfWriter1.close();
+                    File writtenFile = edfWriter1.getFile();
+                    writtenFile.delete();
+                }
+                startMonitoring();
+            } catch (Exception ex) {
+                log.error(ex);
+            }
+        }
+    }
+
+
     private synchronized OperationResult stop1() {
         boolean isStopOk = true;
         boolean isFileCloseOk = true;
@@ -365,6 +416,7 @@ public class BdfRecorderApp {
         if(edfWriter != null) {
             try {
                 edfWriter.close();
+                log.info(edfWriter.getWritingInfo());
             } catch (Exception ex) {
                 isFileCloseOk = false;
                 log.error(ex);
@@ -602,56 +654,4 @@ public class BdfRecorderApp {
             }
         }
     }
-
-    class StartFutureHandlerTask extends TimerTask {
-        private Future<Boolean> future;
-        private EdfWriter edfWriter1;
-        private RecorderType recorderType;
-
-        public StartFutureHandlerTask(Future future, EdfWriter edfWriter, RecorderType recorderType) {
-            this.future = future;
-            this.edfWriter1 = edfWriter;
-            this.recorderType = recorderType;
-        }
-
-        @Override
-        public void run() {
-            if (future.isDone()){
-                try {
-                    String errMsg = START_FAILED_MSG;
-                    if(!future.get()) {
-                        cancelStart();
-                        RecorderType realDeviceType = bdfRecorder.getDeviceType();
-                        if(realDeviceType != null && realDeviceType != recorderType) {
-                            errMsg = MessageFormat.format(WRONG_DEVICE_TYPE_MSG, recorderType, bdfRecorder.getDeviceType());
-                        }
-                        sendMessage(errMsg);
-                    }
-                } catch (InterruptedException e) {
-                    // do nothing;
-                } catch (CancellationException e) {
-                    // do nothing
-                } catch (ExecutionException e) {
-                    cancelStart();
-                    sendMessage(e.getMessage());
-                }
-                cancel(); // cancel this task
-            }
-        }
-
-        private void cancelStart() {
-            try {
-                if(edfWriter1 != null) {
-                    edfWriter1.close();
-                    File writtenFile = edfWriter1.getFile();
-                    writtenFile.delete();
-                }
-                startMonitoring();
-            } catch (Exception ex) {
-                log.error(ex);
-            }
-        }
-    }
-
-
 }

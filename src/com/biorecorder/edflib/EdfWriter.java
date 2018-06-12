@@ -280,14 +280,13 @@ public class EdfWriter {
             throw new IllegalStateException(CLOSED_MSG);
         }
         try{
-            if(sampleCount == 0) {
+            sampleCount += length;
+            if(sampleCount == recordSize) {
                 firstRecordTime = System.currentTimeMillis();
                 lastRecordTime = firstRecordTime;
                 writeHeaderToFile();
             }
 
-            sampleCount += length;
-            // if number of received records > 1
             if(sampleCount > recordSize && sampleCount % recordSize == 0) {
                 lastRecordTime = System.currentTimeMillis();
             }
@@ -306,7 +305,7 @@ public class EdfWriter {
             header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
         }
         if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
-            double durationOfRecord_ms = (lastRecordTime - firstRecordTime)  /  numberOfReceivedRecords;
+            double durationOfRecord_ms = (lastRecordTime - firstRecordTime)  /  (numberOfReceivedRecords - 1);
             header.setDurationOfDataRecord(durationOfRecord_ms / 1000);
         }
         if(numberOfReceivedRecords > 0 && isStartTimeUndefined) {
@@ -335,7 +334,7 @@ public class EdfWriter {
         stringBuilder.append("Stop recording time = " + lastRecordTime + " (" + dateFormat.format(new Date(lastRecordTime)) + ") \n");
         stringBuilder.append("Number of data records = " + numberOfRecords + "\n");
         if(numberOfRecords > 1) {
-            double durationOfRecord = (lastRecordTime - firstRecordTime) * 1000 / numberOfRecords;
+            double durationOfRecord = header.getDurationOfDataRecord();
             stringBuilder.append("Calculated duration of data records = " + durationOfRecord);
         }
         return stringBuilder.toString();

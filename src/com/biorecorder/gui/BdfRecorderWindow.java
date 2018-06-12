@@ -95,6 +95,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                         if (!actionResult.isSuccess()) {
                             return;
                         }
+                    } else {
+                        return;
                     }
                 }
                 OperationResult actionResult = recorder.startRecording(saveData(), false);
@@ -419,9 +421,9 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         fileToSaveUI.setEnabled(isEnable);
         comportField.setEnabled(isEnable);
 
-        accelerometer.setEnabled(isEnable);
+        accelerometer.setFullyEnabled(isEnable);
         for (int i = 0; i < channels.length; i++) {
-            channels[i].setEnabled(isEnable);
+            channels[i].setFullyEnabled(isEnable);
         }
     }
 
@@ -436,16 +438,16 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportField.setEnabled(isEnable);
 
         if(accelerometer.isEnabled()) {
-            accelerometer.setEnabled(true);
+            accelerometer.setFullyEnabled(true);
         } else {
-            accelerometer.setEnabled(false);
+            accelerometer.setFullyEnabled(false);
         }
 
         for (int i = 0; i < channels.length; i++) {
             if(channels[i].isEnable()) {
-                channels[i].setEnabled(true);
+                channels[i].setFullyEnabled(true);
             } else {
-                channels[i].setEnabled(false);
+                channels[i].setFullyEnabled(false);
             }
         }
     }

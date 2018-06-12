@@ -20,7 +20,7 @@ public class ChannelFields {
     private JComboBox frequencyField;
     private JComboBox gainField;
     private JComboBox commutatorField;
-    private JCheckBox isEnableField;
+    private JCheckBox isEnabledField;
     private JCheckBox is50HzFilterEnableField;
     private JTextField nameField;
     private ColoredMarker loffPositiveField;
@@ -45,23 +45,36 @@ public class ChannelFields {
 
         loffPositiveField = new ColoredMarker(ICON_DISABLED);
         loffNegativeField = new ColoredMarker(ICON_DISABLED);
-        isEnableField = new JCheckBox();
-        isEnableField.addItemListener(new ItemListener() {
+        isEnabledField = new JCheckBox();
+        isEnabledField.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
-                setEnabled(isEnableField.isSelected());
+                setEnabled(isEnabledField.isSelected());
             }
         });
-        isEnableField.setSelected(config.isChannelEnabled(channelNumber));
+        isEnabledField.setSelected(config.isChannelEnabled(channelNumber));
 
     }
 
+    /**
+     * enable/disable all fields EXCLUDING isEnabledField
+     * @param isEnabled
+     */
     public void setEnabled(boolean isEnabled) {
         frequencyField.setEnabled(isEnabled);
         gainField.setEnabled(isEnabled);
         commutatorField.setEnabled(isEnabled);
         is50HzFilterEnableField.setEnabled(isEnabled);
         nameField.setEnabled(isEnabled);
+    }
+
+    /**
+     * enable/disable all fields INCLUDING isEnabledField
+     * @param isEnabled
+     */
+    public void setFullyEnabled(boolean isEnabled) {
+        setEnabled(isEnabled);
+        isEnabledField.setEnabled(isEnabled);
     }
 
     public void setLoffStatus(Boolean loffPositive, Boolean loffNegative) {
@@ -89,7 +102,7 @@ public class ChannelFields {
 
     public void addToPanel(JPanel channelsPanel) {
         channelsPanel.add(new JLabel(new Integer(channelNumber + 1).toString()));
-        channelsPanel.add(isEnableField);
+        channelsPanel.add(isEnabledField);
         channelsPanel.add(nameField);
         channelsPanel.add(frequencyField);
         channelsPanel.add(gainField);
@@ -103,7 +116,7 @@ public class ChannelFields {
     }
 
     public boolean isEnable() {
-        return isEnableField.isSelected();
+        return isEnabledField.isSelected();
     }
 
     public int getFrequency() {
