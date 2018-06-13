@@ -423,7 +423,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         vgap = 5;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
         buttonPanel.add(startButton);
-        stopButton.setPreferredSize(startButton.getPreferredSize());
+        stopButton.setPreferredSize(checkImpedanceButton.getPreferredSize());
+        startButton.setPreferredSize(checkImpedanceButton.getPreferredSize());
         buttonPanel.add(stopButton);
         buttonPanel.add(checkImpedanceButton);
 

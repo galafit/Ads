@@ -61,7 +61,6 @@ public class BdfRecorderApp {
 
     private volatile Preferences preferences;
     private volatile BdfRecorder bdfRecorder;
-    private volatile File edfFile;
     private volatile EdfWriter edfWriter;
     private volatile Boolean[] leadOffBitMask;
     private volatile Integer batteryLevel;
@@ -136,9 +135,6 @@ public class BdfRecorderApp {
         return comportName;
     }
 
-    public boolean isLoffDetecting() {
-        return isLoffDetecting;
-    }
 
     public String[] getAvailableComports() {
         return availableComports;
@@ -286,7 +282,7 @@ public class BdfRecorderApp {
 
             numberOfWrittenDataRecords.set(0);
 
-            edfFile = new File(dirToSave, normalizeFilename(config.getFileName()));
+            File edfFile = new File(dirToSave, normalizeFilename(config.getFileName()));
 
             DataConfig dataConfig = bdfRecorder.getDataConfig(config.getRecorderConfig());
             // copy data from dataConfig to the EdfHeader
@@ -388,27 +384,22 @@ public class BdfRecorderApp {
 
 
     private synchronized OperationResult stop1() {
-        boolean isStopOk = true;
-        boolean isFileCloseOk = true;
-        String msg = "";
         if(bdfRecorder != null) {
-            isStopOk = bdfRecorder.stop();
+            bdfRecorder.stop();
             bdfRecorder.removeDataListener();
         }
-        if(!isStopOk) {
-            log.error(FAILED_STOP_MSG);
-            msg = FAILED_STOP_MSG;
-        }
-
-        isLoffDetecting = false;
 
         if(startFutureHandlingTask != null) {
             startFutureHandlingTask.cancel();
         }
 
-        if(edfWriter != null) {
+        String msg = "";
+        boolean isFileCloseOk = true;
+        if(edfWriter != null && !isLoffDetecting) {
+            File edfFile = edfWriter.getFile();
             try {
                 edfWriter.close();
+                msg = "Data saved to file:\n"+ edfFile+"\n\n" + edfWriter.getWritingInfo();
                 log.info(edfWriter.getWritingInfo());
             } catch (Exception ex) {
                 isFileCloseOk = false;
@@ -420,7 +411,7 @@ public class BdfRecorderApp {
             }
         }
 
-        return new OperationResult(isStopOk && isFileCloseOk, msg);
+        return new OperationResult(isFileCloseOk, msg);
     }
 
 
@@ -456,7 +447,7 @@ public class BdfRecorderApp {
     }
 
     public Boolean[] getLeadOffMask() {
-        if(isLoffDetecting) {
+        if(isRecording() && isLoffDetecting) {
             return leadOffBitMask;
         }
         return null;
@@ -568,10 +559,6 @@ public class BdfRecorderApp {
                 } else {
                     stateString = "Recording:  " + numberOfWrittenDataRecords + " data records";
                 }
-            }
-        } else {
-            if(numberOfWrittenDataRecords.get() > 0) {
-                stateString = "Saved to file: " + edfFile.getName();
             }
         }
         return stateString;

@@ -327,16 +327,13 @@ public class EdfWriter {
      * @return string with some info about writing process
      */
     public String getWritingInfo() {
-        long numberOfRecords = getNumberOfReceivedDataRecords();
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-        StringBuilder stringBuilder = new StringBuilder("\n");
-        stringBuilder.append("Start recording time = " + firstRecordTime + " (" + dateFormat.format(new Date(firstRecordTime)) + ") \n");
-        stringBuilder.append("Stop recording time = " + lastRecordTime + " (" + dateFormat.format(new Date(lastRecordTime)) + ") \n");
-        stringBuilder.append("Number of data records = " + numberOfRecords + "\n");
-        if(numberOfRecords > 1) {
-            double durationOfRecord = header.getDurationOfDataRecord();
-            stringBuilder.append("Calculated duration of data records = " + durationOfRecord);
-        }
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Start recording time = "  + dateFormat.format(new Date(firstRecordTime)) + "\n");
+        stringBuilder.append("Stop recording time = " + dateFormat.format(new Date(lastRecordTime)) + "\n");
+        stringBuilder.append("Duration of data records(sec) = " + header.getDurationOfDataRecord()+ "\n");
+        stringBuilder.append("Number of data records = " + getNumberOfReceivedDataRecords());
+
         return stringBuilder.toString();
     }
 
