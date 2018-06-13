@@ -30,15 +30,15 @@ public class FileToSaveUI extends JPanel {
         directory = new DirectoryField();
         directory.setLength(dirnameLength);
 
-        int hgap = 3;
+        int hgap = 5;
         int vgap = 0;
         JPanel innerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         innerPanel.add(new JLabel(filenameLabel));
         innerPanel.add(filename);
-        innerPanel.add(new JLabel("  "));
+        innerPanel.add(new JLabel("    "));
         innerPanel.add(directory);
 
-        hgap = 5;
+        hgap = 0;
         vgap = 5;
         setLayout(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         setBorder(BorderFactory.createTitledBorder(saveAsPanelLabel));

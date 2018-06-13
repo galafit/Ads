@@ -2,7 +2,6 @@ package com.biorecorder.gui;
 
 import com.biorecorder.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
-import com.sun.codemodel.internal.*;
 
 import javax.swing.*;
 import javax.swing.JLabel;
@@ -26,7 +25,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private static final int RECORDING_LENGTH = 20;
 
     private static final int FILENAME_LENGTH = 12;
-    private static final int DIRNAME_LENGTH = 46;
+    private static final int DIRNAME_LENGTH = 50;
 
     Color COLOR_CONNECTED = new Color(79, 245, 42);
     Color COLOR_DISCONNECTED = Color.GRAY;
@@ -348,7 +347,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         topPanel.add(wrapperPanel, BorderLayout.EAST);
 
 
-        hgap = 10;
+        hgap = 15;
         vgap = 3;
         TableLayout tableLayout = new TableLayout(channelsHeaders.length, new TableOption(TableOption.FILL, TableOption.CENTRE), hgap, vgap);
         JPanel channelsPanel = new JPanel(tableLayout);
@@ -373,7 +372,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         channelsBorderPanel.setBorder(BorderFactory.createTitledBorder("Channels"));
         channelsBorderPanel.add(channelsPanel);
 
-        hgap = 3;
+        hgap = 5;
         vgap = 0;
         JPanel patientPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         patientPanel.add(patientIdentificationLabel);
@@ -383,7 +382,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         recordingPanel.add(recordingIdentificationLabel);
         recordingPanel.add(recordingIdentificationField);
 
-        hgap = 5;
+        hgap = 0;
         vgap = 0;
         JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
         identificationPanel.add(patientPanel);
