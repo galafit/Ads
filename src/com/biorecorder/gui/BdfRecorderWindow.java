@@ -2,8 +2,10 @@ package com.biorecorder.gui;
 
 import com.biorecorder.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
+import com.sun.codemodel.internal.*;
 
 import javax.swing.*;
+import javax.swing.JLabel;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import java.awt.*;
@@ -20,11 +22,11 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
 
     private static final int IDENTIFICATION_LENGTH = 80;
-    private static final int PATIENT_LENGTH = 22;
+    private static final int PATIENT_LENGTH = 20;
     private static final int RECORDING_LENGTH = 20;
 
     private static final int FILENAME_LENGTH = 12;
-    private static final int DIRNAME_LENGTH = 50;
+    private static final int DIRNAME_LENGTH = 46;
 
     Color COLOR_CONNECTED = new Color(79, 245, 42);
     Color COLOR_DISCONNECTED = Color.GRAY;
@@ -67,8 +69,11 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private JLabel batteryLevel = new JLabel();
 
     private String title = "BioRecorder";
+    private String filter50Hz = "Filter50Hz";
+    private String impedance = "Impedance";
+    private JLabel filterImpedanceLabel = new JLabel(filter50Hz);
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name"), new JLabel("Frequency"),
-            new JLabel("Commutator"), new JLabel("Gain"),  new JLabel("Filter50Hz")};
+            new JLabel("Commutator"), new JLabel("Gain"),  filterImpedanceLabel};
 
 
     public BdfRecorderWindow(BdfRecorderApp recorder) {
@@ -531,11 +536,13 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 Boolean loffNegative = leadOffDetectionMask[2 * i + 1];
                 channels[i].setLoffStatus(loffPositive, loffNegative);
                 channels[i].setLoffStatusVisible(true);
+                filterImpedanceLabel.setText(impedance);
             }
         } else {
             for (int i = 0; i < channels.length; i++) {
                 channels[i].setLoffStatus(null, null);
                 channels[i].setLoffStatusVisible(false);
+                filterImpedanceLabel.setText(filter50Hz);
             }
         }
     }

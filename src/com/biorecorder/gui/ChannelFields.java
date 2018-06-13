@@ -101,6 +101,7 @@ public class ChannelFields {
     public void setLoffStatusVisible(boolean isVisible) {
         loffPositiveField.setVisible(isVisible);
         loffNegativeField.setVisible(isVisible);
+        is50HzFilterEnableField.setVisible(!isVisible);
     }
 
     public void updateFrequencyField(int sampleRate) {
