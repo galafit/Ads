@@ -9,7 +9,7 @@ import java.awt.*;
 public class ColoredMarker extends JLabel {
 
     private Color  backgroundColor;
-    private Dimension defaultDimension = new Dimension(10,10);
+    private Dimension defaultDimension = new Dimension(15,15);
 
     public ColoredMarker(Color backgroundColor) {
         setPreferredSize(defaultDimension);

@@ -67,7 +67,6 @@ public class AccelerometerFields {
         channelsPanel.add(isEnabledField);
         channelsPanel.add(nameField);
         channelsPanel.add(frequencyField);
-        channelsPanel.add(new JLabel(" "));
         channelsPanel.add(commutatorField);
      }
 

@@ -10,6 +10,8 @@ import java.io.File;
  * Created by gala on 01/11/16.
  */
 public class FileToSaveUI extends JPanel {
+    private static final int DEFAULT_FILENAME_LENGTH = 16;
+    private static final int DEFAULT_DIRNAME_LENGTH = 45;
 
     private JTextField filename;
     private DirectoryField directory;
@@ -19,14 +21,14 @@ public class FileToSaveUI extends JPanel {
     private String FILENAME_PATTERN = "Date-Time";
 
     public FileToSaveUI() {
+        this(DEFAULT_FILENAME_LENGTH, DEFAULT_DIRNAME_LENGTH);
+    }
 
-        int fieldLength = 18;
-        filename = new JTextField(fieldLength);
+    public FileToSaveUI(int filenameLength, int dirnameLength) {
+        filename = new JTextField(filenameLength);
         filename.setText(FILENAME_PATTERN);
-
         directory = new DirectoryField();
-        fieldLength = 50;
-        directory.setLength(fieldLength);
+        directory.setLength(dirnameLength);
 
         int hgap = 3;
         int vgap = 0;

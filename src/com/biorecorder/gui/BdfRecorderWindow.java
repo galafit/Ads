@@ -20,8 +20,11 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
 
     private static final int IDENTIFICATION_LENGTH = 80;
-    private static final int PATIENT_LENGTH = 24;
-    private static final int RECORDING_LENGTH = 24;
+    private static final int PATIENT_LENGTH = 22;
+    private static final int RECORDING_LENGTH = 20;
+
+    private static final int FILENAME_LENGTH = 12;
+    private static final int DIRNAME_LENGTH = 50;
 
     Color COLOR_CONNECTED = Color.GREEN;
     Color COLOR_DISCONNECTED = Color.GRAY;
@@ -65,7 +68,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
 
     private String title = "BioRecorder";
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name"), new JLabel("Frequency"),
-            new JLabel("Gain"), new JLabel("Commutator"), new JLabel("Impedance"), new JLabel(" "), new JLabel("Filter 50 Hz")};
+            new JLabel("Commutator"), new JLabel("Gain"),  new JLabel("Filter50Hz")};
 
 
     public BdfRecorderWindow(BdfRecorderApp recorder) {
@@ -164,7 +167,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         patientIdentificationField.setText(config.getPatientIdentification());
         recordingIdentificationField.setText(config.getRecordingIdentification());
 
-        fileToSaveUI = new FileToSaveUI();
+        fileToSaveUI = new FileToSaveUI(FILENAME_LENGTH, DIRNAME_LENGTH);
         fileToSaveUI.setDirectory(config.getDirToSave());
 
         deviceTypeField.addActionListener(new ActionListener() {
@@ -264,8 +267,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 if (recorder.isActive()) {
                     stateColor = COLOR_CONNECTED;
                 }
+
                 if (recorder.isRecording()) {
-                    stateColor = COLOR_CONNECTED;
                     stopButton.setVisible(true);
                     checkImpedanceButton.setVisible(false);
                     startButton.setVisible(false);
@@ -303,10 +306,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         int hgap = 5;
         int vgap = 10;
 
-        JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        batteryPanel.add(batteryIcon);
-        batteryPanel.add(batteryLevel);
-
         hgap = 5;
         JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         devicePanel.add(deviceTypeField);
@@ -333,7 +332,6 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         JPanel topPanel = new JPanel(new BorderLayout(hgap, vgap));
         topPanel.add(devicePanel, BorderLayout.WEST);
         topPanel.add(centralPanel, BorderLayout.CENTER);
-        topPanel.add(batteryPanel, BorderLayout.EAST);
 
 
         hgap = 10;
@@ -361,7 +359,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         channelsBorderPanel.setBorder(BorderFactory.createTitledBorder("Channels"));
         channelsBorderPanel.add(channelsPanel);
 
-        hgap = 5;
+        hgap = 3;
         vgap = 0;
         JPanel patientPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         patientPanel.add(patientIdentificationLabel);
@@ -382,6 +380,13 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         JPanel identificationBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         identificationBorderPanel.setBorder(BorderFactory.createTitledBorder("Identification"));
         identificationBorderPanel.add(identificationPanel);
+
+
+        hgap = 5;
+        vgap = 10;
+        JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        batteryPanel.add(batteryIcon);
+        batteryPanel.add(batteryLevel);
 
         hgap = 5;
         vgap = 5;
@@ -406,7 +411,8 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         hgap = 5;
         vgap = 0;
         JPanel statePanel = new JPanel(new BorderLayout(hgap, vgap));
-        statePanel.add(reportWrapperPanel, BorderLayout.WEST);
+        statePanel.add(batteryPanel, BorderLayout.WEST);
+        statePanel.add(reportWrapperPanel, BorderLayout.CENTER);
         statePanel.add(buttonPanel, BorderLayout.EAST);
 
 

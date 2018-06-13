@@ -81,8 +81,7 @@ public class BdfRecorderApp {
     private volatile String comportName;
     private volatile TimerTask connectionTask = new ConnectionTask();
     private volatile TimerTask startFutureHandlingTask;
-    private volatile TimerTask createAvailableComportsTask = new CreateAvailableComportsTask();
-    private volatile boolean isLoffDetecting;
+     private volatile boolean isLoffDetecting;
 
     public BdfRecorderApp(Preferences preferences) {
         this.preferences = preferences;
@@ -106,8 +105,7 @@ public class BdfRecorderApp {
         if(comportName != null && !comportName.isEmpty()) {
             timer.schedule(connectionTask, CONNECTION_PERIOD_MS, CONNECTION_PERIOD_MS);
         }
-
-        timer.schedule(createAvailableComportsTask, COMPORT_LIST_PERIOD_MS, COMPORT_LIST_PERIOD_MS);
+        timer.schedule(new CreateAvailableComportsTask(), COMPORT_LIST_PERIOD_MS, COMPORT_LIST_PERIOD_MS);
       }
 
     public AppConfig getConfig() {
@@ -154,7 +152,7 @@ public class BdfRecorderApp {
     }
 
     public synchronized boolean isActive() {
-        if(bdfRecorder != null && bdfRecorder.isActive()) {
+        if(bdfRecorder != null && (bdfRecorder.isActive() || bdfRecorder.isRecording())) {
             return true;
         }
         return false;
@@ -239,7 +237,6 @@ public class BdfRecorderApp {
         preferences.saveConfig(config);
         this.comportName = comportName;
         connectionTask.cancel();
-        createAvailableComportsTask.cancel();
         this.isLoffDetecting = isLoffDetection;
 
         try {
@@ -408,11 +405,6 @@ public class BdfRecorderApp {
         if(startFutureHandlingTask != null) {
             startFutureHandlingTask.cancel();
         }
-
-        createAvailableComportsTask.cancel();
-        createAvailableComportsTask = new CreateAvailableComportsTask();
-        timer.schedule(createAvailableComportsTask, COMPORT_LIST_PERIOD_MS, COMPORT_LIST_PERIOD_MS);
-
 
         if(edfWriter != null) {
             try {
@@ -639,7 +631,9 @@ public class BdfRecorderApp {
     class CreateAvailableComportsTask extends TimerTask {
         @Override
         public void run() {
-            availableComports = checkAvailableComports();
+            if(!isRecording()) {
+                availableComports = checkAvailableComports();
+            }
         }
     }
 

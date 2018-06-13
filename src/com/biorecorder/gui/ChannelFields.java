@@ -3,6 +3,7 @@ package com.biorecorder.gui;
 import com.biorecorder.AppConfig;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
@@ -105,14 +106,19 @@ public class ChannelFields {
         channelsPanel.add(isEnabledField);
         channelsPanel.add(nameField);
         channelsPanel.add(frequencyField);
-        channelsPanel.add(gainField);
         channelsPanel.add(commutatorField);
-        JPanel loffPanel = new JPanel();
-        loffPanel.add(loffPositiveField);
-        loffPanel.add(loffNegativeField);
-        channelsPanel.add(loffPanel);
-        channelsPanel.add(new JLabel(" "));
-        channelsPanel.add(is50HzFilterEnableField);
+        channelsPanel.add(gainField);
+        //channelsPanel.add(is50HzFilterEnableField);
+        int hgap = 5;
+        int vgap = 0;
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        panel.add(is50HzFilterEnableField);
+        panel.add(loffPositiveField);
+        panel.add(loffNegativeField);
+        channelsPanel.add(panel);
+        loffPositiveField.setVisible(false);
+        loffNegativeField.setVisible(false);
+
     }
 
     public boolean isEnable() {
