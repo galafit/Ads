@@ -26,13 +26,13 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private static final int FILENAME_LENGTH = 12;
     private static final int DIRNAME_LENGTH = 50;
 
-    Color COLOR_CONNECTED = Color.GREEN;
+    Color COLOR_CONNECTED = new Color(79, 245, 42);
     Color COLOR_DISCONNECTED = Color.GRAY;
 
     private static final Icon BATTERY_ICON_1 = new ImageIcon("img/battery_1_small.png");
     private static final Icon BATTERY_ICON_2 = new ImageIcon("img/battery_2_small.png");
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
-    private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
+    private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_5_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
 
     private final BdfRecorderApp recorder;
@@ -293,10 +293,10 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                     } else {
                         batteryIcon.setIcon(BATTERY_ICON_5);
                     }
-                    batteryLevel.setText(level + "%  ");
+                    batteryLevel.setText(level + "%");
                 }
                 setReport(recorder.getStateReport(), stateColor);
-                pack();
+               // pack();
             }
         });
     }
@@ -307,7 +307,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         int vgap = 10;
 
         hgap = 5;
-        JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         devicePanel.add(deviceTypeField);
 
         hgap = 5;
@@ -316,22 +316,26 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         spsPanel.add(spsLabel);
         spsPanel.add(spsField);
 
+
+        hgap = 5;
+        vgap = 0;
         JPanel comportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         comportPanel.add(comportLabel);
         comportPanel.add(comportField);
 
         hgap = 30;
-        vgap = 5;
-        JPanel centralPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        centralPanel.add(comportPanel);
-        centralPanel.add(spsPanel);
+        vgap = 0;
+        JPanel comportWrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        comportWrapperPanel.add(comportPanel);
 
 
-        hgap = 5;
+        hgap = 0;
         vgap = 5;
-        JPanel topPanel = new JPanel(new BorderLayout(hgap, vgap));
-        topPanel.add(devicePanel, BorderLayout.WEST);
-        topPanel.add(centralPanel, BorderLayout.CENTER);
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        topPanel.add(devicePanel);
+        topPanel.add(comportWrapperPanel);
+        topPanel.add(spsPanel);
+
 
 
         hgap = 10;
@@ -382,11 +386,18 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         identificationBorderPanel.add(identificationPanel);
 
 
-        hgap = 5;
+        hgap = 0;
         vgap = 10;
         JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         batteryPanel.add(batteryIcon);
         batteryPanel.add(batteryLevel);
+
+        hgap = 10;
+        vgap = 0;
+        JPanel batteryWrapperPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        batteryWrapperPanel.add(batteryPanel);
+
+
 
         hgap = 5;
         vgap = 5;
@@ -411,7 +422,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         hgap = 5;
         vgap = 0;
         JPanel statePanel = new JPanel(new BorderLayout(hgap, vgap));
-        statePanel.add(batteryPanel, BorderLayout.WEST);
+        statePanel.add(batteryWrapperPanel, BorderLayout.WEST);
         statePanel.add(reportWrapperPanel, BorderLayout.CENTER);
         statePanel.add(buttonPanel, BorderLayout.EAST);
 
