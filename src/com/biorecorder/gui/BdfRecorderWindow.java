@@ -61,7 +61,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private JLabel stateField = new JLabel("Disconnected");
 
     private ColoredMarker batteryIcon = new ColoredMarker(new Dimension(45, 16));
-    private JLabel batteryLevel = new JLabel("    ");
+    private JLabel batteryLevel = new JLabel();
 
     private String title = "BioRecorder";
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name"), new JLabel("Frequency"),
@@ -301,11 +301,15 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private void arrangeForm() {
         getContentPane().removeAll();
         int hgap = 5;
-        int vgap = 0;
+        int vgap = 10;
 
         JPanel batteryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         batteryPanel.add(batteryIcon);
         batteryPanel.add(batteryLevel);
+
+        hgap = 5;
+        JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        devicePanel.add(deviceTypeField);
 
         hgap = 5;
         vgap = 0;
@@ -317,14 +321,19 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportPanel.add(comportLabel);
         comportPanel.add(comportField);
 
-
-        hgap = 25;
+        hgap = 30;
         vgap = 5;
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        topPanel.add(deviceTypeField);
-        topPanel.add(comportPanel);
-        topPanel.add(spsPanel);
-        topPanel.add(batteryPanel);
+        JPanel centralPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        centralPanel.add(comportPanel);
+        centralPanel.add(spsPanel);
+
+
+        hgap = 5;
+        vgap = 5;
+        JPanel topPanel = new JPanel(new BorderLayout(hgap, vgap));
+        topPanel.add(devicePanel, BorderLayout.WEST);
+        topPanel.add(centralPanel, BorderLayout.CENTER);
+        topPanel.add(batteryPanel, BorderLayout.EAST);
 
 
         hgap = 10;
@@ -389,7 +398,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         vgap = 5;
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
         buttonPanel.add(startButton);
-        // stopButton.setPreferredSize(startButton.getPreferredSize());
+        stopButton.setPreferredSize(startButton.getPreferredSize());
         buttonPanel.add(stopButton);
         buttonPanel.add(checkImpedanceButton);
 
