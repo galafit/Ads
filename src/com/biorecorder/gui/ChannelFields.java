@@ -46,6 +46,8 @@ public class ChannelFields {
 
         loffPositiveField = new ColoredMarker(ICON_DISABLED);
         loffNegativeField = new ColoredMarker(ICON_DISABLED);
+        setLoffStatusVisible(false);
+
         isEnabledField = new JCheckBox();
         isEnabledField.addItemListener(new ItemListener() {
             @Override
@@ -94,7 +96,11 @@ public class ChannelFields {
         } else {
             loffPositiveField.setIcon(ICON_CONNECTED);
         }
+    }
 
+    public void setLoffStatusVisible(boolean isVisible) {
+        loffPositiveField.setVisible(isVisible);
+        loffNegativeField.setVisible(isVisible);
     }
 
     public void updateFrequencyField(int sampleRate) {
@@ -108,7 +114,7 @@ public class ChannelFields {
         channelsPanel.add(frequencyField);
         channelsPanel.add(commutatorField);
         channelsPanel.add(gainField);
-        //channelsPanel.add(is50HzFilterEnableField);
+
         int hgap = 5;
         int vgap = 0;
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
@@ -116,9 +122,6 @@ public class ChannelFields {
         panel.add(loffPositiveField);
         panel.add(loffNegativeField);
         channelsPanel.add(panel);
-        loffPositiveField.setVisible(false);
-        loffNegativeField.setVisible(false);
-
     }
 
     public boolean isEnable() {

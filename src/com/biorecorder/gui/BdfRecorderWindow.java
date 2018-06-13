@@ -32,7 +32,7 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
     private static final Icon BATTERY_ICON_1 = new ImageIcon("img/battery_1_small.png");
     private static final Icon BATTERY_ICON_2 = new ImageIcon("img/battery_2_small.png");
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
-    private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_5_small.png");
+    private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
 
     private final BdfRecorderApp recorder;
@@ -323,19 +323,24 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
         comportPanel.add(comportLabel);
         comportPanel.add(comportField);
 
-        hgap = 30;
+        hgap = 20;
         vgap = 0;
         JPanel comportWrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         comportWrapperPanel.add(comportPanel);
 
 
+        hgap = 5;
+        vgap = 5;
+        JPanel wrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
+        wrapperPanel.add(comportWrapperPanel);
+        wrapperPanel.add(spsPanel);
+
+
         hgap = 0;
         vgap = 5;
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        topPanel.add(devicePanel);
-        topPanel.add(comportWrapperPanel);
-        topPanel.add(spsPanel);
-
+        JPanel topPanel = new JPanel(new BorderLayout(hgap, vgap));
+        topPanel.add(devicePanel, BorderLayout.WEST);
+        topPanel.add(wrapperPanel, BorderLayout.EAST);
 
 
         hgap = 10;
@@ -525,10 +530,12 @@ public class BdfRecorderWindow extends JFrame implements NotificationListener, M
                 Boolean loffPositive = leadOffDetectionMask[2 * i];
                 Boolean loffNegative = leadOffDetectionMask[2 * i + 1];
                 channels[i].setLoffStatus(loffPositive, loffNegative);
+                channels[i].setLoffStatusVisible(true);
             }
         } else {
             for (int i = 0; i < channels.length; i++) {
                 channels[i].setLoffStatus(null, null);
+                channels[i].setLoffStatusVisible(false);
             }
         }
     }
