@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.recorder;
 
 import com.biorecorder.dataformat.DataListener;
 
@@ -52,7 +52,4 @@ public class DataHandler {
             dataHandlingThread.interrupt();
         }
     }
-
-
-
 }

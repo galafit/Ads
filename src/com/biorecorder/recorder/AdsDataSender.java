@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.recorder;
 
 import com.biorecorder.ads.Ads;
 import com.biorecorder.ads.AdsConfig;
@@ -8,8 +8,6 @@ import com.biorecorder.dataformat.DataConfig;
 import com.biorecorder.dataformat.DataListener;
 import com.biorecorder.dataformat.DataSender;
 import com.biorecorder.dataformat.NullDataListener;
-
-import java.util.concurrent.Future;
 
 
 /**

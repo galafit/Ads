@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
 
@@ -136,5 +136,13 @@ public class RecorderConfig {
 
     public void setDurationOfDataRecord(double durationOfDataRecord) {
         this.durationOfDataRecord = durationOfDataRecord;
+    }
+
+    public int getChannelSampleRate(int channelNumber) {
+        return getSampleRate() / getChannelDivider(channelNumber);
+    }
+
+    public int getAccelerometerSampleRate() {
+        return getSampleRate() / adsConfig.getAccelerometerDivider();
     }
 }

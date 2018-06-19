@@ -6,5 +6,4 @@ package com.biorecorder.ads;
  */
 interface AdsConfigurator {
     public byte[] getAdsConfigurationCommand(AdsConfig adsConfig);
-
 }

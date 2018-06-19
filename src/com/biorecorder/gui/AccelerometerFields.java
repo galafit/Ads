@@ -1,7 +1,5 @@
 package com.biorecorder.gui;
 
-import com.biorecorder.AppConfig;
-
 import javax.swing.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -10,20 +8,19 @@ import java.awt.event.ItemListener;
  * Created by galafit on 8/6/18.
  */
 public class AccelerometerFields {
-    private static final int NAME_LENGTH = 16;
     private JComboBox commutatorField;
     private JLabel nameField;
     private JCheckBox isEnabledField;
     private JComboBox frequencyField;
     private Integer number;
 
-    public AccelerometerFields(AppConfig config) {
-        number = config.getChannelsCount() + 1;
-        nameField = new JLabel(config.getAccelerometerName());
-        Integer[] frequencies = {AppConfig.getAccelerometerSampleRate(config.getSampleRate())};
+    public AccelerometerFields(RecorderSettings settings) {
+        number = settings.getChannelsCount() + 1;
+        nameField = new JLabel(settings.getAccelerometerName());
+        Integer[] frequencies = {settings.getAccelerometerFrequency()};
         frequencyField = new JComboBox(frequencies);
-        commutatorField = new JComboBox(AppConfig.getAccelerometerAvailableCommutators());
-        commutatorField.setSelectedItem(config.getAccelerometerCommutator());
+        commutatorField = new JComboBox(settings.getAccelerometerAvailableModes());
+        commutatorField.setSelectedItem(settings.getAccelerometerMode());
         isEnabledField = new JCheckBox();
         isEnabledField.addItemListener(new ItemListener() {
             @Override
@@ -31,17 +28,11 @@ public class AccelerometerFields {
                 setEnabled(isEnabledField.isSelected());
             }
         });
-        isEnabledField.setSelected(config.isAccelerometerEnabled());
+        isEnabledField.setSelected(settings.isAccelerometerEnabled());
     }
 
-    public String getCommutator() {
+    public String getMode() {
         return (String)commutatorField.getSelectedItem();
-    }
-
-    public void updateFrequencyField(int sampleRate) {
-        Integer[] frequencies = {AppConfig.getAccelerometerSampleRate(sampleRate)};
-        frequencyField.setModel(new DefaultComboBoxModel(frequencies));
-
     }
 
     /**

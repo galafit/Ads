@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Ads packs samples from all channels received during the
- * time = MaxDiv/getSampleRate (getDurationOfDataRecord)
+ * time = MaxDiv/getMaxFrequency (getDurationOfDataRecord)
  * in one array of int. Every array (data record or data package) has
  * the following structure (in case of 8 channels):
  * <p>
@@ -53,11 +53,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);
 
-    private final int COMPORT_SPEED = 460800;
-    private final byte PING_COMMAND = (byte) (0xFB & 0xFF);
-    private final byte HELLO_REQUEST = (byte) (0xFD & 0xFF);
-    private final byte STOP_REQUEST = (byte) (0xFF & 0xFF);
-    private final byte HARDWARE_REQUEST = (byte) (0xFA & 0xFF);
+    private static final int COMPORT_SPEED = 460800;
+    private static final byte PING_COMMAND = (byte) (0xFB & 0xFF);
+    private static final byte HELLO_REQUEST = (byte) (0xFD & 0xFF);
+    private static final byte STOP_REQUEST = (byte) (0xFF & 0xFF);
+    private static final byte HARDWARE_REQUEST = (byte) (0xFA & 0xFF);
 
     private static final int PING_PERIOD_MS = 1000;
     private static final int MONITORING_PERIOD_MS = 1000;
@@ -85,7 +85,7 @@ public class Ads {
             new AtomicReference<AdsState>(AdsState.UNDEFINED);
 
 
-    private ExecutorService singleThreadExecutor;
+    private final ExecutorService singleThreadExecutor;
     private volatile Future executorFuture;
 
     private volatile NumberedDataListener dataListener;
@@ -161,12 +161,12 @@ public class Ads {
             } else {
                 adsConfig.setAdsChannelCommutatorState(i, Commutator.INPUT_SHORT);
                 adsConfig.setAdsChannelRldSenseEnabled(i, false);
+                adsConfig.setAdsChannelLeadOffEnable(i, false);
             }
         }
         if(isAllChannelsDisabled) {
             throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
         }
-
 
         // stop monitoring
         if (executorFuture != null && !executorFuture.isDone()) {
@@ -198,7 +198,7 @@ public class Ads {
             try {
                 boolean isStartOk = start();
                 if (isStartOk) {
-                    // 4) start ping timer
+                    // 4) startRecording ping timer
                     // ping timer permits Ads to detect bluetooth connection problems
                     // and restart connection when it is necessary
                     executorFuture = singleThreadExecutor.submit(new PingTask(), PING_PERIOD_MS);
@@ -214,7 +214,7 @@ public class Ads {
 
         private boolean start() {
             long startTime = System.currentTimeMillis();
-            // 1) to correctly start we need to be sure that the specified in config adsType is ok
+            // 1) to correctly startRecording we need to be sure that the specified in config adsType is ok
             while (!Thread.currentThread().isInterrupted() && adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_MS) {
                 comport.writeByte(HARDWARE_REQUEST);
                 try {
@@ -238,7 +238,7 @@ public class Ads {
                 }
 
                 if (!Thread.currentThread().isInterrupted()) {
-                    // 3) send "start" command
+                    // 3) send "startRecording" command
                     boolean startOk = comport.writeBytes(config.getAdsConfigurationCommand());
                     if (startOk) {
                         // 4) waiting for data

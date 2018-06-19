@@ -63,9 +63,9 @@ public class AdsConfigurator8Ch implements AdsConfigurator {
         result.add((byte)20);
 
         result.add((byte)0xF0);     //ads1292 command
-        result.add((byte)0x10);     //ads1292 start continuous
+        result.add((byte)0x10);     //ads1292 startRecording continuous
 
-        result.add((byte)0xFE);     //start recording
+        result.add((byte)0xFE);     //startRecording recording
 
         result.add((byte)0x55);     //footer1
         result.add((byte)0x55);     //footer1

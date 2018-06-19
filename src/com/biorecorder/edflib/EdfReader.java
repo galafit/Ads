@@ -51,7 +51,7 @@ public class EdfReader {
      * Note that every signal has it's own independent sample position indicator and
      * setSamplePosition() affects only one of them.
      * Methods {@link #readDigitalSamples(int, int)} and
-     * {@link #readPhysicalSamples(int, int)} (int, double[], int, int)} will start reading
+     * {@link #readPhysicalSamples(int, int)} (int, double[], int, int)} will startRecording reading
      * samples belonging to a channel from the specified for that channel position.
      *
      * @param signalNumber channel (signal) number whose sample position we change. Numbering starts from 0!
@@ -93,7 +93,7 @@ public class EdfReader {
      * The position is measured in DataRecords.
      * Methods: {@link #readDigitalRecords(int)} and
      * {@link #readDigitalRecords(int)}
-     * will start reading from the specified position.
+     * will startRecording reading from the specified position.
      *
      * @param newPosition the new position, a non-negative integer counting
      *                    the number of data records from the beginning of the file
@@ -131,7 +131,7 @@ public class EdfReader {
         int sampleStartOffset = (int)(samplesPositionList[signal] % samplesPerRecord);
         long fileReadPosition = header.getNumberOfBytesInHeaderRecord() + (recordNumber * recordSize + signalStartPositionInRecord + sampleStartOffset) * bytesPerSample;
 
-        // set file start reading position and read
+        // set file startRecording reading position and read
         fileInputStream.getChannel().position(fileReadPosition);
         byte[] byteData = new byte[samplesPerRecord * bytesPerSample];
         int totalReadBytes = 0;

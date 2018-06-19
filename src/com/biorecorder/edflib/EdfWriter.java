@@ -321,7 +321,7 @@ public class EdfWriter {
     }
 
     /**
-     * Gets some info about file writing process: start recording time, stop recording time,
+     * Gets some info about file writing process: startRecording recording time, stop recording time,
      * number of written DataRecords, average duration of DataRecords.
      *
      * @return string with some info about writing process

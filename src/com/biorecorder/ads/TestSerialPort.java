@@ -20,7 +20,7 @@ public class TestSerialPort {
         connectionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                System.out.println(Thread.currentThread()+ ": start get port names.");
+                System.out.println(Thread.currentThread()+ ": startRecording get port names.");
                 System.out.println(Thread.currentThread()+ ": "+ getPortNames()[0]);
                 System.out.println(Thread.currentThread()+  ": finish get port names.");
                 System.out.println("\n");

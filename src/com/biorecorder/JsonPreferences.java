@@ -82,7 +82,7 @@ public class JsonPreferences implements Preferences {
         // as a part of the name of property file
         projectDir = projectDir.replace(separator,"_");
         projectDir = projectDir.replace(":","");
-        // start file with '.' to make file hidden on mac and unix system
+        // startRecording file with '.' to make file hidden on mac and unix system
         String fullFileName = "."+projectDir+ "_"+fileName;
         File propertyFile = new File(homeDir, fullFileName);
         return  propertyFile;

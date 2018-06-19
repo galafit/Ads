@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.recorder;
 
 import com.biorecorder.ads.Divider;
 
@@ -35,8 +35,8 @@ public enum RecorderDivider {
         throw new IllegalArgumentException(msg);
     }
 
-    public static RecorderDivider valueOf(int gainValue) {
-        return RecorderDivider.valueOf(Divider.valueOf(gainValue));
+    public static RecorderDivider valueOf(int divider) {
+        return RecorderDivider.valueOf(Divider.valueOf(divider));
     }
 
 

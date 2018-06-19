@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.dataformat.DataConfig;
@@ -6,8 +6,6 @@ import com.biorecorder.dataformat.DataListener;
 import com.biorecorder.dataformat.DataSender;
 import com.biorecorder.dataformat.NullDataListener;
 import com.biorecorder.filters.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,11 +21,10 @@ import java.util.concurrent.Future;
  * <li>permits to add to ads channels data some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
  * </ul>
  * <p>
- * Thus resultant DataFrames (that BdfRecorder sends to its listeners) have standard edf/bdf structure and could be
+ * Thus resultant DataFrames (that BioRecorder sends to its listeners) have standard edf/bdf structure and could be
  * directly written to to bdf/edf file
  */
-public class BdfRecorder {
-    private static final Log log = LogFactory.getLog(BdfRecorder.class);
+public class BioRecorder {
     private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Recording Impossible";
 
     private final Ads ads;
@@ -36,9 +33,9 @@ public class BdfRecorder {
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
 
-    private Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
+    private volatile Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
 
-    public BdfRecorder(String comportName) throws ConnectionRuntimeException {
+    public BioRecorder(String comportName) throws ConnectionRuntimeException {
         try {
             ads = new Ads(comportName);
         } catch (ComportRuntimeException ex) {
@@ -61,14 +58,14 @@ public class BdfRecorder {
 
 
     /**
-     * Start Recorder measurements.
+     * Start BioRecorder measurements.
      *
      * @param recorderConfig object with ads config info
      * @return Future<Boolean> that get true if starting  was successful
      * and false otherwise. Usually starting fails due to device is not connected
-     * or wrong device type is specified in config (that does not coincide
+     * or wrong device type is specified in config (which does not coincide
      * with the really connected device type)
-     * @throws IllegalStateException    if Recorder was disconnected and
+     * @throws IllegalStateException    if BioRecorder was disconnected and
      *                                  its work was finalised or if it is already recording and should be stopped first
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
@@ -84,7 +81,8 @@ public class BdfRecorder {
 
     public boolean disconnect() {
         if (ads.disconnect()) {
-            removeDataListener();
+            ads.removeDataListener();
+            ads.removeMessageListener();
             removeButteryLevelListener();
             removeLeadOffListener();
             removeEventsListener();
@@ -111,7 +109,7 @@ public class BdfRecorder {
 
     /**
      * Get the info describing the structure of resultant data records
-     * that BdfRecorder sends to its listeners
+     * that BioRecorder sends to its listeners
      *
      * @return object describing data records structure
      */
@@ -135,7 +133,7 @@ public class BdfRecorder {
 
 
     /**
-     * Recorder permits to add only ONE DataListener! So if a new listener added
+     * BioRecorder permits to add only ONE DataListener! So if a new listener added
      * the old one are automatically removed
      */
     public void addDataListener(DataListener listener) {
@@ -149,7 +147,7 @@ public class BdfRecorder {
     }
 
     /**
-     * Recorder permits to add only ONE LeadOffListener! So if a new listener added
+     * BioRecorder permits to add only ONE LeadOffListener! So if a new listener added
      * the old one are automatically removed
      */
     public void addLeadOffListener(LeadOffListener listener) {
@@ -163,7 +161,7 @@ public class BdfRecorder {
     }
 
     /**
-     * Recorder permits to add only ONE ButteryVoltageListener! So if a new listener added
+     * BioRecorder permits to add only ONE ButteryVoltageListener! So if a new listener added
      * the old one are automatically removed
      */
     public void addButteryLevelListener(BatteryLevelListener listener) {
@@ -177,7 +175,7 @@ public class BdfRecorder {
     }
 
     /**
-     * Recorder permits to add only ONE EventsListener! So if a new listener added
+     * BioRecorder permits to add only ONE EventsListener! So if a new listener added
      * the old one are automatically removed
      */
     public void addEventsListener(EventsListener listener) {
@@ -189,9 +187,6 @@ public class BdfRecorder {
             public void onMessage(AdsMessageType messageType, String message) {
                 if (messageType == AdsMessageType.LOW_BATTERY) {
                     notifyEventsListeners();
-                }
-                if (messageType == AdsMessageType.FRAME_BROKEN) {
-                    log.info(message);
                 }
             }
 
@@ -214,6 +209,7 @@ public class BdfRecorder {
 
         public AdsDataHandler(Ads ads, RecorderConfig recorderConfig) {
             this.ads = ads;
+            // make copy to safely change
             adsConfig = new AdsConfig(recorderConfig.getAdsConfig());
             boolean isAllChannelsDisabled = true;
             for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
@@ -230,6 +226,7 @@ public class BdfRecorder {
                     isAccelerometerOnly = true;
                     adsConfig.setAdsChannelEnabled(0, true);
                     adsConfig.setAdsChannelDivider(0, Divider.D10);
+                    adsConfig.setAdsChannelLeadOffEnable(0, false);
                     adsConfig.setSampleRate(Sps.S500);
                 }
             }
@@ -239,8 +236,8 @@ public class BdfRecorder {
             adsDataSender.addLeadOffListener(leadOffListener);
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
-            int numberOfFramesToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
-            DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfFramesToJoin);
+            int numberOfRecordsToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
+            DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfRecordsToJoin);
 
             // Add digital filters to ads channels
             SignalsFilter signalsFilter = new SignalsFilter(edfJoiner);

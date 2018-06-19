@@ -18,7 +18,7 @@ public class TestSerialPort1 {
         connectionTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-               // System.out.println(Thread.currentThread()+ ": start get port names.");
+               // System.out.println(Thread.currentThread()+ ": startRecording get port names.");
                 System.out.println(Thread.currentThread()+ ": creating port list "+ Comport.getAvailableComportNames()[0]);
                 System.out.println("\n");
 

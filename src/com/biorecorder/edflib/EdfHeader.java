@@ -107,11 +107,11 @@ public class EdfHeader {
     }
 
     /**
-     * Gets recording start date and time measured in milliseconds,
+     * Gets recording startRecording date and time measured in milliseconds,
      * since midnight, January 1, 1970 UTC.
      *
      * @return the difference, measured in milliseconds,
-     * between the recording start time
+     * between the recording startRecording time
      * and midnight, January 1, 1970 UTC.
      */
     public long getRecordingStartTimeMs() {
@@ -120,7 +120,7 @@ public class EdfHeader {
 
 
     /**
-     * Sets recording start date and time.
+     * Sets recording startRecording date and time.
      * This function is optional. If not called,
      * the writer will use the system date and time at runtime
      *
@@ -165,19 +165,19 @@ public class EdfHeader {
     }
 
     /**
-     * Sets recording start time measured in milliseconds,
+     * Sets recording startRecording time measured in milliseconds,
      * since midnight, January 1, 1970 UTC.
      * This function is optional.
      * If not called, the writer will use the system date and time at runtime
      *
      * @param recordingStartTime the difference, measured in milliseconds,
-     *                           between the recording start time
+     *                           between the recording startRecording time
      *                           and midnight, January 1, 1970 UTC.
      * @throws IllegalArgumentException if recordingStartTime < 0
      */
     public void setRecordingStartTimeMs(long recordingStartTime) {
         if (recordingStartTime < 0) {
-            String errMsg = "Invalid start time: " + recordingStartTime + " Expected >= 0";
+            String errMsg = "Invalid startRecording time: " + recordingStartTime + " Expected >= 0";
             throw new IllegalArgumentException(errMsg);
         }
         this.recordingStartTime = recordingStartTime;
@@ -754,7 +754,7 @@ public class EdfHeader {
         EdfHeader headerConfigEdf = new EdfHeader(DataFormat.EDF_16BIT, numberOfSignals);
         EdfHeader headerConfigBdf = new EdfHeader(DataFormat.BDF_24BIT, numberOfSignals);
 
-        // set start date and time for Bdf HeaderConfig
+        // set startRecording date and time for Bdf HeaderConfig
         headerConfigBdf.setRecordingStartDateTime(1972, 6, 23, 23, 23, 50);
         // print header info
         System.out.println(headerConfigEdf);

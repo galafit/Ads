@@ -1,4 +1,4 @@
-package com.biorecorder.bdfrecorder;
+package com.biorecorder.recorder;
 
 import com.biorecorder.ads.Sps;
 
@@ -31,8 +31,8 @@ public enum RecorderSampleRate {
         throw new IllegalArgumentException(msg);
     }
 
-    public static RecorderSampleRate valueOf(int sampleRateValue) {
-        return RecorderSampleRate.valueOf(Sps.valueOf(sampleRateValue));
+    public static RecorderSampleRate valueOf(int sampleRate) {
+        return RecorderSampleRate.valueOf(Sps.valueOf(sampleRate));
     }
 
     public int getValue(){

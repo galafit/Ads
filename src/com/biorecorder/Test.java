@@ -54,7 +54,7 @@ public class Test {
             public void run() {
                 //  String comportName = appConfig.getComportName();
                 // createAvailablePortNamesList();
-                System.out.println( "start get port names.");
+                System.out.println( "startRecording get port names.");
                 System.out.println( SerialPortList.getPortNames()[0]);
                 System.out.println( "finish get port names.");
                 System.out.println("\n");
