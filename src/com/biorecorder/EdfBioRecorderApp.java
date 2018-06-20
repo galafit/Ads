@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
@@ -58,7 +59,7 @@ public class EdfBioRecorderApp {
     private static final int AVAILABLE_COMPORTS_CHECKING_PERIOD_MS = 3000;
     private static final int FUTURE_CHECKING_PERIOD_MS = 1000;
 
-    private final Timer timer = new Timer();
+    private final Timer timer = new Timer("EdfBioRecorderApp Timer");
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
     private volatile ProgressListener progressListener = new NullProgressListener();
@@ -632,5 +633,19 @@ public class EdfBioRecorderApp {
                 // do nothing
             }
         }
+    }
+
+    private static Thread[] getAllThreads() {
+        Set<Thread> threadSet = Thread.getAllStackTraces().keySet();
+        return threadSet.toArray(new Thread[threadSet.size()]);
+    }
+
+    private static void printAllThreads() {
+        Thread[] threads = getAllThreads();
+        System.out.println("Running threads:");
+        for (Thread thread : threads) {
+            System.out.println(thread.getName());
+        }
+
     }
 }

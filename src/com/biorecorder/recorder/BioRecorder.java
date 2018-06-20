@@ -78,8 +78,7 @@ public class BioRecorder {
 
     public boolean stop() throws IllegalStateException {
         if (adsDataHandler != null) {
-            boolean isStopOk = adsDataHandler.stop();
-            return isStopOk;
+            return adsDataHandler.stop();
         }
         return true;
     }
@@ -120,7 +119,6 @@ public class BioRecorder {
      */
     public DataConfig getDataConfig(RecorderConfig recorderConfig) {
         DataConfig dataConfig = new AdsDataHandler(ads, recorderConfig).getResultantDataConfig();
-        ads.removeDataListener();
         return dataConfig;
     }
 
@@ -323,7 +321,6 @@ public class BioRecorder {
         }
 
         public boolean stop() throws IllegalStateException {
-            ads.removeDataListener();
             return adsDataSender.stop();
         }
 

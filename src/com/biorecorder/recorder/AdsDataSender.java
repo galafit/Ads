@@ -74,6 +74,7 @@ class AdsDataSender implements DataSender {
         if(dataHandlingThread != null) {
             dataHandlingThread.interrupt();
         }
+        ads.removeDataListener();
         return ads.stop();
     }
 

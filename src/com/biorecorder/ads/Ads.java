@@ -97,7 +97,7 @@ public class Ads {
         messageListener = new NullMessageListener();
         ThreadFactory namedThreadFactory = new ThreadFactory() {
             public Thread newThread(Runnable r) {
-                return new Thread(r, "«Executor» thread");
+                return new Thread(r, "«Ads» thread");
             }
         };
         singleThreadExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
@@ -357,6 +357,7 @@ public class Ads {
                 }
                 if (messageType == AdsMessageType.STOP_RECORDING) {
                     adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
+                    log.info("Stop message received");
                 }
                 if (messageType == AdsMessageType.FRAME_BROKEN) {
                     log.info(message);
