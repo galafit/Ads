@@ -319,13 +319,12 @@ public class BioRecorder {
         }
 
         public Future<Boolean> startRecording() throws IllegalStateException, IllegalArgumentException {
-            return ads.startRecording(adsConfig);
+            return adsDataSender.startRecording(adsConfig);
         }
 
         public boolean stop() throws IllegalStateException {
             ads.removeDataListener();
-            adsDataSender.finalize();
-            return ads.stop();
+            return adsDataSender.stop();
         }
 
         public long getStartMeasuringTime() {

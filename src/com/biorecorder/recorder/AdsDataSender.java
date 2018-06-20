@@ -9,6 +9,7 @@ import com.biorecorder.dataformat.DataListener;
 import com.biorecorder.dataformat.DataSender;
 import com.biorecorder.dataformat.NullDataListener;
 
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 
@@ -39,6 +40,9 @@ class AdsDataSender implements DataSender {
         this.ads = ads;
         this.adsConfig = adsConfig;
         durationOfDataRecord = adsConfig.getDurationOfDataRecord();
+    }
+
+    public Future<Boolean> startRecording(AdsConfig config) throws IllegalStateException, IllegalArgumentException {
         dataHandlingThread = new Thread("«Data Records handling» thread") {
             @Override
             public void run() {
@@ -63,30 +67,33 @@ class AdsDataSender implements DataSender {
             }
         };
         dataHandlingThread.start();
+        return ads.startRecording(config);
+    }
+
+    public boolean stop() throws IllegalStateException {
+        if(dataHandlingThread != null) {
+            dataHandlingThread.interrupt();
+        }
+        return ads.stop();
     }
 
     /**
      * Gets the start measuring time (time of starting measuring the fist data record) =
      * time of the first received data record - duration of data record
+     *
      * @return start measuring time
      */
     public long getStartMeasuringTime() {
-        return firstRecordTime - (long)(durationOfDataRecord * 1000);
+        return firstRecordTime - (long) (durationOfDataRecord * 1000);
     }
 
     /**
      * Gets the calculated duration of data records = (lastDataRecordTime - firstDataRecordTime) / number of received data records
+     *
      * @return calculated duration of data records
      */
     public double getDurationOfDataRecord() {
         return durationOfDataRecord;
-    }
-
-    /**
-     * this method MUST be called to finalize data handling thread
-     */
-    public void finalize() {
-       dataHandlingThread.interrupt();
     }
 
     @Override
@@ -101,14 +108,14 @@ class AdsDataSender implements DataSender {
             @Override
             public void onDataReceived(int[] dataRecord, int recordNumber) {
                 try {
-                    if(recordNumber == 0) {
+                    if (recordNumber == 0) {
                         firstRecordTime = System.currentTimeMillis();
                         lastRecordTime = firstRecordTime;
                     } else {
                         lastRecordTime = System.currentTimeMillis();
                     }
                     if (recordNumber > 0) {
-                        durationOfDataRecord = (lastRecordTime - firstRecordTime)  /  (recordNumber * 1000.0);
+                        durationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
                     }
                     dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
                 } catch (InterruptedException e) {
@@ -132,7 +139,7 @@ class AdsDataSender implements DataSender {
                     }
                     notifyLeadOffListeners(resultantLoffMask);
                 }
-                if(adsConfig.isBatteryVoltageMeasureEnabled()) {
+                if (adsConfig.isBatteryVoltageMeasureEnabled()) {
                     notifyBatteryLevelListener(Ads.batteryIntToPercentage(batteryCharge));
                 }
             }
