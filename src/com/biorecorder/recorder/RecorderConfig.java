@@ -7,6 +7,7 @@ import com.biorecorder.ads.*;
  */
 public class RecorderConfig {
     private double durationOfDataRecord = 1; // sec
+    private boolean isBatteryVoltageDeletingEnabled = false;
     private AdsConfig adsConfig = new AdsConfig();
 
     public RecorderConfig() {
@@ -19,6 +20,10 @@ public class RecorderConfig {
 
     AdsConfig getAdsConfig() {
         return adsConfig;
+    }
+
+    public boolean isBatteryVoltageDeletingEnabled() {
+        return isBatteryVoltageDeletingEnabled;
     }
 
     public void setChannelDivider(int channelNumber, RecorderDivider recorderDivider) {

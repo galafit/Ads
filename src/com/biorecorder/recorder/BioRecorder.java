@@ -28,6 +28,8 @@ public class BioRecorder {
     private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Recording Impossible";
 
     private final Ads ads;
+    private volatile AdsDataHandler adsDataHandler;
+
     private volatile DataListener dataListener = new com.biorecorder.dataformat.NullDataListener();
     private volatile EventsListener eventsListener = new NullEventsListener();
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
@@ -70,13 +72,16 @@ public class BioRecorder {
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
     public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
-        AdsDataHandler adsDataHandler = new AdsDataHandler(ads, recorderConfig);
+        adsDataHandler = new AdsDataHandler(ads, recorderConfig);
         return adsDataHandler.startRecording();
     }
 
     public boolean stop() throws IllegalStateException {
-        ads.removeDataListener();
-        return ads.stop();
+        if (adsDataHandler != null) {
+            boolean isStopOk = adsDataHandler.stop();
+            return isStopOk;
+        }
+        return true;
     }
 
     public boolean disconnect() {
@@ -129,6 +134,32 @@ public class BioRecorder {
 
     public static String[] getAvailableComportNames() {
         return Ads.getAvailableComportNames();
+    }
+
+
+    /**
+     * Gets the start measuring time (time of starting measuring the fist data record) =
+     * time of the first received data record - duration of data record
+     *
+     * @return start measuring time
+     */
+    public long getStartMeasuringTime() {
+        if(adsDataHandler != null) {
+            return adsDataHandler.getStartMeasuringTime();
+        }
+        return 0;
+    }
+
+    /**
+     * Gets the calculated duration of data records
+     *
+     * @return calculated duration of data records
+     */
+    public double getDurationOfDataRecord() {
+        if(adsDataHandler != null) {
+            return adsDataHandler.getDurationOfDataRecord();
+        }
+        return 0;
     }
 
 
@@ -203,9 +234,12 @@ public class BioRecorder {
     }
 
     class AdsDataHandler {
-        Ads ads;
-        AdsConfig adsConfig;
-        DataSender resultantDataSender;
+        private Ads ads;
+        private AdsConfig adsConfig;
+        private AdsDataSender adsDataSender;
+        private DataSender resultantDataSender;
+        private int numberOfRecordsToJoin = 1;
+
 
         public AdsDataHandler(Ads ads, RecorderConfig recorderConfig) {
             this.ads = ads;
@@ -231,12 +265,12 @@ public class BioRecorder {
                 }
             }
 
-            AdsDataSender adsDataSender = new AdsDataSender(ads, adsConfig);
+            adsDataSender = new AdsDataSender(ads, adsConfig);
             adsDataSender.addButteryLevelListener(batteryListener);
             adsDataSender.addLeadOffListener(leadOffListener);
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
-            int numberOfRecordsToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
+            numberOfRecordsToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
             DataRecordsJoiner edfJoiner = new DataRecordsJoiner(adsDataSender, numberOfRecordsToJoin);
 
             // Add digital filters to ads channels
@@ -268,7 +302,7 @@ public class BioRecorder {
                 // delete helper Lead-off channel
                 signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
             }
-            if (adsConfig.isBatteryVoltageMeasureEnabled()) {
+            if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageDeletingEnabled()) {
                 // delete helper BatteryVoltage channel
                 if (adsConfig.isLeadOffEnabled()) {
                     signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);
@@ -286,6 +320,20 @@ public class BioRecorder {
 
         public Future<Boolean> startRecording() throws IllegalStateException, IllegalArgumentException {
             return ads.startRecording(adsConfig);
+        }
+
+        public boolean stop() throws IllegalStateException {
+            ads.removeDataListener();
+            adsDataSender.finalize();
+            return ads.stop();
+        }
+
+        public long getStartMeasuringTime() {
+            return adsDataSender.getStartMeasuringTime();
+        }
+
+        public double getDurationOfDataRecord() {
+            return adsDataSender.getDurationOfDataRecord() * numberOfRecordsToJoin;
         }
     }
 

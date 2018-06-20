@@ -74,6 +74,8 @@ public class EdfBioRecorderApp {
     private volatile TimerTask startFutureHandlingTask;
     private volatile boolean isLoffDetecting;
 
+    private volatile boolean isDurationOfDataRecordComputable = false;
+
     public EdfBioRecorderApp() {
         timer.schedule(new TimerTask() {
             public void run() {
@@ -202,6 +204,7 @@ public class EdfBioRecorderApp {
         this.comportName = comportName;
         connectionTask.cancel();
         this.isLoffDetecting = isLoffDetection;
+        isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
 
         try {
             createRecorder(comportName);
@@ -263,7 +266,6 @@ public class EdfBioRecorderApp {
                 String errMSg = MessageFormat.format(FILE_NOT_ACCESSIBLE_MSG, edfFile);
                 return new OperationResult(false, errMSg);
             }
-            edfWriter.setDurationOfDataRecordsComputable(appConfig.isDurationOfDataRecordComputable());
 
             bioRecorder.addDataListener(new DataListener() {
 
@@ -370,8 +372,13 @@ public class EdfBioRecorderApp {
         if (edfWriter != null && !isLoffDetecting) {
             File edfFile = edfWriter.getFile();
             try {
+                edfWriter.setStartRecordingTime(bioRecorder.getStartMeasuringTime());
+                if(isDurationOfDataRecordComputable) {
+                    edfWriter.setDurationOfDataRecords(bioRecorder.getDurationOfDataRecord());
+                }
                 edfWriter.close();
                 msg = "Data saved to file:\n"+ edfFile+"\n\n" + edfWriter.getWritingInfo();
+                log.info(msg);
             } catch (Exception ex) {
                 isFileCloseOk = false;
                 log.error(ex);

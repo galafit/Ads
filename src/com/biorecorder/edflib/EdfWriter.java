@@ -36,18 +36,18 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EdfWriter {
     private final String CLOSED_MSG = "File was closed. Data can not be written";
     private final String NUMBER_OF_SIGNALS_ZERO = "Number of signals is 0. Data can not be written";
-    protected final String RECORD_INCOMPLETE = "Last data record is incomplete. Incorrect use of method: writeDigitalSamples/writePhysicalSamples.";
+    private final String RECORD_INCOMPLETE = "Last data record is incomplete. Incorrect use of method: writeDigitalSamples/writePhysicalSamples.";
+    private static final int MAX_RECORD_NUMBER = 100000000; // possible edf record number is 8 digits => 99999999
 
     private final EdfHeader header;
     private final File file;
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
-    private volatile boolean isDurationOfDataRecordsComputable = false;
+
     private volatile boolean isClosed = false;
     private volatile boolean isWriting = false;
     private volatile long sampleCount;
 
-    private final boolean isStartTimeUndefined;
     private final FileOutputStream fileOutputStream;
     private final int recordSize; // helper field to avoid unnecessary calculations
     private int signalWritePosition;
@@ -69,11 +69,6 @@ public class EdfWriter {
         fileOutputStream = new FileOutputStream(file);
         recordSize = header.getDataRecordSize();
         this.header.setNumberOfDataRecords(-1);
-        if(header.getRecordingStartTimeMs() == 0) {
-            isStartTimeUndefined = true;
-        } else {
-            isStartTimeUndefined = false;
-        }
     }
 
     public File getFile() {
@@ -81,16 +76,22 @@ public class EdfWriter {
     }
 
     /**
-     * If true the average duration of DataRecords during writing process will be calculated
-     * and the result will be written to the file header.
-     * <p>
-     * Average duration of DataRecords = (time of coming last DataRecord - time of coming first DataRecord) / total number of DataRecords
-     *
-     * @param isComputable - if true duration of DataRecords will be calculated
+     * set start recording time in ms. This method should be called
+     * BEFORE closing writer!
      */
-    public void setDurationOfDataRecordsComputable(boolean isComputable) {
-        this.isDurationOfDataRecordsComputable = isComputable;
+    public void setStartRecordingTime(long startTimeMs) {
+        header.setRecordingStartTimeMs(startTimeMs);
     }
+
+
+    /**
+     * set duration of data records in seconds. This method should be called
+     * BEFORE closing writer!
+     */
+    public void setDurationOfDataRecords(double durationOfDataRecord) {
+        header.setDurationOfDataRecord(durationOfDataRecord);
+    }
+
 
     /**
      * Writes n "raw" digital (integer) samples belonging to one signal.
@@ -264,14 +265,6 @@ public class EdfWriter {
         return isClosed;
     }
 
-    public long getFirstRecordTime() {
-        return firstRecordTime;
-    }
-
-    public long getLastRecordTime() {
-        return lastRecordTime;
-    }
-
 
     private void writeDataToFile(int[] samples, int length) throws IllegalStateException, IOException {
         isWriting = true;
@@ -284,6 +277,9 @@ public class EdfWriter {
             if(sampleCount == recordSize) {
                 firstRecordTime = System.currentTimeMillis();
                 lastRecordTime = firstRecordTime;
+                if(header.getRecordingStartTimeMs() == 0) {
+                    header.setRecordingStartTimeMs(firstRecordTime);
+                }
                 writeHeaderToFile();
             }
 
@@ -301,16 +297,10 @@ public class EdfWriter {
 
     private void writeHeaderToFile() throws IOException {
         Long numberOfReceivedRecords = getNumberOfReceivedDataRecords();
-        if(numberOfReceivedRecords > 0 && numberOfReceivedRecords < 100000000) {
+        if(numberOfReceivedRecords > 0 && numberOfReceivedRecords < MAX_RECORD_NUMBER) {
             header.setNumberOfDataRecords(numberOfReceivedRecords.intValue());
         }
-        if (isDurationOfDataRecordsComputable && numberOfReceivedRecords > 1) {
-            double durationOfRecord_ms = (lastRecordTime - firstRecordTime)  /  (numberOfReceivedRecords - 1);
-            header.setDurationOfDataRecord(durationOfRecord_ms / 1000);
-        }
-        if(numberOfReceivedRecords > 0 && isStartTimeUndefined) {
-            header.setRecordingStartTimeMs(firstRecordTime  - (long) (header.getDurationOfDataRecord() * 1000));
-        }
+
         FileChannel fileChannel = fileOutputStream.getChannel();
         long currentPosition = fileChannel.position();
         fileChannel.position(0);

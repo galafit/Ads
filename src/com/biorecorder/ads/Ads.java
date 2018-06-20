@@ -75,8 +75,8 @@ public class Ads {
 
     private volatile long lastEventTime;
     private volatile boolean isDataReceived;
-
     private volatile AdsType adsType;
+
 
     // we use AtomicReference to do atomic "compare and set"
     // from different threads: the main thread
@@ -152,6 +152,7 @@ public class Ads {
         if (adsStateAtomicReference.get() == AdsState.RECORDING) {
             throw new IllegalStateException(RECORDING_MSG);
         }
+
         // copy config because we will change it
         AdsConfig adsConfig = new AdsConfig(config);
         boolean isAllChannelsDisabled = true;
@@ -239,7 +240,15 @@ public class Ads {
 
                 if (!Thread.currentThread().isInterrupted()) {
                     // 3) send "startRecording" command
-                    boolean startOk = comport.writeBytes(config.getAdsConfigurationCommand());
+                    byte[] adsConfigCommand = config.getAdsConfigurationCommand();
+                    boolean startOk = comport.writeBytes(adsConfigCommand);
+                    // write adsConfigCommand bytes to log
+                    StringBuilder sb = new StringBuilder("Ads configuration command:");
+                    for (int i = 0; i < adsConfigCommand.length; i++) {
+                        sb.append("\nbyte_"+(i + 1) + ":  "+String.format("%02X ", adsConfigCommand[i]));
+                    }
+                    log.info(sb.toString());
+
                     if (startOk) {
                         // 4) waiting for data
 
@@ -327,10 +336,10 @@ public class Ads {
         if (adsConfig != null) {
             frameDecoder.addDataListener(new NumberedDataListener() {
                 @Override
-                public void onDataReceived(int[] dataRecord, int dataRecordNumber) {
+                public void onDataReceived(int[] dataRecord, int recordNumber) {
                     lastEventTime = System.currentTimeMillis();
                     isDataReceived = true;
-                    notifyDataListeners(dataRecord, dataRecordNumber);
+                    notifyDataListeners(dataRecord, recordNumber);
                 }
             });
         }

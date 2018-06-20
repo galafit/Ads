@@ -164,7 +164,8 @@ class Comport implements SerialPortEventListener {
      * That is why this method is SYNCHRONIZED (on the Class object).
      * Without synchronization it becomes possible
      * to have multiple connections with the same port
-     * and so loose incoming data. See {@link TestSerialPort}.
+     * and so loose incoming data. See {@link TestSerialPort} and
+     * {@link TestSerialPortSynchronized}.
      *
      * @return array of names of all comports or empty array.
      */
