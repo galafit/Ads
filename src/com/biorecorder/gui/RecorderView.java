@@ -167,7 +167,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         });
 
         // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
-        comportField.addPopupMenuListener(new PopupMenuListener() {
+     /*   comportField.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
                 comportField.setModel(new DefaultComboBoxModel(availableComports));
@@ -182,7 +182,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             public void popupMenuCanceled(PopupMenuEvent e) {
 
             }
-        });
+        });*/
 
         maxFrequencyField.addItemListener(new ItemListener() {
             @Override
@@ -370,27 +370,29 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 availableComports = comports;
-               /* String comportName = (String) comportField.getSelectedItem();
+                String comportName = (String) comportField.getSelectedItem();
                 ActionListener[] listeners = comportField.getActionListeners();
-                for (ActionListener listener : listeners) {
-                    comportField.removeActionListener(listener);
-                }
+                if(!comportField.isPopupVisible()) {
+                    for (ActionListener listener : listeners) {
+                        comportField.removeActionListener(listener);
+                    }
 
-                comportField.setModel(new DefaultComboBoxModel(comports));
-                if (comportName != null && !comportName.isEmpty()) {
-                    comportField.setSelectedItem(comportName);
-                } else {
-                    String selectedComport = (String) comportField.getSelectedItem();
-                    if(selectedComport != null && !selectedComport.isEmpty()) {
-                        recorder.changeComport(selectedComport);
+                    comportField.setModel(new DefaultComboBoxModel(comports));
+                    if (comportName != null && !comportName.isEmpty()) {
+                        comportField.setSelectedItem(comportName);
+                    } else {
+                        String selectedComport = (String) comportField.getSelectedItem();
+                        if(selectedComport != null && !selectedComport.isEmpty()) {
+                            recorder.changeComport(selectedComport);
+                        }
                     }
+                    comportField.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            changeComport();
+                        }
+                    });
                 }
-                comportField.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        changeComport();
-                    }
-                });*/
             }
         });
 

@@ -369,7 +369,7 @@ public class EdfBioRecorderApp {
         }
 
         String msg = "";
-        boolean isFileCloseOk = true;
+        boolean isEdfWriterCloseOk = true;
         if (edfWriter != null && !isLoffDetecting) {
             File edfFile = edfWriter.getFile();
             try {
@@ -378,15 +378,18 @@ public class EdfBioRecorderApp {
                     edfWriter.setDurationOfDataRecords(bioRecorder.getDurationOfDataRecord());
                 }
                 edfWriter.close();
-                msg = "Data saved to file:\n"+ edfFile+"\n\n" + edfWriter.getWritingInfo();
-                log.info(msg);
+                if(edfWriter.getNumberOfReceivedDataRecords() > 0) {
+                    msg = "Data saved to file:\n"+ edfFile+"\n\n" + edfWriter.getWritingInfo();
+                    log.info(msg);
+                }
             } catch (Exception ex) {
-                isFileCloseOk = false;
+                isEdfWriterCloseOk = false;
                 log.error(ex);
                 msg = MessageFormat.format(FAILED_CLOSE_FILE_MSG, edfFile) + "\n" + ex.getMessage();
             }
+
         }
-        return new OperationResult(isFileCloseOk, msg);
+        return new OperationResult(isEdfWriterCloseOk, msg);
     }
 
     private OperationResult stopAndMonitor() {
