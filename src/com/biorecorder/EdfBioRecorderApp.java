@@ -420,6 +420,12 @@ public class EdfBioRecorderApp {
         timer.cancel();
     }
 
+    /**
+     * Mask gives TRUE if electrode is DISCONNECTED,
+     * FALSE if electrode is CONNECTED and
+     * NULL if channel is disabled (or work in mode different from "input")
+     * @return disconnection bit mask for positive and negative electrode of every channel
+     */
     public Boolean[] getLeadOffMask() {
         return leadOffBitMask;
     }

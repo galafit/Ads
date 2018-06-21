@@ -12,7 +12,14 @@ public interface RecorderViewModel {
     void addAvailableComportsListener(AvailableComportsListener l);
 
     RecorderSettingsImpl getInitialSettings();
-    Boolean[] getContactsMask();
+
+    /**
+     * Mask gives TRUE if electrode is DISCONNECTED,
+     * FALSE if electrode is CONNECTED and
+     * NULL if channel is disabled (or work in mode different from "input")
+     * @return disconnection bit mask for positive and negative electrode of every channel
+     */
+    Boolean[] getDisconnectionMask();
     Integer getBatteryLevel();
     String getProgressInfo();
 

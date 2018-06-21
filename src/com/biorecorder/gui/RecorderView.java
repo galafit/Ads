@@ -5,8 +5,6 @@ import com.biorecorder.gui.file_gui.FileToSaveUI;
 
 import javax.swing.*;
 import javax.swing.JLabel;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
@@ -442,7 +440,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
                 updateBatteryLevel(recorder.getBatteryLevel());
 
-                updateContacts(recorder.getContactsMask());
+                updateContacts(recorder.getDisconnectionMask());
             }
         });
     }

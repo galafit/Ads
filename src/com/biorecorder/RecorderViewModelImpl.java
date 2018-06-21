@@ -58,7 +58,7 @@ public class RecorderViewModelImpl implements RecorderViewModel {
     }
 
     @Override
-    public Boolean[] getContactsMask() {
+    public Boolean[] getDisconnectionMask() {
         if(recorder.isLoffDetecting()) {
             return recorder.getLeadOffMask();
         }
