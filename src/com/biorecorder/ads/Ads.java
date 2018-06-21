@@ -573,15 +573,17 @@ public class Ads {
      * to buttery percentage level
      * @param batteryInt - digital (int) value of battery charge
      * @return battery level (percentage)
-     * @throws IllegalArgumentException if batteryInt < 0 or batteryInt > BatteryDigitalMax (10240)
+     * @throws IllegalArgumentException if batteryInt < BatteryDigitalMin (0) or batteryInt > BatteryDigitalMax (10240)
      */
-    public static int batteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
-        int batteryMax = getBatteryVoltageDigitalMax();
-        if(batteryInt < 0 || batteryInt > batteryMax) {
-            String errMsg = "Invalid battery digital value: "+batteryInt + " Expected > 0 and <= "+batteryMax;
+    public static int lithiumBatteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
+        if(batteryInt < getBatteryVoltageDigitalMin() || batteryInt > getBatteryVoltageDigitalMax()) {
+            String errMsg = "Invalid battery digital value: "+batteryInt + " Expected > "+getBatteryVoltageDigitalMin() +" and <= "+getBatteryVoltageDigitalMax();
             throw new IllegalArgumentException(errMsg);
         }
-        return 100 * batteryInt / batteryMax;
+        int lithiumBatteryDigitalMax = (int) (getBatteryVoltageDigitalMax() * getLithiumBatteryVoltagePhysicalMax() / getBatteryVoltagePhysicalMax());
+        int lithiumBatteryDigitalMin = (int) (getBatteryVoltageDigitalMax() * getLithiumBatteryVoltagePhysicalMin() / getBatteryVoltagePhysicalMax());
+
+        return 100 * (batteryInt - lithiumBatteryDigitalMin) / (lithiumBatteryDigitalMax - lithiumBatteryDigitalMin);
     }
 
     public static double getAdsChannelPhysicalMax(Gain channelGain) {
@@ -633,6 +635,20 @@ public class Ads {
             return "m/sec^3";
         }
         return "mg";
+    }
+
+    /**
+     * real physical max for lithium batteries
+     */
+    public static double getLithiumBatteryVoltagePhysicalMax() {
+        return 4;
+    }
+
+    /**
+     * real physical min for lithium batteries
+     */
+    public static double getLithiumBatteryVoltagePhysicalMin() {
+        return 3.3;
     }
 
     public static double getBatteryVoltagePhysicalMax() {

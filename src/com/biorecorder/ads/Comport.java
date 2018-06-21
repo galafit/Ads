@@ -4,7 +4,6 @@ import jssc.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-
 /**
  * Library jSSC is used.
  * jSSC (Java Simple Serial Connector) - library for working with serial ports from Java.

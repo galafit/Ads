@@ -145,7 +145,7 @@ class AdsDataSender implements DataSender {
                     notifyLeadOffListeners(resultantLoffMask);
                 }
                 if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-                    notifyBatteryLevelListener(Ads.batteryIntToPercentage(batteryCharge));
+                    notifyBatteryLevelListener(Ads.lithiumBatteryIntToPercentage(batteryCharge));
                 }
             }
         });
