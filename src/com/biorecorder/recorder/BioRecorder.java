@@ -231,8 +231,15 @@ public class BioRecorder {
         eventsListener.handleLowBattery();
     }
 
+    /**
+     * This class:
+     * <br>1) join short ads data records into more long ones (normally with duration = 1 sec)
+     * <br>2) apply specified digital filters to data records
+     * <br>3) delete lead off detection info and battery charge info
+     * (if flag isBatteryVoltageDeletingEnabled = true) from data records
+     * <br> and send resultant filtered and clean data records to the dataListener
+     */
     class AdsDataHandler {
-        private Ads ads;
         private AdsConfig adsConfig;
         private AdsDataSender adsDataSender;
         private DataSender resultantDataSender;
@@ -240,7 +247,6 @@ public class BioRecorder {
 
 
         public AdsDataHandler(Ads ads, RecorderConfig recorderConfig) {
-            this.ads = ads;
             // make copy to safely change
             adsConfig = new AdsConfig(recorderConfig.getAdsConfig());
             boolean isAllChannelsDisabled = true;

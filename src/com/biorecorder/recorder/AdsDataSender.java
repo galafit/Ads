@@ -14,11 +14,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 
 /**
- * Helper class that convert Ads to DataSender for further data records
- * filtering and transformation
- * In future this class will realise detach (separate)
- * the receiving and sending of data records in different threads
- * through the concurrent queue
+ * This class:
+ * <br>1) implement {@link DataSender} interface for further data records filtering and transformation
+ * <br>2) convert numbered data records to simple data records (supplementing the lost ones) and
+ * send them to the listener in separated thread
+ * <br>3) extract lead off info and battery charge info from data records and send it to the
+ * corresponding listeners
  */
 class AdsDataSender implements DataSender {
     private final LinkedBlockingQueue<NumberedDataRecord> dataQueue = new LinkedBlockingQueue<>();
