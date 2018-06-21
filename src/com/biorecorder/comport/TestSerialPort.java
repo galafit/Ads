@@ -1,4 +1,4 @@
-package com.biorecorder.ads;
+package com.biorecorder.comport;
 
 import jssc.SerialPort;
 import jssc.SerialPortException;
@@ -68,9 +68,9 @@ public class TestSerialPort {
             String portName = portNames[0];
             TestSerialPort comportTest = new TestSerialPort();
             SerialPort port1 = comportTest.openPort(portName);
-            System.out.println(Thread.currentThread() + ": Comport " + port1.getPortName()+" was successfully opened first time => "+port1.isOpened());
+            System.out.println(Thread.currentThread() + ": ComportJSCC " + port1.getPortName()+" was successfully opened first time => "+port1.isOpened());
             SerialPort port2 = comportTest.openPort(portName);
-            System.out.println(Thread.currentThread() + ": Comport " + port2.getPortName()+" was successfully opened second time => "+port2.isOpened());
+            System.out.println(Thread.currentThread() + ": ComportJSCC " + port2.getPortName()+" was successfully opened second time => "+port2.isOpened());
 
             try {
                 port1.writeByte((byte) 1);

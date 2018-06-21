@@ -1,6 +1,8 @@
 package com.biorecorder.ads;
 
 
+import com.biorecorder.comport.Comport;
+import com.biorecorder.comport.ComportFactory;
 import com.biorecorder.dataformat.DataConfig;
 import com.biorecorder.dataformat.DefaultDataConfig;
 import com.sun.istack.internal.Nullable;
@@ -92,7 +94,7 @@ public class Ads {
     private volatile MessageListener messageListener;
 
     public Ads(String comportName) throws ComportRuntimeException {
-        comport = new Comport(comportName, COMPORT_SPEED);
+        comport = ComportFactory.getComport(comportName, COMPORT_SPEED);
         dataListener = new NullDataListener();
         messageListener = new NullMessageListener();
         ThreadFactory namedThreadFactory = new ThreadFactory() {
@@ -432,7 +434,7 @@ public class Ads {
     }
 
     public static String[] getAvailableComportNames() {
-        return Comport.getAvailableComportNames();
+        return ComportFactory.getAvailableComportNames();
     }
 
     public DataConfig getDataConfig(AdsConfig adsConfig) {

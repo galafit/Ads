@@ -160,7 +160,6 @@ public class BioRecorder {
         return 0;
     }
 
-
     /**
      * BioRecorder permits to add only ONE DataListener! So if a new listener added
      * the old one are automatically removed
@@ -236,7 +235,7 @@ public class BioRecorder {
      * <br>1) join short ads data records into more long ones (normally with duration = 1 sec)
      * <br>2) apply specified digital filters to data records
      * <br>3) delete lead off detection info and battery charge info
-     * (if flag isDeleteBatteryVoltageChannel = true) from data records
+     * (if flag deleteBatteryVoltageChannel = true) from data records
      * <br> and send resultant filtered and clean data records to the dataListener
      */
     class AdsDataHandler {
@@ -306,7 +305,7 @@ public class BioRecorder {
                 // delete helper Lead-off channel
                 signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
             }
-            if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel()) {
+            if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeleteEnabled()) {
                 // delete helper BatteryVoltage channel
                 if (adsConfig.isLeadOffEnabled()) {
                     signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);

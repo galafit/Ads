@@ -1,5 +1,6 @@
-package com.biorecorder.ads;
+package com.biorecorder.comport;
 
+import com.biorecorder.ads.ComportRuntimeException;
 import jssc.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -18,25 +19,18 @@ import org.apache.commons.logging.LogFactory;
  * возможно стоит методы writeByte, writeBytes и close сделать synchronized
  * для надежности
  */
-class Comport implements SerialPortEventListener {
-    private static Log log = LogFactory.getLog(Comport.class);
+public class ComportJSCC implements SerialPortEventListener, Comport {
+    private static Log log = LogFactory.getLog(ComportJSCC.class);
     private final SerialPort serialPort;
     private final String comportName;
     private ComportListener comportListener;
 
-    Comport(String comportName, int speed) throws ComportRuntimeException {
+    ComportJSCC(String comportName, int speed) throws ComportRuntimeException {
         comportListener = new NullComportListener();
         this.comportName = comportName;
         try {
-            /*
-             * This block is synchronized on the Class object
-             *  to avoid its simultaneous execution with the static method
-             *  getAvailableComports()!!!
-             */
-            synchronized (Comport.class) {
-                serialPort = new SerialPort(comportName);
-                serialPort.openPort();//Open serial port
-            }
+            serialPort = new SerialPort(comportName);
+            serialPort.openPort();//Open serial port
             serialPort.setParams(speed,
                     SerialPort.DATABITS_8,
                     SerialPort.STOPBITS_1,
@@ -51,14 +45,17 @@ class Comport implements SerialPortEventListener {
         log.info(Thread.currentThread() + " opened comport: "+comportName);
     }
 
+    @Override
     public String getComportName() {
         return comportName;
     }
 
+    @Override
     public boolean isOpened() {
         return serialPort.isOpened();
     }
 
+    @Override
     public boolean close() {
         // if port already closed we do nothing
         if(!serialPort.isOpened()) {
@@ -72,7 +69,7 @@ class Comport implements SerialPortEventListener {
              *  getAvailableComports()!!!
              */
             ;
-            synchronized (Comport.class) {
+            synchronized (ComportJSCC.class) {
                 isCloseOk = serialPort.closePort();
             }
             if(isCloseOk) {
@@ -89,6 +86,7 @@ class Comport implements SerialPortEventListener {
      * @return true if writing was successfull and false otherwise
      * @throws IllegalStateException if the port was close
      */
+    @Override
     public boolean writeBytes(byte[] bytes) throws IllegalStateException {
         try {
           /* System.out.println("\nwrite " + bytes.length + " bytes:");
@@ -108,6 +106,7 @@ class Comport implements SerialPortEventListener {
      * @return true if writing was successfull and false otherwise
      * @throws IllegalStateException if the port was close
      */
+    @Override
     public boolean writeByte(byte b) throws IllegalStateException {
         try {
           //  System.out.println("\nwrite 1 byte: "+b);
@@ -118,10 +117,11 @@ class Comport implements SerialPortEventListener {
     }
 
     /**
-     * Comport permits to add only ONE listener! So if a new listener added
+     * ComportJSCC permits to add only ONE listener! So if a new listener added
      * the old one are automatically removed
      * @param comportListener
      */
+    @Override
     public void addListener(ComportListener comportListener) {
         if(comportListener != null) {
             this.comportListener = comportListener;
@@ -134,6 +134,7 @@ class Comport implements SerialPortEventListener {
         }
     }
 
+    @Override
     public void removeListener() {
         comportListener = new NullComportListener();
     }
@@ -156,21 +157,6 @@ class Comport implements SerialPortEventListener {
         }
     }
 
-    /**
-     * Attention! This method can be DENGAROUS!!!
-     * Serial port lib (jssc) en Mac and Linux to create portNames list
-     * actually OPENS and CLOSES every port.
-     * That is why this method is SYNCHRONIZED (on the Class object).
-     * Without synchronization it becomes possible
-     * to have multiple connections with the same port
-     * and so loose incoming data. See {@link TestSerialPort} and
-     * {@link TestSerialPortSynchronized}.
-     *
-     * @return array of names of all comports or empty array.
-     */
-    public synchronized static String[] getAvailableComportNames() {
-        return SerialPortList.getPortNames();
-    }
 
     class NullComportListener implements ComportListener {
         @Override

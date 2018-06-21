@@ -1,10 +1,13 @@
-package com.biorecorder.ads;
+package com.biorecorder.comport;
+
+
+import com.biorecorder.ads.ComportRuntimeException;
 
 import java.util.TimerTask;
 
 /**
  * The same example as TestSerialPort but with synchronization.
- * This class demonstrate that synchronization (used in wrapper  class Comport)
+ * This class demonstrate that synchronization (used in wrapper  class ComportJSCC)
  * fix the jssc library bag and do not permit open 2 comports with the same name
  */
 public class TestSerialPortSynchronized {
@@ -34,8 +37,7 @@ public class TestSerialPortSynchronized {
     public Comport openPort(String name) {
         try {
             int portBaudRate = 460800;
-            return new Comport(name, portBaudRate);
-
+            return ComportFactory.getComport(name, portBaudRate);
         } catch (ComportRuntimeException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -43,7 +45,7 @@ public class TestSerialPortSynchronized {
     }
 
     private static String[] getPortNames() {
-        return Comport.getAvailableComportNames();
+        return ComportFactory.getAvailableComportNames();
     }
 
     public static void main(String[] args) {
@@ -54,9 +56,9 @@ public class TestSerialPortSynchronized {
             String portName = portNames[0];
             TestSerialPortSynchronized comportTest = new TestSerialPortSynchronized();
             Comport port1 = comportTest.openPort(portName);
-            System.out.println(Thread.currentThread() + ": Comport " + port1.getComportName()+" was successfully opened first time => "+port1.isOpened());
+            System.out.println(Thread.currentThread() + ": ComportJSCC " + port1.getComportName()+" was successfully opened first time => "+port1.isOpened());
             Comport port2 = comportTest.openPort(portName);
-            System.out.println(Thread.currentThread() + ": Comport " + port2.getComportName()+" was successfully opened second time => "+port2.isOpened());
+            System.out.println(Thread.currentThread() + ": ComportJSCC " + port2.getComportName()+" was successfully opened second time => "+port2.isOpened());
         }
     }
 }
