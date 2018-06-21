@@ -277,7 +277,7 @@ public class EdfWriter {
             if(sampleCount == recordSize) {
                 firstRecordTime = System.currentTimeMillis();
                 lastRecordTime = firstRecordTime;
-                if(header.getRecordingStartTimeMs() == 0) {
+                if(header.getRecordingStartTimeMs() <= 0) {
                     header.setRecordingStartTimeMs(firstRecordTime);
                 }
                 writeHeaderToFile();

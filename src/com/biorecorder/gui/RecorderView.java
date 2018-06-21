@@ -5,6 +5,8 @@ import com.biorecorder.gui.file_gui.FileToSaveUI;
 
 import javax.swing.*;
 import javax.swing.JLabel;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
@@ -33,6 +35,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
     private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
+
+    private String[] availableComports;
 
     private final RecorderViewModel recorder;
     private RecorderSettings settings;
@@ -78,6 +82,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     public RecorderView(RecorderViewModel recorder) {
         this.recorder = recorder;
         settings = recorder.getInitialSettings();
+        availableComports = settings.getAvailableComports();
         setTitle(title);
 
         addWindowListener(new WindowAdapter() {
@@ -158,6 +163,24 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             @Override
             public void actionPerformed(ActionEvent e) {
                 changeComport();
+            }
+        });
+
+        // init available comport list every time we "open" JComboBox (mouse over «arrow button»)
+        comportField.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                comportField.setModel(new DefaultComboBoxModel(availableComports));
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+
             }
         });
 
@@ -343,16 +366,17 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     }
 
     @Override
-    public void onAvailableComportsChanged(String[] availableComports) {
+    public void onAvailableComportsChanged(String[] comports) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                String comportName = (String) comportField.getSelectedItem();
+                availableComports = comports;
+               /* String comportName = (String) comportField.getSelectedItem();
                 ActionListener[] listeners = comportField.getActionListeners();
                 for (ActionListener listener : listeners) {
                     comportField.removeActionListener(listener);
                 }
 
-                comportField.setModel(new DefaultComboBoxModel(availableComports));
+                comportField.setModel(new DefaultComboBoxModel(comports));
                 if (comportName != null && !comportName.isEmpty()) {
                     comportField.setSelectedItem(comportName);
                 } else {
@@ -366,7 +390,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
                     public void actionPerformed(ActionEvent e) {
                         changeComport();
                     }
-                });
+                });*/
             }
         });
 

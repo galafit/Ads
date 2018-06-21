@@ -86,6 +86,9 @@ class AdsDataSender implements DataSender {
      * @return start measuring time
      */
     public long getStartMeasuringTime() {
+        if(firstRecordTime == 0) {
+            return 0;
+        }
         return firstRecordTime - (long) (durationOfDataRecord * 1000);
     }
 
