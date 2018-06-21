@@ -535,7 +535,6 @@ public class Ads {
 
             boolean[] bm = new boolean[maskLength];
             for (int k = 0; k < bm.length; k++) {
-                bm[k] = false;
                 if (((leadOffInt >> k) & 1) == 1) {
                     bm[k] = true;
                 }
@@ -551,7 +550,6 @@ public class Ads {
          */
             boolean[] bm = new boolean[maskLength];
             for (int k = 0; k < bm.length; k++) {
-                bm[k] = false;
                 if (k < 8) { // first byte
                     if (((leadOffInt >> k) & 1) == 1) {
                         bm[2 * k + 1] = true;
