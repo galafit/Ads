@@ -139,12 +139,11 @@ public class EdfBioRecorderApp {
         bioRecorder = new BioRecorder(comportName);
         bioRecorder.addEventsListener(new EventsListener() {
             public void handleLowBattery() {
-                stop();
+                stop1();
                 notifyStateChange(new StateChangeReason(StateChangeReason.REASON_LOW_BUTTERY, LOW_BUTTERY_MSG));
             }
         });
         bioRecorder.addButteryLevelListener(new BatteryLevelListener() {
-
             public void onBatteryLevelReceived(int batteryLevel) {
                 EdfBioRecorderApp.this.batteryLevel = batteryLevel;
             }
@@ -206,7 +205,6 @@ public class EdfBioRecorderApp {
         connectionTask.cancel();
         this.isLoffDetecting = isLoffDetection;
         isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
-
         try {
             createRecorder(comportName);
         } catch (ConnectionRuntimeException ex) {
@@ -331,10 +329,10 @@ public class EdfBioRecorderApp {
                     }
                 } catch (InterruptedException e) {
                     cancelStart();
-                    notifyStateChange(new StateChangeReason(StateChangeReason.REASON_CANCEL_STARTING, START_CANCELED));
+                  //  notifyStateChange(new StateChangeReason(StateChangeReason.REASON_CANCEL_STARTING, START_CANCELED));
                 } catch (CancellationException e) {
                     cancelStart();
-                    notifyStateChange(new StateChangeReason(StateChangeReason.REASON_CANCEL_STARTING, START_CANCELED));
+                   // notifyStateChange(new StateChangeReason(StateChangeReason.REASON_CANCEL_STARTING, START_CANCELED));
                 } catch (ExecutionException e) {
                     cancelStart();
                     log.error(e.getMessage());
@@ -351,7 +349,6 @@ public class EdfBioRecorderApp {
                     File writtenFile = edfWriter1.getFile();
                     writtenFile.delete();
                 }
-                startMonitoring();
             } catch (Exception ex) {
                 log.error(ex);
             }

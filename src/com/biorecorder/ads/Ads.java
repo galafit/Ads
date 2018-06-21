@@ -397,6 +397,7 @@ public class Ads {
      * the old one are automatically removed
      */
     public void addDataListener(NumberedDataListener listener) {
+
         if (listener != null) {
             dataListener = listener;
         }
