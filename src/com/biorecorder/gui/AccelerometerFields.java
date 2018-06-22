@@ -22,14 +22,15 @@ public class AccelerometerFields {
         commutatorField = new JComboBox(settings.getAccelerometerAvailableModes());
         commutatorField.setSelectedItem(settings.getAccelerometerMode());
         isEnabledField = new JCheckBox();
+        isEnabledField.setSelected(settings.isAccelerometerEnabled());
+        setEnabled(settings.isAccelerometerEnabled());
         isEnabledField.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 setEnabled(isEnabledField.isSelected());
             }
         });
-        isEnabledField.setSelected(settings.isAccelerometerEnabled());
-    }
+       }
 
     public String getMode() {
         return (String)commutatorField.getSelectedItem();

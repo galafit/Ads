@@ -47,13 +47,14 @@ public class ChannelFields {
         setContactsVisible(false);
 
         isEnabledField = new JCheckBox();
+        isEnabledField.setSelected(settings.isChannelEnabled(channelNumber));
+        setEnabled(settings.isChannelEnabled(channelNumber));
         isEnabledField.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent e) {
                 setEnabled(isEnabledField.isSelected());
             }
         });
-        isEnabledField.setSelected(settings.isChannelEnabled(channelNumber));
 
     }
 
