@@ -573,20 +573,35 @@ public class Ads {
 
     /**
      * Helper method to convert digital value (integer) with buttery charge value
-     * to buttery percentage level
+     * to buttery percentage level. Percentage level can be adequately detected
+     * in the range from 100% till 10%.  All values less then 10% will be rounded
+     * to 10%
      * @param batteryInt - digital (int) value of battery charge
-     * @return battery level (percentage)
+     * @return battery level (percentage) => from 100% till 10%
      * @throws IllegalArgumentException if batteryInt < BatteryDigitalMin (0) or batteryInt > BatteryDigitalMax (10240)
      */
     public static int lithiumBatteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
-        if(batteryInt < getBatteryVoltageDigitalMin() || batteryInt > getBatteryVoltageDigitalMax()) {
-            String errMsg = "Invalid battery digital value: "+batteryInt + " Expected > "+getBatteryVoltageDigitalMin() +" and <= "+getBatteryVoltageDigitalMax();
+        if (batteryInt < getBatteryVoltageDigitalMin() || batteryInt > getBatteryVoltageDigitalMax()) {
+            String errMsg = "Invalid battery digital value: " + batteryInt + " Expected > " + getBatteryVoltageDigitalMin() + " and <= " + getBatteryVoltageDigitalMax();
             throw new IllegalArgumentException(errMsg);
         }
-        int lithiumBatteryDigitalMax = (int) (getBatteryVoltageDigitalMax() * getLithiumBatteryVoltagePhysicalMax() / getBatteryVoltagePhysicalMax());
-        int lithiumBatteryDigitalMin = (int) (getBatteryVoltageDigitalMax() * getLithiumBatteryVoltagePhysicalMin() / getBatteryVoltagePhysicalMax());
 
-        return 100 * (batteryInt - lithiumBatteryDigitalMin) / (lithiumBatteryDigitalMax - lithiumBatteryDigitalMin);
+        double lithiumBatteryPhysicalMax = 4;
+        double lithiumBatteryPhysicalMin = 3.5;
+        int lithiumBatteryDigitalMax = (int) (getBatteryVoltageDigitalMax() * lithiumBatteryPhysicalMax / getBatteryVoltagePhysicalMax());
+        int lithiumBatteryDigitalMin = (int) (getBatteryVoltageDigitalMax() * lithiumBatteryPhysicalMin / getBatteryVoltagePhysicalMax());
+        int percentage_max = 100;
+        int percentage_min = 10;
+
+        int percentage = percentage_min + (percentage_max - percentage_min) * (batteryInt - lithiumBatteryDigitalMin) / (lithiumBatteryDigitalMax - lithiumBatteryDigitalMin);
+        if (percentage > percentage_max) {
+            percentage = percentage_max;
+        }
+        if (percentage < percentage_min) {
+            percentage = percentage_min;
+        }
+
+        return percentage;
     }
 
     public static double getAdsChannelPhysicalMax(Gain channelGain) {
@@ -640,19 +655,6 @@ public class Ads {
         return "mg";
     }
 
-    /**
-     * real physical max for lithium batteries
-     */
-    public static double getLithiumBatteryVoltagePhysicalMax() {
-        return 4;
-    }
-
-    /**
-     * real physical min for lithium batteries
-     */
-    public static double getLithiumBatteryVoltagePhysicalMin() {
-        return 3.3;
-    }
 
     public static double getBatteryVoltagePhysicalMax() {
         return 5;

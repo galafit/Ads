@@ -16,7 +16,6 @@ public class FileToSaveUI extends JPanel {
     private JTextField filename;
     private DirectoryField directory;
 
-    private String saveAsPanelLabel = "SaveAs";
     private String filenameLabel = "Filename";
     private String FILENAME_PATTERN = "Date-Time";
 
@@ -32,17 +31,11 @@ public class FileToSaveUI extends JPanel {
 
         int hgap = 5;
         int vgap = 0;
-        JPanel innerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        innerPanel.add(new JLabel(filenameLabel));
-        innerPanel.add(filename);
-        innerPanel.add(new JLabel("    "));
-        innerPanel.add(directory);
-
-        hgap = 0;
-        vgap = 5;
         setLayout(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        setBorder(BorderFactory.createTitledBorder(saveAsPanelLabel));
-        add(innerPanel);
+        add(new JLabel(filenameLabel));
+        add(filename);
+        add(new JLabel("    "));
+        add(directory);
 
         filename.addFocusListener(new FocusAdapter() {
             @Override
@@ -50,8 +43,6 @@ public class FileToSaveUI extends JPanel {
                 filename.selectAll();
             }
         });
-
-
     }
 
 

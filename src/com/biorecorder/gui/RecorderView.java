@@ -5,6 +5,7 @@ import com.biorecorder.gui.file_gui.FileToSaveUI;
 
 import javax.swing.*;
 import javax.swing.JLabel;
+import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.MessageFormat;
@@ -23,16 +24,20 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private static final int RECORDING_LENGTH = 20;
 
     private static final int FILENAME_LENGTH = 12;
-    private static final int DIRNAME_LENGTH = 50;
+    private static final int DIRNAME_LENGTH = 45;
 
-    Color COLOR_CONNECTED = new Color(79, 245, 42);
-    Color COLOR_DISCONNECTED = Color.GRAY;
-
+    private static final Color COLOR_CONNECTED = new Color(79, 245, 42);
+    private static final Color COLOR_DISCONNECTED = Color.GRAY;
+    private static final Color COLOR_TITLE = new Color(10, 10, 120);
     private static final Icon BATTERY_ICON_1 = new ImageIcon("img/battery_1_small.png");
     private static final Icon BATTERY_ICON_2 = new ImageIcon("img/battery_2_small.png");
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
     private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
+
+    private static final String TITLE_CHANNELS = "Channels";
+    private static final String TITLE_SAVE_AS = "Save as";
+    private static final String TITLE_IDENTIFICATION = "Identification";
 
     private String[] availableComports;
 
@@ -269,7 +274,9 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         hgap = 0;
         vgap = 0;
         JPanel channelsBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        channelsBorderPanel.setBorder(BorderFactory.createTitledBorder("Channels"));
+        TitledBorder titledBorder = BorderFactory.createTitledBorder(TITLE_CHANNELS);
+        titledBorder.setTitleColor(COLOR_TITLE);
+        channelsBorderPanel.setBorder(titledBorder);
         channelsBorderPanel.add(channelsPanel);
 
         hgap = 5;
@@ -291,8 +298,18 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         hgap = 0;
         vgap = 5;
         JPanel identificationBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        identificationBorderPanel.setBorder(BorderFactory.createTitledBorder("Identification"));
+        titledBorder = BorderFactory.createTitledBorder(TITLE_IDENTIFICATION);
+        titledBorder.setTitleColor(COLOR_TITLE);
+        identificationBorderPanel.setBorder(titledBorder);
         identificationBorderPanel.add(identificationPanel);
+
+        hgap = 0;
+        vgap = 5;
+        JPanel saveAsBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        titledBorder = BorderFactory.createTitledBorder(TITLE_SAVE_AS);
+        titledBorder.setTitleColor(COLOR_TITLE);
+        saveAsBorderPanel.setBorder(titledBorder);
+        saveAsBorderPanel.add(fileToSaveUI);
 
         hgap = 0;
         vgap = 10;
@@ -337,18 +354,12 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel adsPanel = new JPanel(new BorderLayout(hgap, vgap));
         adsPanel.add(channelsBorderPanel, BorderLayout.NORTH);
         adsPanel.add(identificationBorderPanel, BorderLayout.CENTER);
-        adsPanel.add(fileToSaveUI, BorderLayout.SOUTH);
+        adsPanel.add(saveAsBorderPanel, BorderLayout.SOUTH);
 
         // Root Panel of the RecorderView
         add(topPanel, BorderLayout.NORTH);
         add(adsPanel, BorderLayout.CENTER);
         add(statePanel, BorderLayout.SOUTH);
-
-        // set the same size for identificationPanel and  saveAsPanel
-        int height = Math.max(identificationBorderPanel.getPreferredSize().height, fileToSaveUI.getPreferredSize().height);
-        int width = Math.max(identificationBorderPanel.getPreferredSize().width, fileToSaveUI.getPreferredSize().width);
-        fileToSaveUI.setPreferredSize(new Dimension(width, height));
-        identificationBorderPanel.setPreferredSize(new Dimension(width, height));
     }
 
     private boolean confirm(String message) {
@@ -502,7 +513,11 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             } else {
                 batteryIcon.setIcon(BATTERY_ICON_5);
             }
-            batteryLevel.setText(level + "%");
+            String levelText = Integer.toString(level);
+            if(level < 10) {
+                levelText = "< 10";
+            }
+            batteryLevel.setText(levelText + "%");
         }
     }
 

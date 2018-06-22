@@ -21,12 +21,10 @@ class FrameDecoder implements ComportListener {
     private int MAX_MESSAGE_SIZE = 7;
     /*******************************************************************
      * these fields we need to restore  data records numbers
-     *  from short (sent by ads in 2 bytes) to long
+     *  from short (sent by ads in 2 bytes) to int
      *******************************************************************/
     private static int SHORT_MAX = 65535; // max value of unsigned short
-    private static int HALF_SHORT_MAX = SHORT_MAX / 2;
-    private int durationOfShortMaxRecordsMs;
-    private int durationOfHalfShortMaxRecordsMs;
+    private int durationOfShortBlockMs;
     private int previousRecordShortNumber = -1;
     private long previousRecordTime;
     private int startRecordNumber;
@@ -47,8 +45,7 @@ class FrameDecoder implements ComportListener {
 
     FrameDecoder(@Nullable AdsConfig configuration) {
         if (configuration != null) {
-            durationOfShortMaxRecordsMs = (int) (configuration.getDurationOfDataRecord() * 1000 * SHORT_MAX);
-            durationOfHalfShortMaxRecordsMs = durationOfShortMaxRecordsMs / 2;
+            durationOfShortBlockMs = (int) (configuration.getDurationOfDataRecord() * 1000 * SHORT_MAX);
         }
         adsConfig = configuration;
         numberOf3ByteSamples = getNumberOf3ByteSamples();
@@ -252,11 +249,18 @@ class FrameDecoder implements ComportListener {
             shortBlocksCount++;
             recordsDistance += SHORT_MAX;
         }
-        if (time - previousRecordTime > durationOfHalfShortMaxRecordsMs) {
-            long blocks = Math.round(((double) (time - previousRecordTime)) / durationOfShortMaxRecordsMs);
-            if (recordsDistance > HALF_SHORT_MAX / 2) {
+        if (time - previousRecordTime > durationOfShortBlockMs / 2 ) {
+            long blocks =  (time - previousRecordTime) / durationOfShortBlockMs;
+            long timeRecordsDistance = (time - previousRecordTime) % durationOfShortBlockMs;
+            // if recordsDistance big and timeRecordsDistance small
+            if (recordsDistance > SHORT_MAX * 2 / 3 && timeRecordsDistance < durationOfShortBlockMs / 3) {
                 blocks--;
             }
+            // if recordsDistance small and timeRecordsDistance big
+            if (recordsDistance < SHORT_MAX / 3 && timeRecordsDistance > durationOfShortBlockMs * 2 / 3) {
+                blocks++;
+            }
+
             shortBlocksCount += blocks;
         }
 
