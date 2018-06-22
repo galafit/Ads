@@ -233,7 +233,6 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         topPanel.add(comportField);
         topPanel.add(maxFrequencyField);
 
-
         LC layoutConstraints = new LC();
         layoutConstraints.fill();
         layoutConstraints.setWrapAfter(7);
@@ -243,6 +242,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         AC columnConstraints = new AC();
         columnConstraints.align("left");
         columnConstraints.fill();
+        columnConstraints.gap("10");
 
         AC rowConstraints = new AC();
         rowConstraints.align("center");
@@ -506,7 +506,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
                 batteryIcon.setIcon(BATTERY_ICON_5);
             }
             String levelText = Integer.toString(level);
-            if(level < 10) {
+            if(level <  10) {
                 levelText = "< 10";
             }
             batteryLevel.setText(levelText + "%");
