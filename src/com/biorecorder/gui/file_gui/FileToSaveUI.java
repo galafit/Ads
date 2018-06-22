@@ -1,5 +1,7 @@
 package com.biorecorder.gui.file_gui;
 
+import net.miginfocom.swing.MigLayout;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
@@ -31,11 +33,12 @@ public class FileToSaveUI extends JPanel {
 
         int hgap = 5;
         int vgap = 0;
-        setLayout(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        add(new JLabel(filenameLabel));
-        add(filename);
-        add(new JLabel("    "));
-        add(directory);
+        JPanel filePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        filePanel.add(new JLabel(filenameLabel));
+        filePanel.add(filename);
+        setLayout(new MigLayout("fill, insets 5", "left", "baseline"));
+        add(filePanel, "gapleft 20");
+        add(directory, "growx");
 
         filename.addFocusListener(new FocusAdapter() {
             @Override
@@ -44,7 +47,6 @@ public class FileToSaveUI extends JPanel {
             }
         });
     }
-
 
     public String getFilename() {
         if(!FILENAME_PATTERN.equals(filename.getText())){
