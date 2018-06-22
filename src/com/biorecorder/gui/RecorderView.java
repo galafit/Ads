@@ -2,6 +2,11 @@ package com.biorecorder.gui;
 
 import com.biorecorder.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
+import net.miginfocom.layout.AC;
+import net.miginfocom.layout.CC;
+import net.miginfocom.layout.LC;
+import net.miginfocom.layout.UnitValue;
+import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import javax.swing.JLabel;
@@ -76,10 +81,10 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
     private String filter50Hz = "Filter50Hz";
     private String contacts = "Contacts";
-    private JLabel filterOrContactsLabel = new JLabel(filter50Hz);
+    private JLabel filterOrContactsLabel = new JLabel(filter50Hz, SwingConstants.CENTER);
 
-    private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name"), new JLabel("Frequency"),
-            new JLabel("Mode"), new JLabel("Gain"), filterOrContactsLabel};
+    private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name", SwingConstants.CENTER), new JLabel("Frequency", SwingConstants.CENTER),
+            new JLabel("Mode", SwingConstants.CENTER), new JLabel("Gain", SwingConstants.CENTER), filterOrContactsLabel};
 
 
     public RecorderView(RecorderViewModel recorder) {
@@ -219,7 +224,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         int hgap = 5;
         int vgap = 10;
 
-        hgap = 5;
+        hgap = 0;
         JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         devicePanel.add(deviceTypeField);
 
@@ -240,27 +245,38 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel comportWrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         comportWrapperPanel.add(comportPanel);
 
-        hgap = 5;
-        vgap = 5;
+        hgap = 0;
+        vgap = 0;
         JPanel wrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         wrapperPanel.add(comportWrapperPanel);
         wrapperPanel.add(spsPanel);
 
         hgap = 0;
-        vgap = 5;
+        vgap = 0;
         JPanel topPanel = new JPanel(new BorderLayout(hgap, vgap));
         topPanel.add(devicePanel, BorderLayout.WEST);
         topPanel.add(wrapperPanel, BorderLayout.EAST);
 
+        LC layoutConstraints = new LC();
+        layoutConstraints.fill();
+        layoutConstraints.setWrapAfter(7);
+        UnitValue[] insets = {new UnitValue(0), new UnitValue(0), new UnitValue(0), new UnitValue(0) };
+        layoutConstraints.setInsets(insets);
 
-        hgap = 15;
-        vgap = 3;
-        TableLayout tableLayout = new TableLayout(channelsHeaders.length, new TableOption(TableOption.FILL, TableOption.CENTRE), hgap, vgap);
+        AC columnConstraints = new AC();
+        columnConstraints.align("left");
+        columnConstraints.fill();
+
+        AC rowConstraints = new AC();
+        rowConstraints.align("center");
+
+        MigLayout tableLayout = new MigLayout(layoutConstraints,columnConstraints, rowConstraints);
+
         JPanel channelsPanel = new JPanel(tableLayout);
 
         // add headers
         for (JComponent component : channelsHeaders) {
-            channelsPanel.add(component, new TableOption(TableOption.CENTRE, TableOption.CENTRE));
+            channelsPanel.add(component, "center");
         }
 
         // add channels
@@ -271,13 +287,12 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         // Add accelerometer
         accelerometer.addToPanel(channelsPanel);
 
-        hgap = 0;
-        vgap = 0;
-        JPanel channelsBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
+        JPanel channelsBorderPanel = new JPanel(new MigLayout("fill, insets 10"));
+
         TitledBorder titledBorder = BorderFactory.createTitledBorder(TITLE_CHANNELS);
         titledBorder.setTitleColor(COLOR_TITLE);
         channelsBorderPanel.setBorder(titledBorder);
-        channelsBorderPanel.add(channelsPanel);
+        channelsBorderPanel.add(channelsPanel, "grow");
 
         hgap = 5;
         vgap = 0;
@@ -349,17 +364,28 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         statePanel.add(progressWrapperPanel, BorderLayout.CENTER);
         statePanel.add(buttonPanel, BorderLayout.EAST);
 
-        hgap = 0;
-        vgap = 5;
-        JPanel adsPanel = new JPanel(new BorderLayout(hgap, vgap));
-        adsPanel.add(channelsBorderPanel, BorderLayout.NORTH);
-        adsPanel.add(identificationBorderPanel, BorderLayout.CENTER);
-        adsPanel.add(saveAsBorderPanel, BorderLayout.SOUTH);
+        layoutConstraints = new LC();
+        layoutConstraints.setFillX(true);
+        layoutConstraints.setWrapAfter(1);
+
+        columnConstraints = new AC();
+        columnConstraints.align("center");
+        columnConstraints.fill();
+
+        rowConstraints = new AC();
+        rowConstraints.align("center");
+
+        MigLayout adsLayout = new MigLayout(layoutConstraints,columnConstraints, rowConstraints);
+
+        JPanel mainPanel = new JPanel(adsLayout);
+        mainPanel.add(topPanel);
+        mainPanel.add(channelsBorderPanel);
+        mainPanel.add(identificationBorderPanel);
+        mainPanel.add(saveAsBorderPanel);
+        mainPanel.add(statePanel);
 
         // Root Panel of the RecorderView
-        add(topPanel, BorderLayout.NORTH);
-        add(adsPanel, BorderLayout.CENTER);
-        add(statePanel, BorderLayout.SOUTH);
+        add(mainPanel, BorderLayout.CENTER);
     }
 
     private boolean confirm(String message) {
