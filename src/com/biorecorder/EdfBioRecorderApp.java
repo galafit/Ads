@@ -329,10 +329,8 @@ public class EdfBioRecorderApp {
                     }
                 } catch (InterruptedException e) {
                     cancelStart();
-                  //  notifyStateChange(new StateChangeReason(StateChangeReason.REASON_CANCEL_STARTING, START_CANCELED));
                 } catch (CancellationException e) {
                     cancelStart();
-                   // notifyStateChange(new StateChangeReason(StateChangeReason.REASON_CANCEL_STARTING, START_CANCELED));
                 } catch (ExecutionException e) {
                     cancelStart();
                     log.error(e.getMessage());

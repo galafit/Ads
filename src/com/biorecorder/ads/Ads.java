@@ -359,9 +359,12 @@ public class Ads {
                 }
                 if (messageType == AdsMessageType.STOP_RECORDING) {
                     adsStateAtomicReference.compareAndSet(AdsState.UNDEFINED, AdsState.STOPPED);
-                    log.info("Stop message received");
+                    log.info(message);
                 }
                 if (messageType == AdsMessageType.FRAME_BROKEN) {
+                    log.info(message);
+                }
+                if (messageType == AdsMessageType.LOW_BATTERY) {
                     log.info(message);
                 }
                 notifyMessageListeners(messageType, message);

@@ -3,7 +3,6 @@ package com.biorecorder.gui;
 import com.biorecorder.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 import net.miginfocom.layout.AC;
-import net.miginfocom.layout.CC;
 import net.miginfocom.layout.LC;
 import net.miginfocom.layout.UnitValue;
 import net.miginfocom.swing.MigLayout;
@@ -33,7 +32,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
     private static final Color COLOR_CONNECTED = new Color(79, 245, 42);
     private static final Color COLOR_DISCONNECTED = Color.GRAY;
-    private static final Color COLOR_TITLE = new Color(10, 10, 120);
+    private static final Color COLOR_BRAND = new Color(40, 0, 150);
     private static final Icon BATTERY_ICON_1 = new ImageIcon("img/battery_1_small.png");
     private static final Icon BATTERY_ICON_2 = new ImageIcon("img/battery_2_small.png");
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
@@ -52,7 +51,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private ChannelFields[] channels;
     private AccelerometerFields accelerometer;
 
-    private JLabel spsLabel = new JLabel("<html>Max (Hz)<br>Frequency </html>");
+    private JLabel maxFrequencyLabel = new JLabel("Max Frequency (Hz)", SwingConstants.CENTER);
     private JComboBox maxFrequencyField;
 
     private JLabel patientIdentificationLabel = new JLabel("Patient");
@@ -60,9 +59,9 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private JTextField patientIdentificationField;
     private JTextField recordingIdentificationField;
 
-    private JLabel comportLabel = new JLabel("<html>Com<br>Port</html>\"");
+    private JLabel comportLabel = new JLabel("Comport", SwingConstants.CENTER);
     private JComboBox comportField;
-
+    private JLabel deviceTypeLabel = new JLabel("Device", SwingConstants.CENTER);
     private JComboBox deviceTypeField;
 
     private FileToSaveUI fileToSaveUI;
@@ -89,6 +88,10 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
     public RecorderView(RecorderViewModel recorder) {
         this.recorder = recorder;
+        startRecordingButton.setForeground(COLOR_BRAND);
+        stopButton.setForeground(COLOR_BRAND);
+        checkContactsButton.setForeground(COLOR_BRAND);
+
         settings = recorder.getInitialSettings();
         availableComports = settings.getAvailableComports();
         setTitle(title);
@@ -221,51 +224,25 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
     private void arrangeFields() {
         getContentPane().removeAll();
-        int hgap = 5;
-        int vgap = 10;
 
-        hgap = 0;
-        JPanel devicePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        devicePanel.add(deviceTypeField);
-
-        hgap = 5;
-        vgap = 0;
-        JPanel spsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        spsPanel.add(spsLabel);
-        spsPanel.add(maxFrequencyField);
-
-        hgap = 5;
-        vgap = 0;
-        JPanel comportPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
-        comportPanel.add(comportLabel);
-        comportPanel.add(comportField);
-
-        hgap = 20;
-        vgap = 0;
-        JPanel comportWrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        comportWrapperPanel.add(comportPanel);
-
-        hgap = 0;
-        vgap = 0;
-        JPanel wrapperPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
-        wrapperPanel.add(comportWrapperPanel);
-        wrapperPanel.add(spsPanel);
-
-        hgap = 0;
-        vgap = 0;
-        JPanel topPanel = new JPanel(new BorderLayout(hgap, vgap));
-        topPanel.add(devicePanel, BorderLayout.WEST);
-        topPanel.add(wrapperPanel, BorderLayout.EAST);
+        JPanel topPanel = new JPanel(new MigLayout("fill, insets 5", "center", "center"));
+        topPanel.add(deviceTypeLabel);
+        topPanel.add(comportLabel);
+        topPanel.add(maxFrequencyLabel, "wrap");
+        topPanel.add(deviceTypeField);
+        topPanel.add(comportField);
+        topPanel.add(maxFrequencyField);
 
         LC layoutConstraints = new LC();
         layoutConstraints.fill();
         layoutConstraints.setWrapAfter(7);
-        UnitValue[] insets = {new UnitValue(0), new UnitValue(0), new UnitValue(0), new UnitValue(0) };
+        UnitValue[] insets = {new UnitValue(0), new UnitValue(10), new UnitValue(10), new UnitValue(0) };
         layoutConstraints.setInsets(insets);
 
         AC columnConstraints = new AC();
         columnConstraints.align("left");
         columnConstraints.fill();
+        columnConstraints.gap("10");
 
         AC rowConstraints = new AC();
         rowConstraints.align("center");
@@ -273,29 +250,23 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         MigLayout tableLayout = new MigLayout(layoutConstraints,columnConstraints, rowConstraints);
 
         JPanel channelsPanel = new JPanel(tableLayout);
+        TitledBorder titledBorder = BorderFactory.createTitledBorder(TITLE_CHANNELS);
+        titledBorder.setTitleColor(COLOR_BRAND);
+        channelsPanel.setBorder(titledBorder);
 
         // add headers
         for (JComponent component : channelsHeaders) {
             channelsPanel.add(component, "center");
         }
-
         // add channels
         for (int i = 0; i < channels.length; i++) {
             channels[i].addToPanel(channelsPanel);
         }
-
         // Add accelerometer
         accelerometer.addToPanel(channelsPanel);
 
-        JPanel channelsBorderPanel = new JPanel(new MigLayout("fill, insets 10"));
-
-        TitledBorder titledBorder = BorderFactory.createTitledBorder(TITLE_CHANNELS);
-        titledBorder.setTitleColor(COLOR_TITLE);
-        channelsBorderPanel.setBorder(titledBorder);
-        channelsBorderPanel.add(channelsPanel, "grow");
-
-        hgap = 5;
-        vgap = 0;
+        int hgap = 5;
+        int vgap = 0;
         JPanel patientPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         patientPanel.add(patientIdentificationLabel);
         patientPanel.add(patientIdentificationField);
@@ -304,27 +275,18 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         recordingPanel.add(recordingIdentificationLabel);
         recordingPanel.add(recordingIdentificationField);
 
-        hgap = 0;
-        vgap = 0;
-        JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, hgap, vgap));
+        hgap = 5;
+        vgap = 5;
+        JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         identificationPanel.add(patientPanel);
         identificationPanel.add(recordingPanel);
-
-        hgap = 0;
-        vgap = 5;
-        JPanel identificationBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         titledBorder = BorderFactory.createTitledBorder(TITLE_IDENTIFICATION);
-        titledBorder.setTitleColor(COLOR_TITLE);
-        identificationBorderPanel.setBorder(titledBorder);
-        identificationBorderPanel.add(identificationPanel);
+        titledBorder.setTitleColor(COLOR_BRAND);
+        identificationPanel.setBorder(titledBorder);
 
-        hgap = 0;
-        vgap = 5;
-        JPanel saveAsBorderPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, hgap, vgap));
         titledBorder = BorderFactory.createTitledBorder(TITLE_SAVE_AS);
-        titledBorder.setTitleColor(COLOR_TITLE);
-        saveAsBorderPanel.setBorder(titledBorder);
-        saveAsBorderPanel.add(fileToSaveUI);
+        titledBorder.setTitleColor(COLOR_BRAND);
+        fileToSaveUI.setBorder(titledBorder);
 
         hgap = 0;
         vgap = 10;
@@ -364,24 +326,13 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         statePanel.add(progressWrapperPanel, BorderLayout.CENTER);
         statePanel.add(buttonPanel, BorderLayout.EAST);
 
-        layoutConstraints = new LC();
-        layoutConstraints.setFillX(true);
-        layoutConstraints.setWrapAfter(1);
+        MigLayout migLayout = new MigLayout("fill, wrap 1, insets 5", "center, fill", "center");
 
-        columnConstraints = new AC();
-        columnConstraints.align("center");
-        columnConstraints.fill();
-
-        rowConstraints = new AC();
-        rowConstraints.align("center");
-
-        MigLayout adsLayout = new MigLayout(layoutConstraints,columnConstraints, rowConstraints);
-
-        JPanel mainPanel = new JPanel(adsLayout);
+        JPanel mainPanel = new JPanel(migLayout);
         mainPanel.add(topPanel);
-        mainPanel.add(channelsBorderPanel);
-        mainPanel.add(identificationBorderPanel);
-        mainPanel.add(saveAsBorderPanel);
+        mainPanel.add(channelsPanel);
+        mainPanel.add(identificationPanel);
+        mainPanel.add(fileToSaveUI);
         mainPanel.add(statePanel);
 
         // Root Panel of the RecorderView
@@ -540,7 +491,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
                 batteryIcon.setIcon(BATTERY_ICON_5);
             }
             String levelText = Integer.toString(level);
-            if(level < 10) {
+            if(level <=  10) {
                 levelText = "< 10";
             }
             batteryLevel.setText(levelText + "%");
