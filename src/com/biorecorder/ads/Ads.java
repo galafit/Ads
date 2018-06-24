@@ -590,8 +590,8 @@ public class Ads {
             throw new IllegalArgumentException(errMsg);
         }
 
-        double lithiumBatteryPhysicalMax = 3.9;
-        double lithiumBatteryPhysicalMin = 3.5;
+        double lithiumBatteryPhysicalMax = 3.95;
+        double lithiumBatteryPhysicalMin = 3.33;
         int lithiumBatteryDigitalMax = (int) (getBatteryVoltageDigitalMax() * lithiumBatteryPhysicalMax / getBatteryVoltagePhysicalMax());
         int lithiumBatteryDigitalMin = (int) (getBatteryVoltageDigitalMax() * lithiumBatteryPhysicalMin / getBatteryVoltagePhysicalMax());
         int percentage_max = 100;
