@@ -1,6 +1,5 @@
 package com.biorecorder.gui;
 
-import apple.laf.JRSUIUtils;
 import com.biorecorder.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 import net.miginfocom.layout.AC;
@@ -10,7 +9,6 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import javax.swing.JLabel;
-import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.*;
@@ -282,15 +280,15 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         identificationPanel.add(patientPanel);
         identificationPanel.add(recordingPanel);
-      /*  titledBorder = BorderFactory.createTitledBorder(TITLE_IDENTIFICATION);
+        titledBorder = BorderFactory.createTitledBorder("Identification");
         titledBorder.setTitleColor(COLOR_BRAND);
         identificationPanel.setBorder(titledBorder);
 
-        titledBorder = BorderFactory.createTitledBorder(TITLE_SAVE_AS);
+        titledBorder = BorderFactory.createTitledBorder("Save as");
         titledBorder.setTitleColor(COLOR_BRAND);
-        fileToSaveUI.setBorder(titledBorder); */
+        fileToSaveUI.setBorder(titledBorder);
 
-        JPanel tabbedPane = new JPanel();
+     /*   JPanel tabbedPane = new JPanel();
         CardLayout cardLayout = new CardLayout();
         tabbedPane.setLayout(cardLayout);
         tabbedPane.add(identificationPanel);
@@ -319,7 +317,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
                 tb.setTitleColor(COLOR_BRAND);
                 tabbedPane.setBorder(tb);
             }
-        });
+        });*/
 
 
         hgap = 0;
@@ -365,7 +363,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel mainPanel = new JPanel(migLayout);
         mainPanel.add(topPanel);
         mainPanel.add(channelsPanel);
-        mainPanel.add(tabbedPane);
+        mainPanel.add(identificationPanel);
+        mainPanel.add(fileToSaveUI);
         mainPanel.add(statePanel);
 
         // Root Panel of the RecorderView
