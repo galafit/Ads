@@ -305,7 +305,7 @@ public class BioRecorder {
                 // delete helper Lead-off channel
                 signalsRemover.removeSignal(adsDataConfig.signalsCount() - 1);
             }
-            if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeleteEnabled()) {
+            if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel()) {
                 // delete helper BatteryVoltage channel
                 if (adsConfig.isLeadOffEnabled()) {
                     signalsRemover.removeSignal(adsDataConfig.signalsCount() - 2);

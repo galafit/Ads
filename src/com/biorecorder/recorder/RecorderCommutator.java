@@ -7,8 +7,8 @@ import com.biorecorder.ads.Commutator;
  */
 public enum RecorderCommutator {
     input(Commutator.INPUT),
-    input_short(Commutator.INPUT_SHORT),
-    test_signal(Commutator.TEST_SIGNAL);
+    test_signal(Commutator.TEST_SIGNAL),
+    input_short(Commutator.INPUT_SHORT);
 
     private Commutator adsCommutator;
 

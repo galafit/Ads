@@ -576,11 +576,12 @@ public class Ads {
 
     /**
      * Helper method to convert digital value (integer) with buttery charge value
-     * to buttery percentage level. Percentage level can be adequately detected
-     * in the range from 100% till 10%.  All values less then 10% will be rounded
-     * to 10%
+     * to buttery percentage level. Percentage level can be estimated only
+     * roughly. So this method return ROUNDED percentage values:
+     * 100, 90, 80, 70, 60, 50, 40, 30, 20, 10.
+     * All values less then 10% will be rounded to 10%
      * @param batteryInt - digital (int) value of battery charge
-     * @return battery level (percentage) => from 100% till 10%
+     * @return battery level (percentage): 100, 90, 80, 70, 60, 50, 40, 30, 20, 10
      * @throws IllegalArgumentException if batteryInt < BatteryDigitalMin (0) or batteryInt > BatteryDigitalMax (10240)
      */
     public static int lithiumBatteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
@@ -589,7 +590,7 @@ public class Ads {
             throw new IllegalArgumentException(errMsg);
         }
 
-        double lithiumBatteryPhysicalMax = 4;
+        double lithiumBatteryPhysicalMax = 3.9;
         double lithiumBatteryPhysicalMin = 3.5;
         int lithiumBatteryDigitalMax = (int) (getBatteryVoltageDigitalMax() * lithiumBatteryPhysicalMax / getBatteryVoltagePhysicalMax());
         int lithiumBatteryDigitalMin = (int) (getBatteryVoltageDigitalMax() * lithiumBatteryPhysicalMin / getBatteryVoltagePhysicalMax());
@@ -604,7 +605,9 @@ public class Ads {
             percentage = percentage_min;
         }
 
-        return percentage;
+        int percentageRound = (int)Math.round(percentage/10.0);
+
+        return percentageRound * 10;
     }
 
     public static double getAdsChannelPhysicalMax(Gain channelGain) {

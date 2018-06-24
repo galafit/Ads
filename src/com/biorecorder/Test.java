@@ -1,5 +1,6 @@
 package com.biorecorder;
 
+import com.biorecorder.ads.Ads;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 import jssc.*;
 import org.apache.commons.logging.Log;
@@ -17,10 +18,9 @@ import java.util.TimerTask;
  */
 public class Test {
     public static void main(String[] args) {
-        JFrame frame = new JFrame("Test");
-        frame.add(new FileToSaveUI());
-        frame.pack();
-        frame.setVisible(true);
-
+        System.out.println(Ads.lithiumBatteryIntToPercentage(7800));
+        System.out.println(Ads.lithiumBatteryIntToPercentage(7500));
+        System.out.println(Ads.lithiumBatteryIntToPercentage(7240));
+        System.out.println(Ads.lithiumBatteryIntToPercentage(6540));
     }
 }

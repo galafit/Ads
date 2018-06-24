@@ -41,18 +41,15 @@ public class EdfBioRecorderApp {
     private static final String DIRECTORY_EXIST_MSG = "Directory: {0}\nalready exist.";
     private static final String DIRECTORY_NOT_EXIST_MSG = "Directory: {0}\ndoes not exist.";
 
-    private static final String FAILED_STOP_MSG = "Failed to stop recorder.";
-    private static final String FAILED_CLOSE_FILE_MSG = "File: {0} was not correctly closed and saved";
+    private static final String FAILED_CLOSE_FILE_MSG = "File: {0} \nwas not correctly closed and saved";
     private static final String FAILED_DISCONNECT_MSG = "Failed to disconnect Recorder. Comport name: {0}";
 
     private static final String START_FAILED_MSG = "Start failed!\nCheck whether the Recorder is on" +
             "\nand selected Comport is correct and try again.";
     private static final String WRONG_DEVICE_TYPE_MSG = "Start failed!\nWrong Recorder type: {0}.\nConnected: {1}";
-    private static final String START_CANCELED = "Start canceled!";
 
-
-    private static final String LOW_BUTTERY_MSG = "Recorder was stopped\nThe buttery is low";
-    private static final String FAILED_WRITE_DATA_MSG = "Recorder was stopped\nFailed to write data record {0} to the file:\n{1}";
+    private static final String LOW_BUTTERY_MSG = "Recorder was stopped!\nThe buttery is low";
+    private static final String FAILED_WRITE_DATA_MSG = "Recorder was stopped!\nFailed to write data record {0} to the file:\n{1}";
 
     private static final int PROGRESS_NOTIFICATION_PERIOD_MS = 1000;
     private static final int COMPORT_CONNECTION_PERIOD_MS = 2000;
@@ -72,6 +69,7 @@ public class EdfBioRecorderApp {
     private volatile Integer batteryLevel;
     private volatile String comportName;
     private volatile TimerTask connectionTask = new ConnectionTask();
+    private volatile TimerTask availableComportsTask = new AvailableComportsTask();
     private volatile TimerTask startFutureHandlingTask;
     private volatile boolean isLoffDetecting;
 
@@ -84,7 +82,7 @@ public class EdfBioRecorderApp {
             }
         }, PROGRESS_NOTIFICATION_PERIOD_MS, PROGRESS_NOTIFICATION_PERIOD_MS);
 
-        timer.schedule(new CheckAvailableComportsTask(), AVAILABLE_COMPORTS_CHECKING_PERIOD_MS, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS);
+        timer.schedule(availableComportsTask, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS);
     }
 
 
@@ -98,7 +96,6 @@ public class EdfBioRecorderApp {
         timer.schedule(connectionTask, COMPORT_CONNECTION_PERIOD_MS, COMPORT_CONNECTION_PERIOD_MS);
         return true;
     }
-
 
     public String getComportName() {
         return comportName;
@@ -139,8 +136,12 @@ public class EdfBioRecorderApp {
         bioRecorder = new BioRecorder(comportName);
         bioRecorder.addEventsListener(new EventsListener() {
             public void handleLowBattery() {
-                stop1();
-                notifyStateChange(new StateChangeReason(StateChangeReason.REASON_LOW_BUTTERY, LOW_BUTTERY_MSG));
+                OperationResult result = stop1();
+                String msg = LOW_BUTTERY_MSG;
+                if(!result.isMessageEmpty()) {
+                    msg = msg+"\n\n"+result.getMessage();
+                }
+                notifyStateChange(new StateChangeReason(StateChangeReason.REASON_LOW_BUTTERY, msg));
             }
         });
         bioRecorder.addButteryLevelListener(new BatteryLevelListener() {
@@ -203,6 +204,7 @@ public class EdfBioRecorderApp {
 
         this.comportName = comportName;
         connectionTask.cancel();
+        availableComportsTask.cancel();
         this.isLoffDetecting = isLoffDetection;
         isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
         try {
@@ -317,6 +319,7 @@ public class EdfBioRecorderApp {
                 try {
                     if (!future.get()) {
                         cancelStart();
+                        restartAvailableComportsTask();
                         RecorderType realDeviceType = bioRecorder.getDeviceType();
                         if (realDeviceType != null && realDeviceType != recorderType) {
                             String errMsg = MessageFormat.format(WRONG_DEVICE_TYPE_MSG, recorderType, bioRecorder.getDeviceType());
@@ -333,6 +336,7 @@ public class EdfBioRecorderApp {
                     cancelStart();
                 } catch (ExecutionException e) {
                     cancelStart();
+                    restartAvailableComportsTask();
                     log.error(e.getMessage());
                     notifyStateChange(new StateChangeReason(StateChangeReason.REASON_FAILED_STARTING, e.getMessage()));
                 }
@@ -353,6 +357,13 @@ public class EdfBioRecorderApp {
         }
     }
 
+    private void restartAvailableComportsTask() {
+        availableComportsTask.cancel();
+        availableComportsTask = new AvailableComportsTask();
+        timer.schedule(availableComportsTask, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS);
+    }
+
+
     private synchronized OperationResult stop1() {
         if (bioRecorder != null) {
             bioRecorder.stop();
@@ -362,7 +373,7 @@ public class EdfBioRecorderApp {
         if (startFutureHandlingTask != null) {
             startFutureHandlingTask.cancel();
         }
-
+        restartAvailableComportsTask();
         String msg = "";
         boolean isEdfWriterCloseOk = true;
         if (edfWriter != null && !isLoffDetecting) {
@@ -618,11 +629,9 @@ public class EdfBioRecorderApp {
         }
     }
 
-    class CheckAvailableComportsTask extends TimerTask {
+    class AvailableComportsTask extends TimerTask {
         public void run() {
-            if (!isRecording()) {
-                notifyAvailableComports(getAvailableComports());
-            }
+            notifyAvailableComports(getAvailableComports());
         }
     }
 

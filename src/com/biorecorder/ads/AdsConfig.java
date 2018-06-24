@@ -7,7 +7,7 @@ import java.util.ArrayList;
  */
 public class AdsConfig {
 
-    private AdsType adsType = AdsType.ADS_2;
+    private AdsType adsType = AdsType.ADS_8;
     private Sps sps = Sps.S500;     // samples per second (sample rate)
 
     private boolean isBatteryVoltageMeasureEnabled = true;
@@ -25,6 +25,8 @@ public class AdsConfig {
             AdsChannelConfig channel = new AdsChannelConfig();
             channel.setName("Channel "+(i+1));
             adsChannels.add(channel);
+            setAdsChannelCommutatorState(i, Commutator.INPUT);
+            setAdsChannelGain(i, Gain.G2);
         }
     }
 
