@@ -1,5 +1,6 @@
 package com.biorecorder.gui;
 
+import apple.laf.JRSUIUtils;
 import com.biorecorder.*;
 import com.biorecorder.gui.file_gui.FileToSaveUI;
 import net.miginfocom.layout.AC;
@@ -9,6 +10,7 @@ import net.miginfocom.swing.MigLayout;
 
 import javax.swing.*;
 import javax.swing.JLabel;
+import javax.swing.border.Border;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.*;
@@ -35,15 +37,13 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private static final Color COLOR_CONNECTED = new Color(79, 245, 42);
     private static final Color COLOR_DISCONNECTED = Color.GRAY;
     private static final Color COLOR_BRAND = new Color(40, 0, 150);
+    private static final Color HIGHLIGHT_COLOR = new Color(200, 0, 200);
+
     private static final Icon BATTERY_ICON_1 = new ImageIcon("img/battery_1_small.png");
     private static final Icon BATTERY_ICON_2 = new ImageIcon("img/battery_2_small.png");
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
     private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
-
-    private static final String TITLE_CHANNELS = "Channels";
-    private static final String TITLE_SAVE_AS = "Save as";
-    private static final String TITLE_IDENTIFICATION = "Identification";
 
     private String[] availableComports;
 
@@ -252,7 +252,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         MigLayout tableLayout = new MigLayout(layoutConstraints,columnConstraints, rowConstraints);
 
         JPanel channelsPanel = new JPanel(tableLayout);
-        TitledBorder titledBorder = BorderFactory.createTitledBorder(TITLE_CHANNELS);
+        TitledBorder titledBorder = BorderFactory.createTitledBorder("Channels");
         titledBorder.setTitleColor(COLOR_BRAND);
         channelsPanel.setBorder(titledBorder);
 
@@ -282,13 +282,45 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         identificationPanel.add(patientPanel);
         identificationPanel.add(recordingPanel);
-        titledBorder = BorderFactory.createTitledBorder(TITLE_IDENTIFICATION);
+      /*  titledBorder = BorderFactory.createTitledBorder(TITLE_IDENTIFICATION);
         titledBorder.setTitleColor(COLOR_BRAND);
         identificationPanel.setBorder(titledBorder);
 
         titledBorder = BorderFactory.createTitledBorder(TITLE_SAVE_AS);
         titledBorder.setTitleColor(COLOR_BRAND);
-        fileToSaveUI.setBorder(titledBorder);
+        fileToSaveUI.setBorder(titledBorder); */
+
+        JPanel tabbedPane = new JPanel();
+        CardLayout cardLayout = new CardLayout();
+        tabbedPane.setLayout(cardLayout);
+        tabbedPane.add(identificationPanel);
+        tabbedPane.add(fileToSaveUI);
+
+        titledBorder = BorderFactory.createTitledBorder("Identification | Save As");
+        titledBorder.setTitleColor(COLOR_BRAND);
+        tabbedPane.setBorder(titledBorder);
+        tabbedPane.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                cardLayout.next(tabbedPane);
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                TitledBorder tb = BorderFactory.createTitledBorder("Identification | Save As");
+                tb.setTitleColor(HIGHLIGHT_COLOR);
+                tabbedPane.setBorder(tb);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                TitledBorder tb = BorderFactory.createTitledBorder("Identification | Save As");
+                tb.setTitleColor(COLOR_BRAND);
+                tabbedPane.setBorder(tb);
+            }
+        });
+
 
         hgap = 0;
         vgap = 10;
@@ -333,8 +365,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel mainPanel = new JPanel(migLayout);
         mainPanel.add(topPanel);
         mainPanel.add(channelsPanel);
-        mainPanel.add(identificationPanel);
-        mainPanel.add(fileToSaveUI);
+        mainPanel.add(tabbedPane);
         mainPanel.add(statePanel);
 
         // Root Panel of the RecorderView
