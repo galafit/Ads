@@ -19,7 +19,7 @@ import java.util.ArrayList;
 /**
  * TODO: add flag isChannelsSynchronized.
  * If it is selected when we change a channel field the same field of all other
- * channels should be automatically changed synchronously (except name)
+ * channels should be automatically changed synchronously ()
  */
 public class RecorderView extends JFrame implements ProgressListener, StateChangeListener, AvailableComportsListener {
     private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
