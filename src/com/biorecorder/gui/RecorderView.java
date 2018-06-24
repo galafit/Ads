@@ -43,6 +43,10 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
 
+    public static final String IDENTIFICATION = "Identification";
+    public static final String SAVE_AS = "Save as";
+    public static final String CHANNELS = "Channels";
+
     private String[] availableComports;
 
     private final RecorderViewModel recorder;
@@ -250,7 +254,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         MigLayout tableLayout = new MigLayout(layoutConstraints,columnConstraints, rowConstraints);
 
         JPanel channelsPanel = new JPanel(tableLayout);
-        TitledBorder titledBorder = BorderFactory.createTitledBorder("Channels");
+        TitledBorder titledBorder = BorderFactory.createTitledBorder(CHANNELS);
         titledBorder.setTitleColor(COLOR_BRAND);
         channelsPanel.setBorder(titledBorder);
 
@@ -280,11 +284,11 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JPanel identificationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, hgap, vgap));
         identificationPanel.add(patientPanel);
         identificationPanel.add(recordingPanel);
-        titledBorder = BorderFactory.createTitledBorder("Identification");
+        titledBorder = BorderFactory.createTitledBorder(IDENTIFICATION);
         titledBorder.setTitleColor(COLOR_BRAND);
         identificationPanel.setBorder(titledBorder);
 
-        titledBorder = BorderFactory.createTitledBorder("Save as");
+        titledBorder = BorderFactory.createTitledBorder(SAVE_AS);
         titledBorder.setTitleColor(COLOR_BRAND);
         fileToSaveUI.setBorder(titledBorder);
 
