@@ -163,7 +163,7 @@ public interface DataConfig {
         return (int) (physValue / gain(dataConfig, signalNumber) - offset(dataConfig, signalNumber));
     }
 
-    public static double digitalToPysical(DataConfig dataConfig, int signalNumber, int digValue) {
+    public static double digitalToPhysical(DataConfig dataConfig, int signalNumber, int digValue) {
         return (digValue + offset(dataConfig, signalNumber)) * gain(dataConfig, signalNumber);
     }
 
