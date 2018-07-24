@@ -3,8 +3,12 @@ package com.biorecorder;
 
 import com.biorecorder.gui.RecorderSettings;
 import com.biorecorder.gui.RecorderViewModel;
+import com.sun.tools.classfile.Dependencies;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import java.io.File;
+import java.text.MessageFormat;
 
 
 public class RecorderViewModelImpl implements RecorderViewModel {
@@ -13,6 +17,7 @@ public class RecorderViewModelImpl implements RecorderViewModel {
     private static final int SUCCESS_STATUS = 0;
     private static final int ERROR_STATUS = 1;
 
+    private static final String FAILED_CREATE_DIR_MSG = "Directory: {0}\ncan not be created.";
     private static final String FAILED_SAVE_PREFERENCES = "Failed to save preferences";
 
     private final EdfBioRecorderApp recorder;
@@ -125,12 +130,49 @@ public class RecorderViewModelImpl implements RecorderViewModel {
 
     @Override
     public boolean isDirectoryExist(String directory) {
-        return recorder.isDirectoryExist(directory);
+        File dir = new File(directory);
+        if (dir.exists() && dir.isDirectory()) {
+            return true;
+        }
+        return false;
     }
 
     @Override
+    public boolean isFileExist(String directory, String filename) {
+        File file = new File(directory, recorder.normalizeFilename(filename));
+        if(file.exists() && file.isFile()) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public String getNormalizedFilename(String directory, String filename) {
+        File file = new File(directory, recorder.normalizeFilename(filename));
+        return file.toString();
+    }
+
+    /**
+     * Create directory if it does not exist.
+     *
+     * @param directory name of the directory to create
+     * @return OperationResult: successful if directory was created
+     */
+    @Override
     public OperationResult createDirectory(String directory) {
-        return recorder.createDirectory(directory);
+        File dir = new File(directory);
+        try {
+            if (dir.mkdir()) {
+                return new OperationResult(true);
+            } else {
+                String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir);
+                return new OperationResult(false, errMSg);
+            }
+        } catch (Exception ex) {
+            log.error(ex);
+            String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir) + "\n" + ex.getMessage();
+            return new OperationResult(false, errMSg);
+        }
     }
 
     @Override

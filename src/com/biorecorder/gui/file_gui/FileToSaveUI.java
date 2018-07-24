@@ -19,7 +19,6 @@ public class FileToSaveUI extends JPanel {
     private DirectoryField directory;
 
     private String filenameLabel = "Filename";
-    private String FILENAME_PATTERN = "Date-Time";
 
     public FileToSaveUI() {
         this(DEFAULT_FILENAME_LENGTH, DEFAULT_DIRNAME_LENGTH);
@@ -27,7 +26,6 @@ public class FileToSaveUI extends JPanel {
 
     public FileToSaveUI(int filenameLength, int dirnameLength) {
         filename = new JTextField(filenameLength);
-        filename.setText(FILENAME_PATTERN);
         directory = new DirectoryField();
         directory.setLength(dirnameLength);
 
@@ -49,10 +47,11 @@ public class FileToSaveUI extends JPanel {
     }
 
     public String getFilename() {
-        if(!FILENAME_PATTERN.equals(filename.getText())){
-            return filename.getText();
-        }
-        return null;
+       return filename.getText();
+    }
+
+    public void setFilename(String name) {
+        filename.setText(name);
     }
 
     public void setDirectory(String dirName) {

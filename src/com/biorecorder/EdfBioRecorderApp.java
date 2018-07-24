@@ -37,8 +37,7 @@ public class EdfBioRecorderApp {
     private static final String ALL_CHANNELS_AND_ACCELEROMETER_DISABLED_MSG = "All channels and accelerometer disabled.\nEnable some of them to record";
     private static final String ALL_CHANNELS_DISABLED_MSG = "All channels disabled.\nEnable some of them to check contacts";
 
-    private static final String FAILED_CREATE_DIR_MSG = "Directory: {0}\ncan not be created.";
-    private static final String DIRECTORY_EXIST_MSG = "Directory: {0}\nalready exist.";
+    private static final String DIRECTORY_NAME_NULL = "Directory name can not be null or empty";
     private static final String DIRECTORY_NOT_EXIST_MSG = "Directory: {0}\ndoes not exist.";
 
     private static final String FAILED_CLOSE_FILE_MSG = "File: {0} \nwas not correctly closed and saved";
@@ -243,16 +242,20 @@ public class EdfBioRecorderApp {
                 }
             }
 
-            // check if directory exist
-            String dirToSave = appConfig.getDirToSave();
-            if (!isDirectoryExist(dirToSave)) {
-                String errMSg = MessageFormat.format(DIRECTORY_NOT_EXIST_MSG, dirToSave);
+            // check if dirname is ok directory exist
+            String dirname = appConfig.getDirToSave();
+            if (dirname == null || dirname.isEmpty()) {
+                return new OperationResult(false, DIRECTORY_NAME_NULL);
+            }
+            File dir = new File(dirname);
+            if (!dir.exists() && !dir.isDirectory()) {
+                String errMSg = MessageFormat.format(DIRECTORY_NOT_EXIST_MSG, dirname);
                 return new OperationResult(false, errMSg);
             }
 
             numberOfWrittenDataRecords.set(0);
 
-            File edfFile = new File(dirToSave, normalizeFilename(appConfig.getFileName()));
+            File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
 
             DataConfig dataConfig = bioRecorder.getDataConfig(recorderConfig);
             // copy data from dataConfig to the EdfHeader
@@ -443,42 +446,6 @@ public class EdfBioRecorderApp {
         return batteryLevel;
     }
 
-    public boolean isDirectoryExist(String directory) {
-        File dir = new File(directory);
-        if (dir.exists() && dir.isDirectory()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Create directory if it does not exist.
-     *
-     * @param directory name of the directory to create
-     * @return OperationResult: successful if  and only if the  directory was created
-     */
-
-    public OperationResult createDirectory(String directory) {
-        File dir = new File(directory);
-        if (isDirectoryExist(directory)) {
-            String errMSg = MessageFormat.format(DIRECTORY_EXIST_MSG, dir.getName());
-            return new OperationResult(false, errMSg);
-        }
-        try {
-            if (dir.mkdir()) {
-                return new OperationResult(true);
-            } else {
-                String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir);
-                return new OperationResult(false, errMSg);
-            }
-
-        } catch (Exception ex) {
-            log.error(ex);
-            String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir) + "\n" + ex.getMessage();
-            return new OperationResult(false, errMSg);
-        }
-    }
-
 
     /**
      * If the comportName is not equal to any available port we add it to the list.
@@ -554,7 +521,7 @@ public class EdfBioRecorderApp {
     }
 
 
-    private String normalizeFilename(@Nullable String filename) {
+    public String normalizeFilename(@Nullable String filename) {
         String FILE_EXTENSION = "bdf";
         String defaultFilename = new SimpleDateFormat("dd-MM-yyyy_HH-mm").format(new Date(System.currentTimeMillis()));
 
@@ -566,12 +533,12 @@ public class EdfBioRecorderApp {
         // if filename has no extension
         if (filename.lastIndexOf('.') == -1) {
             filename = filename.concat(".").concat(FILE_EXTENSION);
-            return defaultFilename + filename;
+            return defaultFilename + "_" + filename;
         }
         // if  extension  match with given FILE_EXTENSIONS
         // (?i) makes it case insensitive (catch BDF as well as bdf)
         if (filename.matches("(?i).*\\." + FILE_EXTENSION)) {
-            return defaultFilename + filename;
+            return defaultFilename + "_" + filename;
         }
         // If the extension do not match with  FILE_EXTENSION We need to replace it
         filename = filename.substring(0, filename.lastIndexOf(".") + 1).concat(FILE_EXTENSION);

@@ -23,6 +23,7 @@ import java.util.ArrayList;
  */
 public class RecorderView extends JFrame implements ProgressListener, StateChangeListener, AvailableComportsListener {
     private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
+    private static final String FILE_REWRITE_CONFIRMATION_MSG = "File: {0}\nalready exist. Do you want to rewrite it?";
 
 
     private static final int IDENTIFICATION_LENGTH = 80;
@@ -42,6 +43,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private static final Icon BATTERY_ICON_3 = new ImageIcon("img/battery_3_small.png");
     private static final Icon BATTERY_ICON_4 = new ImageIcon("img/battery_4_small.png");
     private static final Icon BATTERY_ICON_5 = new ImageIcon("img/battery_5_small.png");
+
+    private String FILENAME_PATTERN = "Date-Time";
 
     public static final String IDENTIFICATION = "Identification";
     public static final String SAVE_AS = "Save as";
@@ -121,7 +124,6 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             }
         });
 
-
         stopButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -166,6 +168,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
         fileToSaveUI = new FileToSaveUI(FILENAME_LENGTH, DIRNAME_LENGTH);
         fileToSaveUI.setDirectory(settings.getDirToSave());
+        fileToSaveUI.setFilename(FILENAME_PATTERN);
 
         deviceTypeField.addActionListener(new ActionListener() {
             @Override
@@ -223,7 +226,6 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
         arrangeFields();
         pack();
-
     }
 
     private void arrangeFields() {
@@ -387,6 +389,18 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         JOptionPane.showMessageDialog(RecorderView.this, msg);
     }
 
+    private String getFilename() {
+        String filename = fileToSaveUI.getFilename();
+        if(FILENAME_PATTERN.equals(filename)) {
+            filename = "";
+        }
+        return filename;
+    }
+
+    private String getDirectory() {
+       return fileToSaveUI.getDirectory();
+    }
+
     @Override
     public void onAvailableComportsChanged(String[] comports) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -470,7 +484,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     }
 
     private void startRecording() {
-        String dirToSave = fileToSaveUI.getDirectory();
+        String dirToSave = getDirectory();
+        String filename = getFilename();
 
         if (!recorder.isDirectoryExist(dirToSave)) {
             String confirmMsg = MessageFormat.format(DIR_CREATION_CONFIRMATION_MSG, dirToSave);
@@ -486,6 +501,14 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
                 return;
             }
         }
+
+        if(filename != null && !filename.isEmpty() && recorder.isFileExist(dirToSave, filename)) {
+            String confirmMsg = MessageFormat.format(FILE_REWRITE_CONFIRMATION_MSG, recorder.getNormalizedFilename(dirToSave, filename));
+            if (!confirm(confirmMsg)) {
+               return;
+            }
+        }
+
         OperationResult actionResult = recorder.startRecording(saveSettings());
         if (!actionResult.isMessageEmpty()) {
             showMessage(actionResult.getMessage());
@@ -620,8 +643,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         settings.setMaxFrequency((Integer) maxFrequencyField.getSelectedItem());
         settings.setAccelerometerEnabled(accelerometer.isEnabled());
         settings.setAccelerometerMode(accelerometer.getMode());
-        settings.setFileName(fileToSaveUI.getFilename());
-        settings.setDirToSave(fileToSaveUI.getDirectory());
+        settings.setFileName(getFilename());
+        settings.setDirToSave(getDirectory());
         return settings;
     }
 

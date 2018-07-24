@@ -15,6 +15,8 @@ public class OperationResult {
 
     public static final String TYPE_ALL_CHANNELS_DISABLED = "All channels disabled";
     public static final String TYPE_DIRECTORY_NOT_EXIST = "Directory not exist";
+    public static final String TYPE_DIRECTORY_NAME_NULL = "Directory name null or empty";
+
     public static final String TYPE_FILE_NOT_ACCESSIBLE = "File could not be created or accessed";
 
     public static final String TYPE_FAILED_CREATE_DIR = "Failed create directory";

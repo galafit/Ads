@@ -32,6 +32,8 @@ public interface RecorderViewModel {
     RecorderSettings changeDeviceType(RecorderSettings settings);
     RecorderSettings changeMaxFrequency(RecorderSettings settings);
 
+    String getNormalizedFilename(String directory, String filename);
+    boolean isFileExist(String directory, String filename);
     boolean isDirectoryExist(String directory);
     OperationResult createDirectory(String directory);
     OperationResult startRecording(RecorderSettings settings);
