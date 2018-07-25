@@ -14,6 +14,7 @@ public class AppConfig {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private boolean[] filter50HzMask;
+    private boolean mathlabWritingEnabled = false;
 
     private String comportName;
     private String dirToSave;
@@ -40,6 +41,7 @@ public class AppConfig {
         }
     }
 
+
     public RecorderConfig getRecorderConfig() {
         return recorderConfig;
     }
@@ -48,6 +50,13 @@ public class AppConfig {
         this.recorderConfig = recorderConfig;
     }
 
+    public boolean isMathlabWritingEnabled() {
+        return mathlabWritingEnabled;
+    }
+
+    public void setMathlabWritingEnabled(boolean mathlabWritingEnabled) {
+        this.mathlabWritingEnabled = mathlabWritingEnabled;
+    }
 
     public String getPatientIdentification() {
         return patientIdentification;

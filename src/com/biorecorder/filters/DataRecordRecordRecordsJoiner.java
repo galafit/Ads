@@ -1,7 +1,7 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataConfig;
-import com.biorecorder.dataformat.DataSender;
+import com.biorecorder.dataformat.DataRecordConfig;
+import com.biorecorder.dataformat.DataRecordSender;
 
 /**
  * Permits to join (piece together) given number of incoming DataRecords.
@@ -15,14 +15,14 @@ import com.biorecorder.dataformat.DataSender;
  *
  * <br>duration of resulting DataRecord = duration of original DataRecord * numberOfRecordsToJoin
  */
-public class DataRecordsJoiner extends FilterDataSender {
+public class DataRecordRecordRecordsJoiner extends FilterDataRecordRecordSender {
     private int numberOfRecordsToJoin;
     private int[] resultantDataRecord;
     private int joinedRecordsCounter;
     private int inRecordSize;
     private int resultantRecordSize;
 
-    public DataRecordsJoiner(DataSender in, int numberOfRecordsToJoin) {
+    public DataRecordRecordRecordsJoiner(DataRecordSender in, int numberOfRecordsToJoin) {
         super(in);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
         for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
@@ -35,8 +35,8 @@ public class DataRecordsJoiner extends FilterDataSender {
 
 
     @Override
-    public DataConfig dataConfig() {
-        return new DataConfigWrapper(in.dataConfig()) {
+    public DataRecordConfig dataConfig() {
+        return new DataRecordConfigWrapper(in.dataConfig()) {
             @Override
             public double getDurationOfDataRecord() {
                 return inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin;

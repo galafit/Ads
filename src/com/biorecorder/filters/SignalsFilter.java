@@ -1,7 +1,7 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataConfig;
-import com.biorecorder.dataformat.DataSender;
+import com.biorecorder.dataformat.DataRecordConfig;
+import com.biorecorder.dataformat.DataRecordSender;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,20 +12,20 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class SignalsFilter extends FilterDataSender {
+public class SignalsFilter extends FilterDataRecordRecordSender {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private int inRecordSize;
     private double[] offsets;
 
-    public SignalsFilter(DataSender in) {
+    public SignalsFilter(DataRecordSender in) {
         super(in);
         for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
             inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
         }
-        DataConfig inConfig = in.dataConfig();
+        DataRecordConfig inConfig = in.dataConfig();
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
-            offsets[i] = DataConfig.offset(inConfig, i);
+            offsets[i] = DataRecordConfig.offset(inConfig, i);
         }
     }
 
@@ -60,8 +60,8 @@ public class SignalsFilter extends FilterDataSender {
     }
 
     @Override
-    public DataConfig dataConfig() {
-        return new DataConfigWrapper(in.dataConfig()) {
+    public DataRecordConfig dataConfig() {
+        return new DataRecordConfigWrapper(in.dataConfig()) {
             @Override
             public String getPrefiltering(int signalNumber) {
                 if(inConfig.getPrefiltering(signalNumber) != null && ! inConfig.getPrefiltering(signalNumber).isEmpty()) {

@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.dataformat.DataConfig;
-import com.biorecorder.dataformat.DataListener;
+import com.biorecorder.dataformat.DataRecordConfig;
+import com.biorecorder.dataformat.DataRecordListener;
 import com.biorecorder.recorder.RecorderConfig;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
@@ -10,13 +10,13 @@ import org.apache.commons.logging.LogFactory;
 import java.util.ArrayList;
 
 /**
- * Created by galafit on 24/7/18.
+ * Class thread safe
  */
-public class MathlabDataWriter implements DataListener {
-    private static final Log log = LogFactory.getLog(MathlabDataWriter.class);
+public class MathlabWriter implements DataRecordListener {
+    private static final Log log = LogFactory.getLog(MathlabWriter.class);
     private LSL.StreamInfo info;
     private LSL.StreamOutlet outlet;
-    private DataConfig dataConfig;
+    private DataRecordConfig dataRecordConfig;
 
     private int numberOfAdsChannels;
     private int numberOfAccChannels;
@@ -29,18 +29,18 @@ public class MathlabDataWriter implements DataListener {
      * @throws IllegalArgumentException if channels have different frequencies or
      * all channels and accelerometer are disabled
      */
-    public MathlabDataWriter(DataConfig dataConfig, RecorderConfig recorderConfig) throws IllegalArgumentException {
-        this.dataConfig = dataConfig;
-        int channelsDivider = -1;
+    public MathlabWriter(DataRecordConfig dataRecordConfig, RecorderConfig recorderConfig) throws IllegalArgumentException {
+        this.dataRecordConfig = dataRecordConfig;
+        int adsChannelsDivider = -1;
         int accelerometerDivider = -1;
 
         for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
             if (recorderConfig.isChannelEnabled(i)) {
                 numberOfAdsChannels++;
-                if (channelsDivider == -1) {
-                    channelsDivider = recorderConfig.getChannelDivider(i);
+                if (adsChannelsDivider == -1) {
+                    adsChannelsDivider = recorderConfig.getChannelDivider(i);
                 } else {
-                    if (channelsDivider != recorderConfig.getChannelDivider(i)) {
+                    if (adsChannelsDivider != recorderConfig.getChannelDivider(i)) {
                         String errMsg = "Channels frequencies must be the same";
                         throw new IllegalArgumentException(errMsg);
                     }
@@ -57,36 +57,35 @@ public class MathlabDataWriter implements DataListener {
             accelerometerDivider = recorderConfig.getAccelerometerDivider();
         }
 
-        int divider;
+        int minDivider;
         if(numberOfAccChannels == 0) {
-            divider = channelsDivider;
+            minDivider = adsChannelsDivider;
         } else if(numberOfAdsChannels == 0) {
-            divider = accelerometerDivider;
+            minDivider = accelerometerDivider;
         } else if(numberOfAccChannels > 0 && numberOfAdsChannels > 0) {
-            divider = Math.min(channelsDivider, accelerometerDivider);
-            accFactor = accelerometerDivider / divider;
-            adsChannelFactor = channelsDivider / divider;
+            minDivider = Math.min(adsChannelsDivider, accelerometerDivider);
+            accFactor = accelerometerDivider / minDivider;
+            adsChannelFactor = adsChannelsDivider / minDivider;
         } else {
             String errMsg = "All channels and accelerometer are disabled";
             throw new IllegalArgumentException(errMsg);
         }
 
 
-        int maxFrequency = recorderConfig.getSampleRate() / divider;
-        int maxNumberOfSamplesInRecord = (int) Math.round(recorderConfig.getDurationOfDataRecord() * maxFrequency / divider);
-        info = new LSL.StreamInfo("BioSemi", "EEG", dataConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
+        int maxFrequency = recorderConfig.getSampleRate() / minDivider;
+        int maxNumberOfSamplesInRecord = (int) Math.round(recorderConfig.getDurationOfDataRecord() * maxFrequency / minDivider);
+        info = new LSL.StreamInfo("BioSemi", "EEG", dataRecordConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
         outlet = new LSL.StreamOutlet(info);
 
         numberOfAllChannels = numberOfAccChannels + numberOfAdsChannels;
         numberOfMathlabRecords = maxNumberOfSamplesInRecord;
 
-        log.debug("MatlabDataListener initialization. Number of enabled channels = " + dataConfig.signalsCount() +
+        log.debug("MatlabDataListener initialization. Number of enabled channels = " + dataRecordConfig.signalsCount() +
                 ". Frequency = " + maxFrequency + ". Number of samples in BDF data record = " + maxNumberOfSamplesInRecord);
-
     }
 
     @Override
-    public void onDataReceived(int[] dataRecord) {
+    public synchronized void onDataReceived(int[] dataRecord) {
         // convert one "edf record" to the list of multiple "mathlab records"
         // Mathlab record structure: one sample per every channel and accelerometer
         ArrayList<float[]> mathlabRecords = new ArrayList<>(numberOfMathlabRecords);
@@ -102,19 +101,19 @@ public class MathlabDataWriter implements DataListener {
             if (channelCount <= numberOfAdsChannels) {
                 for (int j = 0; j < adsChannelFactor; j++) {
                     mathlabRecordCount = sampleCount + j;
-                    mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataConfig.digitalToPhysical(dataConfig, channelCount, dataRecord[i]);
+                    mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
                 mathlabRecordCount = sampleCount;
-                mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataConfig.digitalToPhysical(dataConfig, channelCount, dataRecord[i]);
+                mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
             } else {
                 for (int j = 0; j < accFactor; j++) {
                     mathlabRecordCount = sampleCount + j;
-                    mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataConfig.digitalToPhysical(dataConfig, channelCount, dataRecord[i]);
+                    mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
             }
 
             sampleCount++;
-            if (sampleCount == dataConfig.getNumberOfSamplesInEachDataRecord(channelCount)) {
+            if (sampleCount == dataRecordConfig.getNumberOfSamplesInEachDataRecord(channelCount)) {
                 sampleCount = 0;
                 channelCount++;
             }
@@ -126,7 +125,7 @@ public class MathlabDataWriter implements DataListener {
     }
 
    // @Override
-    public void onStopRecording() {
+    public synchronized void onStopRecording() {
         outlet.close();
         info.destroy();
     }

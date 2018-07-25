@@ -1,8 +1,8 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataConfig;
-import com.biorecorder.dataformat.DataSender;
-import com.biorecorder.dataformat.DefaultDataConfig;
+import com.biorecorder.dataformat.DataRecordConfig;
+import com.biorecorder.dataformat.DataRecordSender;
+import com.biorecorder.dataformat.DefaultDataRecordConfig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,12 +10,12 @@ import java.util.List;
 /**
  * Permit to omit samples from some channels (delete signals)
  */
-public class  SignalsRemover extends FilterDataSender {
+public class  SignalsRemover extends FilterDataRecordRecordSender {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
     private int inRecordSize;
     private int resultantRecordSize;
 
-    public SignalsRemover(DataSender input) {
+    public SignalsRemover(DataRecordSender input) {
         super(input);
         for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
             inRecordSize += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
@@ -37,8 +37,8 @@ public class  SignalsRemover extends FilterDataSender {
     }
 
     @Override
-    public DataConfig dataConfig() {
-        DefaultDataConfig resultantConfig = new DefaultDataConfig(in.dataConfig());
+    public DataRecordConfig dataConfig() {
+        DefaultDataRecordConfig resultantConfig = new DefaultDataRecordConfig(in.dataConfig());
 
         for (int i = in.dataConfig().signalsCount() - 1; i >= 0 ; i--) {
             if(signalsToRemove.contains(i)) {

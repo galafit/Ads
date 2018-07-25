@@ -4,10 +4,9 @@ import com.biorecorder.ads.Ads;
 import com.biorecorder.ads.AdsConfig;
 import com.biorecorder.ads.Commutator;
 import com.biorecorder.ads.NumberedDataListener;
-import com.biorecorder.dataformat.DataConfig;
-import com.biorecorder.dataformat.DataListener;
-import com.biorecorder.dataformat.DataSender;
-import com.biorecorder.dataformat.NullDataListener;
+import com.biorecorder.dataformat.*;
+import com.biorecorder.dataformat.DataRecordListener;
+import com.biorecorder.dataformat.NullDataRecordListener;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -15,20 +14,20 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This class:
- * <br>1) implement {@link DataSender} interface for further data records filtering and transformation
+ * <br>1) implement {@link DataRecordSender} interface for further data records filtering and transformation
  * <br>2) convert numbered data records to simple data records (supplementing the lost ones) and
  * send them to the listener in separated thread
  * <br>3) extract lead off info and battery charge info from data records and send it to the
  * corresponding listeners
  */
-class AdsDataSender implements DataSender {
+class AdsDataRecordSender implements DataRecordSender {
     private final LinkedBlockingQueue<NumberedDataRecord> dataQueue = new LinkedBlockingQueue<>();
     private Thread dataHandlingThread;
 
     private final Ads ads;
     private final AdsConfig adsConfig;
     private int lastDataRecordNumber = -1;
-    private volatile DataListener dataListener = new NullDataListener();
+    private volatile DataRecordListener dataRecordListener = new NullDataRecordListener();
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
 
@@ -37,7 +36,7 @@ class AdsDataSender implements DataSender {
     private volatile double durationOfDataRecord; // sec
 
 
-    public AdsDataSender(Ads ads, AdsConfig adsConfig) {
+    public AdsDataRecordSender(Ads ads, AdsConfig adsConfig) {
         this.ads = ads;
         this.adsConfig = adsConfig;
         durationOfDataRecord = adsConfig.getDurationOfDataRecord();
@@ -102,13 +101,13 @@ class AdsDataSender implements DataSender {
     }
 
     @Override
-    public DataConfig dataConfig() {
+    public DataRecordConfig dataConfig() {
         return ads.getDataConfig(adsConfig);
     }
 
     @Override
-    public void addDataListener(DataListener dataListener) {
-        this.dataListener = dataListener;
+    public void addDataListener(DataRecordListener dataRecordListener) {
+        this.dataRecordListener = dataRecordListener;
         ads.addDataListener(new NumberedDataListener() {
             @Override
             public void onDataReceived(int[] dataRecord, int recordNumber) {
@@ -152,8 +151,8 @@ class AdsDataSender implements DataSender {
     }
 
     @Override
-    public void removeDataListener(DataListener dataListener) {
-        this.dataListener = new NullDataListener();
+    public void removeDataListener(DataRecordListener dataRecordListener) {
+        this.dataRecordListener = new NullDataRecordListener();
         ads.removeDataListener();
     }
 
@@ -167,7 +166,7 @@ class AdsDataSender implements DataSender {
     }
 
     private void notifyDataListeners(int[] dataRecord) {
-        dataListener.onDataReceived(dataRecord);
+        dataRecordListener.onDataReceived(dataRecord);
     }
 
     private void notifyBatteryLevelListener(int batteryVoltage) {

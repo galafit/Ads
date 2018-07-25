@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.dataformat.DataListener;
-import com.biorecorder.dataformat.DataConfig;
+import com.biorecorder.dataformat.DataRecordListener;
+import com.biorecorder.dataformat.DataRecordConfig;
 import com.biorecorder.edflib.DataFormat;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
@@ -73,6 +73,8 @@ public class EdfBioRecorderApp {
     private volatile boolean isLoffDetecting;
 
     private volatile boolean isDurationOfDataRecordComputable = false;
+
+    private volatile MathlabWriter mathlabWriter;
 
     public EdfBioRecorderApp() {
         timer.schedule(new TimerTask() {
@@ -257,9 +259,9 @@ public class EdfBioRecorderApp {
 
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
 
-            DataConfig dataConfig = bioRecorder.getDataConfig(recorderConfig);
-            // copy data from dataConfig to the EdfHeader
-            EdfHeader edfHeader = configToHeader(dataConfig);
+            DataRecordConfig dataRecordConfig = bioRecorder.getDataConfig(recorderConfig);
+            // copy data from dataRecordConfig to the EdfHeader
+            EdfHeader edfHeader = configToHeader(dataRecordConfig);
             edfHeader.setPatientIdentification(appConfig.getPatientIdentification());
             edfHeader.setRecordingIdentification(appConfig.getRecordingIdentification());
 
@@ -271,10 +273,22 @@ public class EdfBioRecorderApp {
                 return new OperationResult(false, errMSg);
             }
 
-            bioRecorder.addDataListener(new DataListener() {
+            if(appConfig.isMathlabWritingEnabled()) {
+                try{
+                    mathlabWriter = new MathlabWriter(dataRecordConfig, appConfig.getRecorderConfig());
+                } catch (IllegalArgumentException ex) {
+                    log.info("LabStreamingLayer failed to start.", ex);
+                }
+            }
+
+            bioRecorder.addDataListener(new DataRecordListener() {
 
                 public void onDataReceived(int[] dataRecord) {
                     try {
+                        if(mathlabWriter != null) {
+                            mathlabWriter.onDataReceived(dataRecord);
+                        }
+
                         edfWriter.writeDigitalRecord(dataRecord);
                         numberOfWrittenDataRecords.incrementAndGet();
                     } catch (IOException ex) {
@@ -371,6 +385,10 @@ public class EdfBioRecorderApp {
         if (bioRecorder != null) {
             bioRecorder.stop();
             bioRecorder.removeDataListener();
+        }
+
+        if(mathlabWriter != null) {
+            mathlabWriter.onStopRecording();
         }
 
         if (startFutureHandlingTask != null) {
@@ -546,19 +564,19 @@ public class EdfBioRecorderApp {
     }
 
     /*
-     * copy data from dataConfig to the EdfHeader
+     * copy data from dataRecordConfig to the EdfHeader
     */
-    private EdfHeader configToHeader(DataConfig dataConfig) {
-        EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, dataConfig.signalsCount());
-        edfHeader.setDurationOfDataRecord(dataConfig.getDurationOfDataRecord());
-        for (int i = 0; i < dataConfig.signalsCount(); i++) {
-            edfHeader.setNumberOfSamplesInEachDataRecord(i, dataConfig.getNumberOfSamplesInEachDataRecord(i));
-            edfHeader.setPrefiltering(i, dataConfig.getPrefiltering(i));
-            edfHeader.setTransducer(i, dataConfig.getTransducer(i));
-            edfHeader.setLabel(i, dataConfig.getLabel(i));
-            edfHeader.setDigitalRange(i, dataConfig.getDigitalMin(i), dataConfig.getDigitalMax(i));
-            edfHeader.setPhysicalRange(i, dataConfig.getPhysicalMin(i), dataConfig.getPhysicalMax(i));
-            edfHeader.setPhysicalDimension(i, dataConfig.getPhysicalDimension(i));
+    private EdfHeader configToHeader(DataRecordConfig dataRecordConfig) {
+        EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, dataRecordConfig.signalsCount());
+        edfHeader.setDurationOfDataRecord(dataRecordConfig.getDurationOfDataRecord());
+        for (int i = 0; i < dataRecordConfig.signalsCount(); i++) {
+            edfHeader.setNumberOfSamplesInEachDataRecord(i, dataRecordConfig.getNumberOfSamplesInEachDataRecord(i));
+            edfHeader.setPrefiltering(i, dataRecordConfig.getPrefiltering(i));
+            edfHeader.setTransducer(i, dataRecordConfig.getTransducer(i));
+            edfHeader.setLabel(i, dataRecordConfig.getLabel(i));
+            edfHeader.setDigitalRange(i, dataRecordConfig.getDigitalMin(i), dataRecordConfig.getDigitalMax(i));
+            edfHeader.setPhysicalRange(i, dataRecordConfig.getPhysicalMin(i), dataRecordConfig.getPhysicalMax(i));
+            edfHeader.setPhysicalDimension(i, dataRecordConfig.getPhysicalDimension(i));
         }
         return edfHeader;
     }

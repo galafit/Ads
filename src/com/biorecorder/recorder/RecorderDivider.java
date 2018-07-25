@@ -10,6 +10,8 @@ public enum RecorderDivider {
     D2(Divider.D2),
     D5(Divider.D5),
     D10(Divider.D10);
+    // D20
+    // D50 divider factor or additional divider 2 and 5
 
     private Divider adsDivider;
 

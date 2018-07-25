@@ -4,20 +4,20 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 
 /**
- * Default implementation of DataConfig interface
+ * Default implementation of DataRecordConfig interface
  */
-public class DefaultDataConfig implements DataConfig {
+public class DefaultDataRecordConfig implements DataRecordConfig {
     private double durationOfDataRecord = 1; // sec
     private ArrayList<Signal> signals = new ArrayList<Signal>();
 
     /**
-     * Creates a DefaultDataConfig instance
+     * Creates a DefaultDataRecordConfig instance
      * with the given number of channels (signals)
      *
      * @param numberOfSignals number of signals
      * @throws IllegalArgumentException if numberOfSignals < 0
      */
-    public DefaultDataConfig(int numberOfSignals) throws IllegalArgumentException {
+    public DefaultDataRecordConfig(int numberOfSignals) throws IllegalArgumentException {
         if (numberOfSignals < 0) {
             String errMsg = MessageFormat.format("Number of signals is invalid: {0}. Expected {1}", numberOfSignals, ">= 0");
             throw new IllegalArgumentException(errMsg);
@@ -28,21 +28,21 @@ public class DefaultDataConfig implements DataConfig {
     }
 
     /**
-     * Constructor to make a copy of the given DefaultDataConfig
+     * Constructor to make a copy of the given DefaultDataRecordConfig
      *
-     * @param dataConfig DefaultDataConfig instance that will be copied
+     * @param dataRecordConfig DefaultDataRecordConfig instance that will be copied
      */
-    public DefaultDataConfig(DataConfig dataConfig) {
-        this(dataConfig.signalsCount());
-        durationOfDataRecord = dataConfig.getDurationOfDataRecord();
-        for (int i = 0; i < dataConfig.signalsCount(); i++) {
-            setNumberOfSamplesInEachDataRecord(i, dataConfig.getNumberOfSamplesInEachDataRecord(i));
-            setPrefiltering(i, dataConfig.getPrefiltering(i));
-            setTransducer(i, dataConfig.getTransducer(i));
-            setLabel(i, dataConfig.getLabel(i));
-            setDigitalRange(i, dataConfig.getDigitalMin(i), dataConfig.getDigitalMax(i));
-            setPhysicalRange(i, dataConfig.getPhysicalMin(i), dataConfig.getPhysicalMax(i));
-            setPhysicalDimension(i, dataConfig.getPhysicalDimension(i));
+    public DefaultDataRecordConfig(DataRecordConfig dataRecordConfig) {
+        this(dataRecordConfig.signalsCount());
+        durationOfDataRecord = dataRecordConfig.getDurationOfDataRecord();
+        for (int i = 0; i < dataRecordConfig.signalsCount(); i++) {
+            setNumberOfSamplesInEachDataRecord(i, dataRecordConfig.getNumberOfSamplesInEachDataRecord(i));
+            setPrefiltering(i, dataRecordConfig.getPrefiltering(i));
+            setTransducer(i, dataRecordConfig.getTransducer(i));
+            setLabel(i, dataRecordConfig.getLabel(i));
+            setDigitalRange(i, dataRecordConfig.getDigitalMin(i), dataRecordConfig.getDigitalMax(i));
+            setPhysicalRange(i, dataRecordConfig.getPhysicalMin(i), dataRecordConfig.getPhysicalMax(i));
+            setPhysicalDimension(i, dataRecordConfig.getPhysicalDimension(i));
         }
     }
 

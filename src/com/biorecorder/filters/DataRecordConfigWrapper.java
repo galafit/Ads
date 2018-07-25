@@ -1,15 +1,15 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataConfig;
+import com.biorecorder.dataformat.DataRecordConfig;
 
 /**
- * Wrapper around some DataConfig that permits
+ * Wrapper around some DataRecordConfig that permits
  * to change only some methods
  */
-class DataConfigWrapper implements DataConfig {
-    final DataConfig inConfig;
+class DataRecordConfigWrapper implements DataRecordConfig {
+    final DataRecordConfig inConfig;
 
-    public DataConfigWrapper(DataConfig inConfig) {
+    public DataRecordConfigWrapper(DataRecordConfig inConfig) {
         this.inConfig = inConfig;
     }
 

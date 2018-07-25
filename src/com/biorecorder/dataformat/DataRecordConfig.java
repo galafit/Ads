@@ -41,7 +41,7 @@ package com.biorecorder.dataformat;
  * <a href="http://www.edfplus.info/specs/edf.html">European Data Format (EDF)</a>
   *
  */
-public interface DataConfig {
+public interface DataRecordConfig {
     /**
      * Gets the measuring time interval or duration of data records (data package)
      * in seconds
@@ -151,20 +151,20 @@ public interface DataConfig {
      */
     public  double getPhysicalMax(int signalNumber);
 
-    public static double gain(DataConfig dataConfig, int signalNumber) {
-        return (dataConfig.getPhysicalMax(signalNumber) - dataConfig.getPhysicalMin(signalNumber)) / (dataConfig.getDigitalMax(signalNumber) - dataConfig.getDigitalMin(signalNumber));
+    public static double gain(DataRecordConfig dataRecordConfig, int signalNumber) {
+        return (dataRecordConfig.getPhysicalMax(signalNumber) - dataRecordConfig.getPhysicalMin(signalNumber)) / (dataRecordConfig.getDigitalMax(signalNumber) - dataRecordConfig.getDigitalMin(signalNumber));
     }
 
-    public static double offset(DataConfig dataConfig, int signalNumber) {
-        return dataConfig.getPhysicalMax(signalNumber) / gain(dataConfig, signalNumber) - dataConfig.getDigitalMax(signalNumber);
+    public static double offset(DataRecordConfig dataRecordConfig, int signalNumber) {
+        return dataRecordConfig.getPhysicalMax(signalNumber) / gain(dataRecordConfig, signalNumber) - dataRecordConfig.getDigitalMax(signalNumber);
     }
 
-    public static int physicalToDigital(DataConfig dataConfig, int signalNumber, double physValue) {
-        return (int) (physValue / gain(dataConfig, signalNumber) - offset(dataConfig, signalNumber));
+    public static int physicalToDigital(DataRecordConfig dataRecordConfig, int signalNumber, double physValue) {
+        return (int) (physValue / gain(dataRecordConfig, signalNumber) - offset(dataRecordConfig, signalNumber));
     }
 
-    public static double digitalToPhysical(DataConfig dataConfig, int signalNumber, int digValue) {
-        return (digValue + offset(dataConfig, signalNumber)) * gain(dataConfig, signalNumber);
+    public static double digitalToPhysical(DataRecordConfig dataRecordConfig, int signalNumber, int digValue) {
+        return (digValue + offset(dataRecordConfig, signalNumber)) * gain(dataRecordConfig, signalNumber);
     }
 
 
