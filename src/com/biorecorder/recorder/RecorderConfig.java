@@ -33,9 +33,17 @@ public class RecorderConfig {
         return deleteBatteryVoltageChannel;
     }
 
+    public RecorderDivider getChannelDivider(int channelNumber) {
+        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber), accelerometerExtraDivider);
+    }
+
     public void setChannelDivider(int channelNumber, RecorderDivider recorderDivider) {
         adsConfig.setAdsChannelDivider(channelNumber, recorderDivider.getAdsDivider());
         channelsExtraDividers[channelNumber] = recorderDivider.getExtraDivider();
+    }
+
+    public RecorderDivider[] getAccelerometerAvailableDividers() {
+        return getDeviceType().getAccelerometerAvailableDividers();
     }
 
     public void setAccelerometerDivider(RecorderDivider recorderDivider) {
@@ -44,10 +52,6 @@ public class RecorderConfig {
 
     public RecorderDivider getAccelerometerDivider() {
         return RecorderDivider.valueOf(adsConfig.getAccelerometerDivider(), accelerometerExtraDivider);
-    }
-
-    public RecorderDivider getChannelDivider(int channelNumber) {
-        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber), accelerometerExtraDivider);
     }
 
     public boolean isLeadOffEnabled() {

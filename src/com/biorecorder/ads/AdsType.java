@@ -5,8 +5,6 @@ public enum AdsType {
     ADS_2(2),
     ADS_8(8);
 
-    public static Divider ACCELEROMETER_DIVIDER = Divider.D10;
-
     private int numberOfAdsChannels;
 
     private AdsConfigurator adsConfigurator;
@@ -22,6 +20,10 @@ public enum AdsType {
             String msg = "Invalid Ads channels count: "+numberOfAdsChannels+ ". Number of Ads channels may be 2 or 8";
             throw new IllegalArgumentException(msg);
         }
+    }
+
+    public static Divider getAccelerometerAvailableDivider() {
+        return Divider.D10;
     }
 
     public static AdsType valueOf(int channelsCount) throws IllegalArgumentException {

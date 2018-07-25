@@ -15,8 +15,7 @@ public class AdsConfig {
 
     private boolean isAccelerometerEnabled = true;
     private boolean isAccelerometerOneChannelMode = true;
-    private Divider accelerometerDivider = AdsType.ACCELEROMETER_DIVIDER;
-
+    private Divider accelerometerDivider = AdsType.getAccelerometerAvailableDivider();
 
     private ArrayList<AdsChannelConfig> adsChannels = new ArrayList<AdsChannelConfig>(8);
 
@@ -42,7 +41,6 @@ public class AdsConfig {
             adsChannels.add(new AdsChannelConfig(adsChannel));
         }
     }
-
 
     public byte[] getAdsConfigurationCommand() {
         return getAdsType().getAdsConfigurationCommand(this);

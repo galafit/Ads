@@ -11,11 +11,15 @@ public enum RecorderType {
     Recorder_8(AdsType.ADS_8),
     Recorder_2(AdsType.ADS_2);
 
-    public static RecorderDivider ACCELEROMETER_DIVIDER = RecorderDivider.valueOf(Divider.D10);
     private AdsType adsType;
 
     RecorderType(AdsType adsType) {
         this.adsType = adsType;
+    }
+
+    public RecorderDivider[] getAccelerometerAvailableDividers() {
+        RecorderDivider[]  accDividers = {RecorderDivider.D10, RecorderDivider.D20};
+        return accDividers;
     }
 
     public int getChannelsCount() {
