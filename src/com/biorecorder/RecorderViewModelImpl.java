@@ -3,7 +3,6 @@ package com.biorecorder;
 
 import com.biorecorder.gui.RecorderSettings;
 import com.biorecorder.gui.RecorderViewModel;
-import com.sun.tools.classfile.Dependencies;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

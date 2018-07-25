@@ -80,7 +80,7 @@ public class MathlabWriter implements DataRecordListener {
         numberOfAllChannels = numberOfAccChannels + numberOfAdsChannels;
         numberOfMathlabRecords = maxNumberOfSamplesInRecord;
 
-        log.debug("MatlabDataListener initialization. Number of enabled channels = " + dataRecordConfig.signalsCount() +
+        log.info("MatlabDataListener initialization. Number of enabled channels = " + dataRecordConfig.signalsCount() +
                 ". Frequency = " + maxFrequency + ". Number of samples in BDF data record = " + maxNumberOfSamplesInRecord);
     }
 
