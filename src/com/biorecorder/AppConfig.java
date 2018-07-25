@@ -9,17 +9,17 @@ import java.io.File;
  * Class containing all the necessary settings for running the application
  */
 public class AppConfig {
-    private RecorderConfig recorderConfig = new RecorderConfig();
     private boolean isDurationOfDataRecordComputable = true;
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private boolean[] filter50HzMask;
     private boolean mathlabWritingEnabled = false;
-
     private String comportName;
     private String dirToSave;
     @JsonIgnore
     private String fileName;
+
+    private RecorderConfig recorderConfig = new RecorderConfig();
 
     public AppConfig() {
         filter50HzMask = new boolean[RecorderType.getMaxChannelsCount()];

@@ -15,14 +15,14 @@ import com.biorecorder.dataformat.DataRecordSender;
  *
  * <br>duration of resulting DataRecord = duration of original DataRecord * numberOfRecordsToJoin
  */
-public class DataRecordRecordRecordsJoiner extends FilterDataRecordRecordSender {
+public class RecordsJoiner extends RecordsFilter {
     private int numberOfRecordsToJoin;
     private int[] resultantDataRecord;
     private int joinedRecordsCounter;
     private int inRecordSize;
     private int resultantRecordSize;
 
-    public DataRecordRecordRecordsJoiner(DataRecordSender in, int numberOfRecordsToJoin) {
+    public RecordsJoiner(DataRecordSender in, int numberOfRecordsToJoin) {
         super(in);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
         for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
@@ -36,7 +36,7 @@ public class DataRecordRecordRecordsJoiner extends FilterDataRecordRecordSender 
 
     @Override
     public DataRecordConfig dataConfig() {
-        return new DataRecordConfigWrapper(in.dataConfig()) {
+        return new ConfigWrapper(in.dataConfig()) {
             @Override
             public double getDurationOfDataRecord() {
                 return inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin;

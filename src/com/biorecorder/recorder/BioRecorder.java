@@ -273,7 +273,7 @@ public class BioRecorder {
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
             numberOfRecordsToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
-            DataRecordRecordRecordsJoiner edfJoiner = new DataRecordRecordRecordsJoiner(adsDataSender, numberOfRecordsToJoin);
+            RecordsJoiner edfJoiner = new RecordsJoiner(adsDataSender, numberOfRecordsToJoin);
 
             // Add digital filters to ads channels
             SignalsFilter signalsFilter = new SignalsFilter(edfJoiner);

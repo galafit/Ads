@@ -275,7 +275,15 @@ public class EdfBioRecorderApp {
 
             if(appConfig.isMathlabWritingEnabled()) {
                 try{
-                    mathlabWriter = new MathlabWriter(dataRecordConfig, appConfig.getRecorderConfig());
+                    int numberOfAccChannels = 0;
+                    if(appConfig.getRecorderConfig().isAccelerometerEnabled()) {
+                        if(appConfig.getRecorderConfig().isAccelerometerOneChannelMode()) {
+                            numberOfAccChannels = 1;
+                        } else {
+                            numberOfAccChannels = 3;
+                        }
+                    }
+                    mathlabWriter = new MathlabWriter(dataRecordConfig, numberOfAccChannels);
                 } catch (IllegalArgumentException ex) {
                     log.info("LabStreamingLayer failed to start.", ex);
                 }

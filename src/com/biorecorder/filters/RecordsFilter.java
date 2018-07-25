@@ -4,7 +4,7 @@ import com.biorecorder.dataformat.DataRecordListener;
 import com.biorecorder.dataformat.DataRecordSender;
 
 /**
- * A FilterDataRecordRecordSender listen (wrap) some other DataRecordSender and transforms
+ * A RecordsFilter listen (wrap) some other DataRecordSender and transforms
  * receiving data records before
  * to send it to its listeners.
  *
@@ -14,11 +14,11 @@ import com.biorecorder.dataformat.DataRecordSender;
  * PS How to implement thread safe classical observer pattern with multiple listeners
  * see here: https://www.techyourchance.com/thread-safe-observer-design-pattern-in-java/
  */
-public abstract class FilterDataRecordRecordSender implements DataRecordSender, DataRecordListener {
+public abstract class RecordsFilter implements DataRecordSender, DataRecordListener {
     protected final DataRecordSender in;
     private volatile DataRecordListener listener;
 
-    public FilterDataRecordRecordSender(DataRecordSender in) {
+    public RecordsFilter(DataRecordSender in) {
         this.in = in;
         listener = new NullDataRecordListener();
     }

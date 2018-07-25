@@ -6,10 +6,10 @@ import com.biorecorder.dataformat.DataRecordConfig;
  * Wrapper around some DataRecordConfig that permits
  * to change only some methods
  */
-class DataRecordConfigWrapper implements DataRecordConfig {
+class ConfigWrapper implements DataRecordConfig {
     final DataRecordConfig inConfig;
 
-    public DataRecordConfigWrapper(DataRecordConfig inConfig) {
+    public ConfigWrapper(DataRecordConfig inConfig) {
         this.inConfig = inConfig;
     }
 

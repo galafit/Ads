@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * Permit to omit samples from some channels (delete signals)
  */
-public class  SignalsRemover extends FilterDataRecordRecordSender {
+public class  SignalsRemover extends RecordsFilter {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
     private int inRecordSize;
     private int resultantRecordSize;

@@ -12,7 +12,7 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class SignalsFilter extends FilterDataRecordRecordSender {
+public class SignalsFilter extends RecordsFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private int inRecordSize;
     private double[] offsets;
@@ -61,7 +61,7 @@ public class SignalsFilter extends FilterDataRecordRecordSender {
 
     @Override
     public DataRecordConfig dataConfig() {
-        return new DataRecordConfigWrapper(in.dataConfig()) {
+        return new ConfigWrapper(in.dataConfig()) {
             @Override
             public String getPrefiltering(int signalNumber) {
                 if(inConfig.getPrefiltering(signalNumber) != null && ! inConfig.getPrefiltering(signalNumber).isEmpty()) {

@@ -8,9 +8,16 @@ import com.biorecorder.ads.*;
 public class RecorderConfig {
     private double durationOfDataRecord = 1; // sec
     private boolean deleteBatteryVoltageChannel = true;
+    private int[] channelsExtraDividers;
+    private int accelerometerExtraDivider = 1;
+
     private AdsConfig adsConfig = new AdsConfig();
 
     public RecorderConfig() {
+        channelsExtraDividers = new int[RecorderType.getMaxChannelsCount()];
+        for (int i = 0; i < channelsExtraDividers.length; i++) {
+            channelsExtraDividers[i] = 1;
+        }
     }
 
     public RecorderConfig(RecorderConfig configToCopy) {
@@ -28,16 +35,20 @@ public class RecorderConfig {
 
     public void setChannelDivider(int channelNumber, RecorderDivider recorderDivider) {
         adsConfig.setAdsChannelDivider(channelNumber, recorderDivider.getAdsDivider());
+        channelsExtraDividers[channelNumber] = recorderDivider.getExtraDivider();
     }
 
-    public int getAccelerometerDivider() {
-        return adsConfig.getAccelerometerDivider();
+    public void setAccelerometerDivider(RecorderDivider recorderDivider) {
+        accelerometerExtraDivider = recorderDivider.getExtraDivider();
     }
 
-    public int getChannelDivider(int channelNumber) {
-        return adsConfig.getAdsChannelDivider(channelNumber);
+    public RecorderDivider getAccelerometerDivider() {
+        return RecorderDivider.valueOf(adsConfig.getAccelerometerDivider(), accelerometerExtraDivider);
     }
 
+    public RecorderDivider getChannelDivider(int channelNumber) {
+        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber), accelerometerExtraDivider);
+    }
 
     public boolean isLeadOffEnabled() {
         return adsConfig.isLeadOffEnabled();
@@ -144,10 +155,10 @@ public class RecorderConfig {
     }
 
     public int getChannelSampleRate(int channelNumber) {
-        return getSampleRate() / getChannelDivider(channelNumber);
+        return getSampleRate() / getChannelDivider(channelNumber).getValue();
     }
 
     public int getAccelerometerSampleRate() {
-        return getSampleRate() / adsConfig.getAccelerometerDivider();
+        return getSampleRate() / getAccelerometerDivider().getValue();
     }
 }
