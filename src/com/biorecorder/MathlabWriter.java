@@ -100,14 +100,14 @@ public class MathlabWriter implements DataRecordListener {
         for (int i = 0; i < dataRecord.length; i++) {
             if (channelCount <= numberOfAdsChannels) {
                 for (int j = 0; j < adsChannelFactor; j++) {
-                    mathlabRecordCount = sampleCount + j;
+                    mathlabRecordCount = sampleCount * adsChannelFactor + j;
                     mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
                 mathlabRecordCount = sampleCount;
                 mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
             } else {
                 for (int j = 0; j < accFactor; j++) {
-                    mathlabRecordCount = sampleCount + j;
+                    mathlabRecordCount = sampleCount * accFactor + j;
                     mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
             }
