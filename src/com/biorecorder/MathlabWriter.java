@@ -71,6 +71,8 @@ public class MathlabWriter implements DataRecordListener {
         info = new LSL.StreamInfo("BioSemi", "EEG", dataRecordConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
         outlet = new LSL.StreamOutlet(info);
 
+        numberOfMathlabRecords = maxNumberOfSamplesInRecord;
+
         log.info("MatlabDataListener initialization. Number of enabled channels = " + dataRecordConfig.signalsCount() +
                 ". Frequency = " + maxFrequency + ". Number of samples in BDF data record = " + maxNumberOfSamplesInRecord);
     }

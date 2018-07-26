@@ -12,12 +12,12 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class SignalsFilter extends RecordsFilter {
+public class SignalsDigitalFilter extends RecordsFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private int inRecordSize;
-    private double[] offsets;
+    private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public SignalsFilter(DataRecordSender in) {
+    public SignalsDigitalFilter(DataRecordSender in) {
         super(in);
         for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
             inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);

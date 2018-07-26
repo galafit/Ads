@@ -276,7 +276,7 @@ public class BioRecorder {
             RecordsJoiner edfJoiner = new RecordsJoiner(adsDataSender, numberOfRecordsToJoin);
 
             // Add digital filters to ads channels
-            SignalsFilter signalsFilter = new SignalsFilter(edfJoiner);
+            SignalsDigitalFilter signalsDigitalFilter = new SignalsDigitalFilter(edfJoiner);
             if (!isAccelerometerOnly) {
                 int enableChannelsCount = 0;
                 for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
@@ -284,7 +284,7 @@ public class BioRecorder {
                         List<NamedDigitalFilter> channelFilters = filters.get(i);
                         if (channelFilters != null) {
                             for (NamedDigitalFilter filter : channelFilters) {
-                                signalsFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
+                                signalsDigitalFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
                             }
                             enableChannelsCount++;
                         }
@@ -295,7 +295,7 @@ public class BioRecorder {
 
             DataRecordConfig adsDataRecordConfig = ads.getDataConfig(adsConfig);
             // Remove helper channels
-            SignalsRemover signalsRemover = new SignalsRemover(signalsFilter);
+            SignalsRemover signalsRemover = new SignalsRemover(signalsDigitalFilter);
             if (isAccelerometerOnly) {
                 // delete helper enabled channel
                 signalsRemover.removeSignal(0);

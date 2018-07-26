@@ -15,10 +15,10 @@ public class  SignalsRemover extends RecordsFilter {
     private int inRecordSize;
     private int resultantRecordSize;
 
-    public SignalsRemover(DataRecordSender input) {
-        super(input);
-        for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
-            inRecordSize += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+    public SignalsRemover(DataRecordSender in) {
+        super(in);
+        for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
+            inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
         }
         resultantRecordSize = calculateResultantRecordSize();
     }
