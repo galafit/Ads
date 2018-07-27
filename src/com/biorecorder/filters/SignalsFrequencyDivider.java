@@ -5,7 +5,6 @@ import com.biorecorder.dataformat.DataRecordSender;
 import com.biorecorder.dataformat.DefaultDataRecordConfig;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -68,16 +67,39 @@ public class SignalsFrequencyDivider extends RecordsFilter {
         int[] resultantRecord = new int[resultantRecordSize];
 
         int signalCount = 0;
-        int sampleCount = 0;
-        for (int i = 0; i < inputRecord.length; i++) {
-            Integer divider = dividers.get(signalCount);
-            if(divider != null) {
-                for (int j = 0; j < divider; j++) {
+        int signalSampleCount = 0;
 
+        int count = 0;
+        long sum = 0;
+        Integer divider = 1;
+
+        int resultantIndex = 0;
+
+        for (int i = 0; i < inputRecord.length; i++) {
+            if(signalSampleCount == 0) {
+                divider = dividers.get(signalCount);
+                if(divider == null) {
+                    divider = 1;
                 }
             }
-
+            sum += inputRecord[i];
+            count++;
+            signalSampleCount++;
+            if(count == divider) {
+                if(divider > 1) {
+                    resultantRecord[resultantIndex] = (int)(sum / divider);
+                } else {
+                    resultantRecord[resultantIndex] = inputRecord[i];
+                }
+                resultantIndex++;
+                count = 0;
+                sum = 0;
+            }
+            if(signalSampleCount == in.dataConfig().getNumberOfSamplesInEachDataRecord(signalCount)) {
+                signalCount++;
+                signalSampleCount = 0;
+            }
         }
-
+        sendDataToListeners(resultantRecord);
     }
 }

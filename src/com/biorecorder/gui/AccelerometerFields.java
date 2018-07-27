@@ -17,8 +17,8 @@ public class AccelerometerFields {
     public AccelerometerFields(RecorderSettings settings) {
         number = settings.getChannelsCount() + 1;
         nameField = new JLabel(settings.getAccelerometerName());
-        Integer[] frequencies = {settings.getAccelerometerFrequency()};
-        frequencyField = new JComboBox(frequencies);
+        frequencyField = new JComboBox(settings.getAccelerometerAvailableFrequencies());
+        frequencyField.setSelectedItem(settings.getAccelerometerFrequency());
         commutatorField = new JComboBox(settings.getAccelerometerAvailableModes());
         commutatorField.setSelectedItem(settings.getAccelerometerMode());
         isEnabledField = new JCheckBox();
@@ -34,6 +34,10 @@ public class AccelerometerFields {
 
     public String getMode() {
         return (String)commutatorField.getSelectedItem();
+    }
+
+    public int getFrequency() {
+        return (Integer) frequencyField.getSelectedItem();
     }
 
     /**

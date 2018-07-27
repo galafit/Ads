@@ -152,8 +152,8 @@ public class RecorderSettingsImpl implements RecorderSettings {
 
 
     @Override
-    public void setChannelFrequency(int channelNumber, int channelFrequency) {
-        int dividerValue = getMaxFrequency() / channelFrequency;
+    public void setChannelFrequency(int channelNumber, int frequency) {
+        int dividerValue = getMaxFrequency() / frequency;
         RecorderDivider divider;
         try {
            divider = RecorderDivider.valueOf(dividerValue);
@@ -182,6 +182,18 @@ public class RecorderSettingsImpl implements RecorderSettings {
     @Override
     public int getAccelerometerFrequency() {
         return appConfig.getRecorderConfig().getAccelerometerSampleRate();
+    }
+
+    @Override
+    public void setAccelerometerFrequency(int frequency) {
+        int dividerValue = getMaxFrequency() / frequency;
+        RecorderDivider divider;
+        try {
+            divider = RecorderDivider.valueOf(dividerValue);
+        } catch (Exception ex) {
+            divider = RecorderDivider.D10;
+        }
+        appConfig.getRecorderConfig().setAccelerometerDivider(divider);
     }
 
     @Override
@@ -230,6 +242,16 @@ public class RecorderSettingsImpl implements RecorderSettings {
     @Override
     public Integer[] getChannelsAvailableFrequencies() {
         RecorderDivider[] dividers = RecorderDivider.values();
+        Integer[] frequencies = new Integer[dividers.length];
+        for (int i = 0; i < dividers.length; i++) {
+            frequencies[i] = getMaxFrequency() / dividers[i].getValue();
+        }
+        return frequencies;
+    }
+
+    @Override
+    public Integer[] getAccelerometerAvailableFrequencies() {
+        RecorderDivider[] dividers = appConfig.getRecorderConfig().getAccelerometerAvailableDividers();
         Integer[] frequencies = new Integer[dividers.length];
         for (int i = 0; i < dividers.length; i++) {
             frequencies[i] = getMaxFrequency() / dividers[i].getValue();

@@ -639,8 +639,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             settings.setChannelMode(i, channels[i].getMode());
             settings.setChannelFrequency(i, channels[i].getFrequency());
         }
-
         settings.setMaxFrequency((Integer) maxFrequencyField.getSelectedItem());
+        settings.setAccelerometerFrequency(accelerometer.getFrequency());
         settings.setAccelerometerEnabled(accelerometer.isEnabled());
         settings.setAccelerometerMode(accelerometer.getMode());
         settings.setFileName(getFilename());

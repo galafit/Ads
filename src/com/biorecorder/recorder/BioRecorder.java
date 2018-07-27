@@ -271,31 +271,70 @@ public class BioRecorder {
             adsDataSender.addButteryLevelListener(batteryListener);
             adsDataSender.addLeadOffListener(leadOffListener);
 
+            resultantDataRecordSender = adsDataSender;
+
             // join DataRecords to have data records length = resultantDataRecordDuration;
             numberOfRecordsToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
-            RecordsJoiner edfJoiner = new RecordsJoiner(adsDataSender, numberOfRecordsToJoin);
 
-            // Add digital filters to ads channels
-            SignalsDigitalFilter signalsDigitalFilter = new SignalsDigitalFilter(edfJoiner);
-            if (!isAccelerometerOnly) {
-                int enableChannelsCount = 0;
-                for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-                    if (adsConfig.isAdsChannelEnabled(i)) {
-                        List<NamedDigitalFilter> channelFilters = filters.get(i);
-                        if (channelFilters != null) {
-                            for (NamedDigitalFilter filter : channelFilters) {
-                                signalsDigitalFilter.addSignalFilter(enableChannelsCount, filter, filter.getName());
-                            }
-                            enableChannelsCount++;
-                        }
+            if(numberOfRecordsToJoin > 1) {
+                RecordsJoiner edfJoiner = new RecordsJoiner(adsDataSender, numberOfRecordsToJoin);
+                resultantDataRecordSender = edfJoiner;
+            }
 
+            Map<Integer, List<NamedDigitalFilter>> digitalFilters = new HashMap<>();
+            Map<Integer, Integer> extraDividers = new HashMap<>();
+            int enableChannelsCount = 0;
+            for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+                if (recorderConfig.isChannelEnabled(i)) {
+                    List<NamedDigitalFilter> channelFilters = filters.get(i);
+                    if (channelFilters != null) {
+                        digitalFilters.put(enableChannelsCount, channelFilters);
+                    }
+                    Integer divider = recorderConfig.getChannelDivider(i).getExtraDivider();
+                    if(divider > 1) {
+                        extraDividers.put(enableChannelsCount, divider);
+                    }
+                    enableChannelsCount++;
+                }
+            }
+
+            if(recorderConfig.isAccelerometerEnabled()) {
+                Integer divider = recorderConfig.getAccelerometerDivider().getExtraDivider();
+                if(divider > 1) {
+                    if(recorderConfig.isAccelerometerOneChannelMode()) {
+                        extraDividers.put(enableChannelsCount, divider);
+                    } else {
+                        extraDividers.put(enableChannelsCount, divider);
+                        extraDividers.put(enableChannelsCount++, divider);
+                        extraDividers.put(enableChannelsCount++, divider);
                     }
                 }
             }
 
+            // reduce signals frequencies
+            if(!extraDividers.isEmpty()) {
+                SignalsFrequencyDivider frequencyDivider = new SignalsFrequencyDivider(resultantDataRecordSender);
+                for (Integer signal : extraDividers.keySet()){
+                    frequencyDivider.addDivider(signal, extraDividers.get(signal));
+                }
+                resultantDataRecordSender = frequencyDivider;
+            }
+
+            // Add digital filters to ads channels
+            if(!digitalFilters.isEmpty()) {
+                SignalsDigitalFilter signalsDigitalFilter = new SignalsDigitalFilter(resultantDataRecordSender);
+                for (Integer signal : digitalFilters.keySet()){
+                    List<NamedDigitalFilter> channelFilters = filters.get(signal);
+                    for (NamedDigitalFilter filter : channelFilters) {
+                        signalsDigitalFilter.addSignalFilter(signal, filter, filter.getName());
+                    }
+                }
+                resultantDataRecordSender = signalsDigitalFilter;
+            }
+
             DataRecordConfig adsDataRecordConfig = ads.getDataConfig(adsConfig);
             // Remove helper channels
-            SignalsRemover signalsRemover = new SignalsRemover(signalsDigitalFilter);
+            SignalsRemover signalsRemover = new SignalsRemover(resultantDataRecordSender);
             if (isAccelerometerOnly) {
                 // delete helper enabled channel
                 signalsRemover.removeSignal(0);

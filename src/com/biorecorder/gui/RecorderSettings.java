@@ -56,7 +56,7 @@ public interface RecorderSettings {
 
     int getChannelSampleRate(int channelNumber);
 
-    void setChannelFrequency(int channelNumber, int channelFrequency);
+    void setChannelFrequency(int channelNumber, int frequency);
 
     void setAccelerometerEnabled(boolean accelerometerEnabled);
 
@@ -65,6 +65,8 @@ public interface RecorderSettings {
     String getAccelerometerName();
 
     int getAccelerometerFrequency();
+
+    void setAccelerometerFrequency(int frequency);
 
     String getAccelerometerMode();
 
@@ -76,6 +78,8 @@ public interface RecorderSettings {
     public  Integer[] getAvailableMaxFrequencies();
 
     public Integer[] getChannelsAvailableFrequencies();
+
+    public Integer[] getAccelerometerAvailableFrequencies();
 
     public  Integer[] getChannelsAvailableGains();
 
