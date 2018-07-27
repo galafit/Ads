@@ -24,6 +24,7 @@ public class RecorderConfig {
         durationOfDataRecord = configToCopy.durationOfDataRecord;
         adsConfig = new AdsConfig(configToCopy.adsConfig);
         accelerometerExtraDivider = configToCopy.accelerometerExtraDivider;
+        channelsExtraDividers = new int[RecorderType.getMaxChannelsCount()];
         for (int i = 0; i < channelsExtraDividers.length; i++) {
             channelsExtraDividers[i] = configToCopy.channelsExtraDividers[i];
         }
