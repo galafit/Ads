@@ -412,7 +412,7 @@ public class EdfBioRecorderApp {
             try {
                 edfWriter.setStartRecordingTime(bioRecorder.getStartMeasuringTime());
                 if(isDurationOfDataRecordComputable) {
-                    edfWriter.setDurationOfDataRecords(bioRecorder.getDurationOfDataRecord());
+                    edfWriter.setDurationOfDataRecords(bioRecorder.getCalculatedDurationOfDataRecord());
                 }
                 edfWriter.close();
                 if(edfWriter.getNumberOfReceivedDataRecords() > 0) {

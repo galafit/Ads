@@ -152,9 +152,9 @@ public class BioRecorder {
      *
      * @return calculated duration of data records
      */
-    public double getDurationOfDataRecord() {
+    public double getCalculatedDurationOfDataRecord() {
         if(adsDataHandler != null) {
-            return adsDataHandler.calculateDurationOfDataRecord();
+            return adsDataHandler.getCalculatedDurationOfDataRecord();
         }
         return 0;
     }
@@ -222,7 +222,6 @@ public class BioRecorder {
 
     public void removeEventsListener() {
         eventsListener = new NullEventsListener();
-        ads.removeMessageListener();
     }
 
     private void notifyEventsListeners() {
@@ -239,7 +238,7 @@ public class BioRecorder {
      */
     class AdsDataHandler {
         private AdsDataRecordSender adsDataSender;
-        private DataRecordSender resultantDataRecordSender;
+        private DataRecordSender resultantDataSender;
         private int numberOfRecordsToJoin = 1;
 
 
@@ -271,26 +270,26 @@ public class BioRecorder {
             adsDataSender.addButteryLevelListener(batteryListener);
             adsDataSender.addLeadOffListener(leadOffListener);
 
-            resultantDataRecordSender = adsDataSender;
+            resultantDataSender = adsDataSender;
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
             numberOfRecordsToJoin = recorderConfig.getNumberOfAdsRecordsToJoin();
 
             if(numberOfRecordsToJoin > 1) {
-                RecordsJoiner edfJoiner = new RecordsJoiner(resultantDataRecordSender, numberOfRecordsToJoin);
-                resultantDataRecordSender = edfJoiner;
+                RecordsJoiner edfJoiner = new RecordsJoiner(resultantDataSender, numberOfRecordsToJoin);
+                resultantDataSender = edfJoiner;
             } else {
                 numberOfRecordsToJoin = 1;
             }
 
-            Map<Integer, List<NamedDigitalFilter>> digitalFilters = new HashMap<>();
+            Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
             Map<Integer, Integer> extraDividers = new HashMap<>();
             int enableChannelsCount = 0;
             for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
                 if (recorderConfig.isChannelEnabled(i)) {
                     List<NamedDigitalFilter> channelFilters = filters.get(i);
                     if (channelFilters != null) {
-                        digitalFilters.put(enableChannelsCount, channelFilters);
+                        enableChannelsFilters.put(enableChannelsCount, channelFilters);
                     }
                     Integer divider = recorderConfig.getChannelDivider(i).getExtraDivider();
                     if(divider > 1) {
@@ -315,59 +314,59 @@ public class BioRecorder {
 
             // reduce signals frequencies
             if(!extraDividers.isEmpty()) {
-                SignalsFrequencyDivider edfFrequencyDivider = new SignalsFrequencyDivider(resultantDataRecordSender);
+                SignalsFrequencyDivider edfFrequencyDivider = new SignalsFrequencyDivider(resultantDataSender);
                 for (Integer signal : extraDividers.keySet()){
                     edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
                 }
-                resultantDataRecordSender = edfFrequencyDivider;
+                resultantDataSender = edfFrequencyDivider;
             }
 
             // Add digital filters to ads channels
-            if(!digitalFilters.isEmpty()) {
-                SignalsDigitalFilter signalsDigitalFilter = new SignalsDigitalFilter(resultantDataRecordSender);
-                for (Integer signal : digitalFilters.keySet()){
-                    List<NamedDigitalFilter> channelFilters = digitalFilters.get(signal);
+            if(!enableChannelsFilters.isEmpty()) {
+                SignalsDigitalFilter edfSignalsFilter = new SignalsDigitalFilter(resultantDataSender);
+                for (Integer signal : enableChannelsFilters.keySet()){
+                    List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
                     for (NamedDigitalFilter filter : channelFilters) {
-                        signalsDigitalFilter.addSignalFilter(signal, filter, filter.getName());
+                        edfSignalsFilter.addSignalFilter(signal, filter, filter.getName());
                     }
                 }
-                resultantDataRecordSender = signalsDigitalFilter;
+                resultantDataSender = edfSignalsFilter;
+            }
+            int batteryChannelNumber = -1;
+            int leadOffChannelNumber = -1;
+            if(recorderConfig.isBatteryVoltageMeasureEnabled()) {
+                batteryChannelNumber = enableChannelsCount;
+                enableChannelsCount++;
             }
             if(recorderConfig.isLeadOffEnabled()) {
-                enableChannelsCount++;
-            }
-            if(recorderConfig.isBatteryVoltageMeasureEnabled()) {
+                leadOffChannelNumber = enableChannelsCount;
                 enableChannelsCount++;
             }
 
-            if(recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel())) {
+            // if some helper channels have to be deleted
+            if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel())) {
 
-                // Remove helper channels
-                SignalsRemover signalsRemover = new SignalsRemover(resultantDataRecordSender);
+                // Filter to remove helper channels
+                SignalsRemover edfSignalsRemover = new SignalsRemover(resultantDataSender);
                 if (isAccelerometerOnly) {
                     // delete helper enabled channel
-                    signalsRemover.removeSignal(0);
+                    edfSignalsRemover.removeSignal(0);
                 }
                 if (recorderConfig.isLeadOffEnabled()) {
                     // delete helper Lead-off channel
-                    signalsRemover.removeSignal(enableChannelsCount - 1);
+                    edfSignalsRemover.removeSignal(leadOffChannelNumber);
                 }
                 if (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel()) {
                     // delete helper BatteryVoltage channel
-                    if (recorderConfig.isLeadOffEnabled()) {
-                        signalsRemover.removeSignal(enableChannelsCount - 2);
-                    } else {
-                        signalsRemover.removeSignal(enableChannelsCount - 1);
-                    }
+                    edfSignalsRemover.removeSignal(batteryChannelNumber);
                 }
-                signalsRemover.addDataListener(dataRecordListener);
-                resultantDataRecordSender = signalsRemover;
+                edfSignalsRemover.addDataListener(dataRecordListener);
+                resultantDataSender = edfSignalsRemover;
             }
-
         }
 
         public DataRecordConfig getResultantDataConfig() {
-            return resultantDataRecordSender.dataConfig();
+            return resultantDataSender.dataConfig();
         }
 
         public Future<Boolean> startRecording() throws IllegalStateException, IllegalArgumentException {
@@ -382,7 +381,7 @@ public class BioRecorder {
             return adsDataSender.getStartMeasuringTime();
         }
 
-        public double calculateDurationOfDataRecord() {
+        public double getCalculatedDurationOfDataRecord() {
             return adsDataSender.calculateDurationOfDataRecord() * numberOfRecordsToJoin;
         }
     }

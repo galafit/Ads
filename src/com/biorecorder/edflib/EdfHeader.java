@@ -254,7 +254,7 @@ public class EdfHeader {
      * Default value = 1 sec.
      *
      * @param durationOfDataRecord duration of DataRecords in seconds
-     * @throws IllegalArgumentException if calculateDurationOfDataRecord <= 0.
+     * @throws IllegalArgumentException if getCalculatedDurationOfDataRecord <= 0.
      */
     public void setDurationOfDataRecord(double durationOfDataRecord) throws IllegalArgumentException {
         if (durationOfDataRecord <= 0) {
