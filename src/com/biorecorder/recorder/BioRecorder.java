@@ -326,7 +326,7 @@ public class BioRecorder {
             if(!digitalFilters.isEmpty()) {
                 SignalsDigitalFilter signalsDigitalFilter = new SignalsDigitalFilter(resultantDataRecordSender);
                 for (Integer signal : digitalFilters.keySet()){
-                    List<NamedDigitalFilter> channelFilters = filters.get(signal);
+                    List<NamedDigitalFilter> channelFilters = digitalFilters.get(signal);
                     for (NamedDigitalFilter filter : channelFilters) {
                         signalsDigitalFilter.addSignalFilter(signal, filter, filter.getName());
                     }
