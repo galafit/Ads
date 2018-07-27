@@ -240,8 +240,10 @@ public class EdfBioRecorderApp {
                 if (appConfig.is50HzFilterEnabled(i)) {
                     // Apply MovingAverage filter to the channel to reduce 50Hz noise
                     int numberOfAveragingPoints = recorderConfig.getChannelSampleRate(i) / 50;
-                    bioRecorder.addChannelFilter(i, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:" + numberOfAveragingPoints);
-                }
+                    if(numberOfAveragingPoints > 1) {
+                        bioRecorder.addChannelFilter(i, new MovingAverageFilter(numberOfAveragingPoints), "MovAvg:" + numberOfAveragingPoints);
+                    }
+                 }
             }
 
             // check if dirname is ok directory exist

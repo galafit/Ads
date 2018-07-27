@@ -34,7 +34,7 @@ public class RecorderConfig {
     }
 
     public RecorderDivider getChannelDivider(int channelNumber) {
-        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber), accelerometerExtraDivider);
+        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber), channelsExtraDividers[channelNumber]);
     }
 
     public void setChannelDivider(int channelNumber, RecorderDivider recorderDivider) {

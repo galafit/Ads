@@ -277,7 +277,7 @@ public class BioRecorder {
             numberOfRecordsToJoin = (int) (recorderConfig.getDurationOfDataRecord() / adsConfig.getDurationOfDataRecord());
 
             if(numberOfRecordsToJoin > 1) {
-                RecordsJoiner edfJoiner = new RecordsJoiner(adsDataSender, numberOfRecordsToJoin);
+                RecordsJoiner edfJoiner = new RecordsJoiner(resultantDataRecordSender, numberOfRecordsToJoin);
                 resultantDataRecordSender = edfJoiner;
             }
 
@@ -305,19 +305,10 @@ public class BioRecorder {
                         extraDividers.put(enableChannelsCount, divider);
                     } else {
                         extraDividers.put(enableChannelsCount, divider);
-                        extraDividers.put(enableChannelsCount++, divider);
-                        extraDividers.put(enableChannelsCount++, divider);
+                        extraDividers.put(enableChannelsCount + 1, divider);
+                        extraDividers.put(enableChannelsCount + 2, divider);
                     }
                 }
-            }
-
-            // reduce signals frequencies
-            if(!extraDividers.isEmpty()) {
-                SignalsFrequencyDivider frequencyDivider = new SignalsFrequencyDivider(resultantDataRecordSender);
-                for (Integer signal : extraDividers.keySet()){
-                    frequencyDivider.addDivider(signal, extraDividers.get(signal));
-                }
-                resultantDataRecordSender = frequencyDivider;
             }
 
             // Add digital filters to ads channels
@@ -332,27 +323,39 @@ public class BioRecorder {
                 resultantDataRecordSender = signalsDigitalFilter;
             }
 
-            DataRecordConfig adsDataRecordConfig = ads.getDataConfig(adsConfig);
-            // Remove helper channels
-            SignalsRemover signalsRemover = new SignalsRemover(resultantDataRecordSender);
-            if (isAccelerometerOnly) {
-                // delete helper enabled channel
-                signalsRemover.removeSignal(0);
+            // reduce signals frequencies
+            if(!extraDividers.isEmpty()) {
+                SignalsFrequencyDivider edfFrequencyDivider = new SignalsFrequencyDivider(resultantDataRecordSender);
+                for (Integer signal : extraDividers.keySet()){
+                    edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
+                }
+                resultantDataRecordSender = edfFrequencyDivider;
             }
-            if (adsConfig.isLeadOffEnabled()) {
-                // delete helper Lead-off channel
-                signalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 1);
-            }
-            if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel()) {
-                // delete helper BatteryVoltage channel
+
+            if(recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel())) {
+                DataRecordConfig adsDataRecordConfig = ads.getDataConfig(adsConfig);
+                // Remove helper channels
+                SignalsRemover signalsRemover = new SignalsRemover(resultantDataRecordSender);
+                if (isAccelerometerOnly) {
+                    // delete helper enabled channel
+                    signalsRemover.removeSignal(0);
+                }
                 if (adsConfig.isLeadOffEnabled()) {
-                    signalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 2);
-                } else {
+                    // delete helper Lead-off channel
                     signalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 1);
                 }
+                if (adsConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel()) {
+                    // delete helper BatteryVoltage channel
+                    if (adsConfig.isLeadOffEnabled()) {
+                        signalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 2);
+                    } else {
+                        signalsRemover.removeSignal(adsDataRecordConfig.signalsCount() - 1);
+                    }
+                }
+                signalsRemover.addDataListener(dataRecordListener);
+                resultantDataRecordSender = signalsRemover;
             }
-            signalsRemover.addDataListener(dataRecordListener);
-            resultantDataRecordSender = signalsRemover;
+
         }
 
         public DataRecordConfig getResultantDataConfig() {
