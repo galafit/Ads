@@ -33,16 +33,16 @@ class AdsDataRecordSender implements DataRecordSender {
 
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
-    private volatile double durationOfDataRecord; // sec
+    private volatile double calculatedDurationOfDataRecord; // sec
 
 
     public AdsDataRecordSender(Ads ads, AdsConfig adsConfig) {
         this.ads = ads;
         this.adsConfig = adsConfig;
-        durationOfDataRecord = adsConfig.getDurationOfDataRecord();
+        calculatedDurationOfDataRecord = adsConfig.getDurationOfDataRecord();
     }
 
-    public Future<Boolean> startRecording(AdsConfig config) throws IllegalStateException, IllegalArgumentException {
+    public Future<Boolean> startRecording() throws IllegalStateException, IllegalArgumentException {
         dataHandlingThread = new Thread("«Data Records handling» thread") {
             @Override
             public void run() {
@@ -67,7 +67,7 @@ class AdsDataRecordSender implements DataRecordSender {
             }
         };
         dataHandlingThread.start();
-        return ads.startRecording(config);
+        return ads.startRecording(adsConfig);
     }
 
     public boolean stop() throws IllegalStateException {
@@ -88,7 +88,7 @@ class AdsDataRecordSender implements DataRecordSender {
         if(firstRecordTime == 0) {
             return 0;
         }
-        return firstRecordTime - (long) (durationOfDataRecord * 1000);
+        return firstRecordTime - (long) (calculatedDurationOfDataRecord * 1000);
     }
 
     /**
@@ -96,8 +96,8 @@ class AdsDataRecordSender implements DataRecordSender {
      *
      * @return calculated duration of data records
      */
-    public double getDurationOfDataRecord() {
-        return durationOfDataRecord;
+    public double calculateDurationOfDataRecord() {
+        return calculatedDurationOfDataRecord;
     }
 
     @Override
@@ -119,7 +119,7 @@ class AdsDataRecordSender implements DataRecordSender {
                         lastRecordTime = System.currentTimeMillis();
                     }
                     if (recordNumber > 0) {
-                        durationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
+                        calculatedDurationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
                     }
                     dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
                 } catch (InterruptedException e) {

@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Ads packs samples from all channels received during the
- * time = MaxDiv/getMaxFrequency (getDurationOfDataRecord)
+ * time = MaxDiv/getMaxFrequency (calculateDurationOfDataRecord)
  * in one array of int. Every array (data record or data package) has
  * the following structure (in case of 8 channels):
  * <p>
@@ -30,10 +30,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  1 sample with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
- * Where n_i = ads_channel_i_sampleRate * getDurationOfDataRecord
+ * Where n_i = ads_channel_i_sampleRate * calculateDurationOfDataRecord
  * <br>ads_channel_i_sampleRate = sampleRate / ads_channel_i_divider
  * <p>
- * n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * getDurationOfDataRecord
+ * n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * calculateDurationOfDataRecord
  * <br>accelerometer_sampleRate = sampleRate / accelerometer_divider
  * <p>
  * If for Accelerometer  one channel mode is chosen then samples from
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
- * Where n_acc =  accelerometer_sampleRate * getDurationOfDataRecord
+ * Where n_acc =  accelerometer_sampleRate * calculateDurationOfDataRecord
  */
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);

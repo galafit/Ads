@@ -23,10 +23,22 @@ public class RecorderConfig {
     public RecorderConfig(RecorderConfig configToCopy) {
         durationOfDataRecord = configToCopy.durationOfDataRecord;
         adsConfig = new AdsConfig(configToCopy.adsConfig);
+        accelerometerExtraDivider = configToCopy.accelerometerExtraDivider;
+        for (int i = 0; i < channelsExtraDividers.length; i++) {
+            channelsExtraDividers[i] = configToCopy.channelsExtraDividers[i];
+        }
     }
 
     AdsConfig getAdsConfig() {
         return adsConfig;
+    }
+
+    int getNumberOfAdsRecordsToJoin() {
+        int numberOfRecordsToJoin = (int) (durationOfDataRecord / adsConfig.getDurationOfDataRecord());
+        if(numberOfRecordsToJoin > 1) {
+            return numberOfRecordsToJoin;
+        }
+        return 1;
     }
 
     public boolean isDeleteBatteryVoltageChannel() {
@@ -151,7 +163,7 @@ public class RecorderConfig {
     }
 
     public double getDurationOfDataRecord() {
-        return durationOfDataRecord;
+        return adsConfig.getDurationOfDataRecord() * getNumberOfAdsRecordsToJoin();
     }
 
     public void setDurationOfDataRecord(double durationOfDataRecord) {
