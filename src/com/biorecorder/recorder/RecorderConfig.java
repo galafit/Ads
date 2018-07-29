@@ -6,8 +6,9 @@ import com.biorecorder.ads.*;
  *
  */
 public class RecorderConfig {
+
     private double durationOfDataRecord = 1; // sec
-    private boolean deleteBatteryVoltageChannel = true;
+    private boolean batteryVoltageChannelDeletingEnable = true;
     private int[] channelsExtraDividers;
     private int accelerometerExtraDivider = 1;
 
@@ -42,8 +43,12 @@ public class RecorderConfig {
         return 1;
     }
 
-    public boolean isDeleteBatteryVoltageChannel() {
-        return deleteBatteryVoltageChannel;
+    public boolean isBatteryVoltageChannelDeletingEnable() {
+        return batteryVoltageChannelDeletingEnable;
+    }
+
+    public void setBatteryVoltageChannelDeletingEnable(boolean batteryVoltageChannelDeletingEnable) {
+        this.batteryVoltageChannelDeletingEnable = batteryVoltageChannelDeletingEnable;
     }
 
     public RecorderDivider getChannelDivider(int channelNumber) {

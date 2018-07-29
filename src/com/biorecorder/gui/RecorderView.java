@@ -17,7 +17,6 @@ import java.util.ArrayList;
 
 
 /**
- * TODO: add flag isChannelsSynchronized.
  * If it is selected when we change a channel field the same field of all other
  * channels should be automatically changed synchronously ()
  */
@@ -435,7 +434,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     }
 
     @Override
-    public void onStateChanged(StateChangeReason changeReason) {
+    public void onStateChanged(Message message) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 if (recorder.isRecording()) {
@@ -456,8 +455,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
                     setContactsVisible(false);
                 }
 
-                if(!changeReason.isMessageEmpty()) {
-                    showMessage(changeReason.getMessage());
+                if(message != null) {
+                    showMessage(message.getMessage());
                 }
             }
         });
@@ -492,7 +491,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             if (confirm(confirmMsg)) {
                 OperationResult actionResult = recorder.createDirectory(dirToSave);
                 if (!actionResult.isMessageEmpty()) {
-                    showMessage(actionResult.getMessage());
+                    showMessage(actionResult.getMessage().getMessage());
                 }
                 if (!actionResult.isSuccess()) {
                     return;
@@ -511,15 +510,12 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
         OperationResult actionResult = recorder.startRecording(saveSettings());
         if (!actionResult.isMessageEmpty()) {
-            showMessage(actionResult.getMessage());
+            showMessage(actionResult.getMessage().getMessage());
         }
     }
 
     private void stop() {
-        OperationResult actionResult = recorder.stop();
-        if (!actionResult.isMessageEmpty()) {
-            showMessage(actionResult.getMessage());
-        }
+        recorder.stop();
     }
 
     private void changeDeviceType() {
@@ -581,7 +577,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private void checkContacts() {
         OperationResult actionResult = recorder.checkContacts(saveSettings());
         if (!actionResult.isMessageEmpty()) {
-            showMessage(actionResult.getMessage());
+            showMessage(actionResult.getMessage().getMessage());
         }
     }
 

@@ -2,6 +2,7 @@ package com.biorecorder.filters;
 
 import com.biorecorder.dataformat.DataRecordConfig;
 import com.biorecorder.dataformat.DataRecordSender;
+import com.biorecorder.dataformat.DefaultDataRecordConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,12 +13,12 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class SignalsDigitalFilter extends RecordsFilter {
+public class RecordSignalsDigitalFilter extends RecordsFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private int inRecordSize;
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public SignalsDigitalFilter(DataRecordSender in) {
+    public RecordSignalsDigitalFilter(DataRecordSender in) {
         super(in);
         for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
             inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
@@ -61,15 +62,15 @@ public class SignalsDigitalFilter extends RecordsFilter {
 
     @Override
     public DataRecordConfig dataConfig() {
-        return new ConfigWrapper(in.dataConfig()) {
-            @Override
-            public String getPrefiltering(int signalNumber) {
-                if(inConfig.getPrefiltering(signalNumber) != null && ! inConfig.getPrefiltering(signalNumber).isEmpty()) {
-                    return inConfig.getPrefiltering(signalNumber) + ";" +getSignalFiltersName(signalNumber);
-                }
-                return getSignalFiltersName(signalNumber);
+        DefaultDataRecordConfig resultantConfig = new DefaultDataRecordConfig(in.dataConfig());
+        for (int i = 0; i < resultantConfig.signalsCount(); i++) {
+            String prefilter = getSignalFiltersName(i);
+            if(in.dataConfig().getPrefiltering(i) != null && ! in.dataConfig().getPrefiltering(i).isEmpty()) {
+                prefilter = in.dataConfig().getPrefiltering(i) + ";" +getSignalFiltersName(i);
             }
-        };
+            resultantConfig.setPrefiltering(i, prefilter);
+        }
+        return resultantConfig;
     }
 
     @Override

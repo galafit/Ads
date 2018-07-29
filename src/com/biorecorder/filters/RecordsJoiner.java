@@ -2,6 +2,7 @@ package com.biorecorder.filters;
 
 import com.biorecorder.dataformat.DataRecordConfig;
 import com.biorecorder.dataformat.DataRecordSender;
+import com.biorecorder.dataformat.DefaultDataRecordConfig;
 
 /**
  * Permits to join (piece together) given number of incoming DataRecords.
@@ -36,17 +37,12 @@ public class RecordsJoiner extends RecordsFilter {
 
     @Override
     public DataRecordConfig dataConfig() {
-        return new ConfigWrapper(in.dataConfig()) {
-            @Override
-            public double getDurationOfDataRecord() {
-                return inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin;
-            }
-
-            @Override
-            public int getNumberOfSamplesInEachDataRecord(int signalNumber) {
-                return inConfig.getNumberOfSamplesInEachDataRecord(signalNumber) * numberOfRecordsToJoin;
-            }
-        };
+        DefaultDataRecordConfig resultantConfig = new DefaultDataRecordConfig(in.dataConfig());
+        resultantConfig.setDurationOfDataRecord(in.dataConfig().getDurationOfDataRecord() * numberOfRecordsToJoin);
+        for (int i = 0; i < resultantConfig.signalsCount(); i++) {
+            resultantConfig.setNumberOfSamplesInEachDataRecord(i, in.dataConfig().getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
+        }
+        return resultantConfig;
     }
 
 

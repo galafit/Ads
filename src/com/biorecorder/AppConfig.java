@@ -50,7 +50,7 @@ public class AppConfig {
         this.recorderConfig = recorderConfig;
     }
 
-    public boolean isMathlabWritingEnabled() {
+    public boolean isLabStreamingEnabled() {
         return mathlabWritingEnabled;
     }
 

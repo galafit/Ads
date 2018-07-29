@@ -10,12 +10,12 @@ import java.util.List;
 /**
  * Permit to omit samples from some channels (delete signals)
  */
-public class  SignalsRemover extends RecordsFilter {
+public class RecordSignalsRemover extends RecordsFilter {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
     private int inRecordSize;
     private int resultantRecordSize;
 
-    public SignalsRemover(DataRecordSender in) {
+    public RecordSignalsRemover(DataRecordSender in) {
         super(in);
         for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
             inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);

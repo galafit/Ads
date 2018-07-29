@@ -104,7 +104,7 @@ class FrameDecoder implements ComportListener {
                 if (msg_size <= MAX_MESSAGE_SIZE) {
                     frameSize = msg_size;
                 } else {
-                    String infoMsg = "StateChangeReason frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                    String infoMsg = "Message frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
                     notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
                     frameIndex = 0;
                 }

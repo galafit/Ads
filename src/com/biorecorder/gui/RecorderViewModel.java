@@ -38,6 +38,6 @@ public interface RecorderViewModel {
     OperationResult createDirectory(String directory);
     OperationResult startRecording(RecorderSettings settings);
     OperationResult checkContacts(RecorderSettings settings);
-    OperationResult stop();
+    void stop();
     void closeApplication(RecorderSettings settings);
 }

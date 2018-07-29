@@ -164,13 +164,11 @@ public class RecorderViewModelImpl implements RecorderViewModel {
             if (dir.mkdir()) {
                 return new OperationResult(true);
             } else {
-                String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir);
-                return new OperationResult(false, errMSg);
+                return new OperationResult(false, new Message(Message.TYPE_FAILED_CREATE_DIR, dir.toString()));
             }
         } catch (Exception ex) {
             log.error(ex);
-            String errMSg = MessageFormat.format(FAILED_CREATE_DIR_MSG, dir) + "\n" + ex.getMessage();
-            return new OperationResult(false, errMSg);
+            return new OperationResult(false, new Message(Message.TYPE_FAILED_CREATE_DIR,  ex.getMessage()));
         }
     }
 
@@ -187,8 +185,8 @@ public class RecorderViewModelImpl implements RecorderViewModel {
     }
 
     @Override
-    public OperationResult stop() {
-        return recorder.stop();
+    public void stop() {
+        recorder.stop();
     }
 
     @Override

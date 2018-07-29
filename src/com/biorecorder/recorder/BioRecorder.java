@@ -314,7 +314,7 @@ public class BioRecorder {
 
             // reduce signals frequencies
             if(!extraDividers.isEmpty()) {
-                SignalsFrequencyDivider edfFrequencyDivider = new SignalsFrequencyDivider(resultantDataSender);
+                RecordSignalsFrequencyReducer edfFrequencyDivider = new RecordSignalsFrequencyReducer(resultantDataSender);
                 for (Integer signal : extraDividers.keySet()){
                     edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
                 }
@@ -323,7 +323,7 @@ public class BioRecorder {
 
             // Add digital filters to ads channels
             if(!enableChannelsFilters.isEmpty()) {
-                SignalsDigitalFilter edfSignalsFilter = new SignalsDigitalFilter(resultantDataSender);
+                RecordSignalsDigitalFilter edfSignalsFilter = new RecordSignalsDigitalFilter(resultantDataSender);
                 for (Integer signal : enableChannelsFilters.keySet()){
                     List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
                     for (NamedDigitalFilter filter : channelFilters) {
@@ -344,10 +344,10 @@ public class BioRecorder {
             }
 
             // if some helper channels have to be deleted
-            if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel())) {
+            if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
 
                 // Filter to remove helper channels
-                SignalsRemover edfSignalsRemover = new SignalsRemover(resultantDataSender);
+                RecordSignalsRemover edfSignalsRemover = new RecordSignalsRemover(resultantDataSender);
                 if (isAccelerometerOnly) {
                     // delete helper enabled channel
                     edfSignalsRemover.removeSignal(0);
@@ -356,7 +356,7 @@ public class BioRecorder {
                     // delete helper Lead-off channel
                     edfSignalsRemover.removeSignal(leadOffChannelNumber);
                 }
-                if (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isDeleteBatteryVoltageChannel()) {
+                if (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable()) {
                     // delete helper BatteryVoltage channel
                     edfSignalsRemover.removeSignal(batteryChannelNumber);
                 }

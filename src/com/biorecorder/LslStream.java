@@ -1,7 +1,7 @@
 package com.biorecorder;
 
 import com.biorecorder.dataformat.DataRecordConfig;
-import com.biorecorder.dataformat.DataRecordListener;
+import com.biorecorder.recorder.RecordStream;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -11,8 +11,8 @@ import java.util.ArrayList;
 /**
  * Class thread safe
  */
-public class MathlabWriter implements DataRecordListener {
-    private static final Log log = LogFactory.getLog(MathlabWriter.class);
+public class LslStream implements RecordStream {
+    private static final Log log = LogFactory.getLog(LslStream.class);
     private LSL.StreamInfo info;
     private LSL.StreamOutlet outlet;
     private DataRecordConfig dataRecordConfig;
@@ -22,13 +22,13 @@ public class MathlabWriter implements DataRecordListener {
     private int numberOfAllChannels;
     private int accFactor = 1;
     private int adsChannelFactor = 1;
-    private int numberOfMathlabRecords;
+    private int numberOfLslRecords;
 
     /**
      * @throws IllegalArgumentException if channels have different frequencies or
      * all channels and accelerometer are disabled
      */
-    public MathlabWriter(DataRecordConfig dataRecordConfig, int accChannelsNumber) throws IllegalArgumentException {
+    public LslStream(DataRecordConfig dataRecordConfig, int accChannelsNumber) throws IllegalArgumentException {
         this.dataRecordConfig = dataRecordConfig;
         numberOfAccChannels = accChannelsNumber;
         numberOfAllChannels = dataRecordConfig.signalsCount();
@@ -71,37 +71,37 @@ public class MathlabWriter implements DataRecordListener {
         info = new LSL.StreamInfo("BioSemi", "EEG", dataRecordConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
         outlet = new LSL.StreamOutlet(info);
 
-        numberOfMathlabRecords = maxNumberOfSamplesInRecord;
+        numberOfLslRecords = maxNumberOfSamplesInRecord;
 
         log.info("MatlabDataListener initialization. Number of enabled channels = " + dataRecordConfig.signalsCount() +
                 ". Frequency = " + maxFrequency + ". Number of samples in BDF data record = " + maxNumberOfSamplesInRecord);
     }
 
     @Override
-    public synchronized void onDataReceived(int[] dataRecord) {
+    public synchronized void writeRecord(int[] dataRecord) {
         // convert one "edf record" to the list of multiple "mathlab records"
         // Mathlab record structure: one sample per every ads channel and accelerometer channel
-        ArrayList<float[]> mathlabRecords = new ArrayList<>(numberOfMathlabRecords);
+        ArrayList<float[]> lslRecords = new ArrayList<>(numberOfLslRecords);
 
-        for (int i = 0; i < numberOfMathlabRecords; i++) {
-            mathlabRecords.add(new float[numberOfAllChannels]);
+        for (int i = 0; i < numberOfLslRecords; i++) {
+            lslRecords.add(new float[numberOfAllChannels]);
         }
 
         int channelCount = 0;
         int sampleCount = 0;
-        int mathlabRecordCount;
+        int lslRecordCount;
         for (int i = 0; i < dataRecord.length; i++) {
             if (channelCount < numberOfAdsChannels) {
                 for (int j = 0; j < adsChannelFactor; j++) {
-                    mathlabRecordCount = sampleCount * adsChannelFactor + j;
-                    mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                    lslRecordCount = sampleCount * adsChannelFactor + j;
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
-                mathlabRecordCount = sampleCount;
-                mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                lslRecordCount = sampleCount;
+                lslRecords.get(lslRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
             } else {
                 for (int j = 0; j < accFactor; j++) {
-                    mathlabRecordCount = sampleCount * accFactor + j;
-                    mathlabRecords.get(mathlabRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                    lslRecordCount = sampleCount * accFactor + j;
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
             }
 
@@ -112,13 +112,13 @@ public class MathlabWriter implements DataRecordListener {
             }
         }
 
-        for (float[] mathlabRecord : mathlabRecords) {
+        for (float[] mathlabRecord : lslRecords) {
             outlet.push_sample(mathlabRecord);
         }
     }
 
-   // @Override
-    public synchronized void onStopRecording() {
+   @Override
+    public synchronized void close() {
         outlet.close();
         info.destroy();
     }

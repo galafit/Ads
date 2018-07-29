@@ -10,11 +10,11 @@ import java.util.Map;
 /**
  * Created by galafit on 25/7/18.
  */
-public class SignalsFrequencyDivider extends RecordsFilter {
+public class RecordSignalsFrequencyReducer extends RecordsFilter {
     private Map<Integer, Integer> dividers = new HashMap<>();
     private int resultantRecordSize;
     
-    public SignalsFrequencyDivider(DataRecordSender input) {
+    public RecordSignalsFrequencyReducer(DataRecordSender input) {
         super(input);
         resultantRecordSize = calculateResultantRecordSize();
     }

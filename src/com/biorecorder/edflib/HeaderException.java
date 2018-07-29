@@ -8,12 +8,12 @@ package com.biorecorder.edflib;
  * Idea is that appropriate
  * exception message for the user could be generated on any app level only on the base
  * of exception type,  wrongValues and signalNumber.
- * StateChangeReason string of the exception serves only for developers,
+ * Message string of the exception serves only for developers,
  * logging and debugging. It should not be shown to final users
  * <p>
  * Идея заключается в том чтобы в идеала соответсвующее сообщение об ошибке
  * могло генериться на любом уровне лишь на основании типа исключения и содержащихся
- * в исключении параметров. StateChangeReason string служит лишь информацией для разработчиков и не должен
+ * в исключении параметров. Message string служит лишь информацией для разработчиков и не должен
  * выводиться клиенты
  *
  */

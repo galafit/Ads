@@ -1,5 +1,7 @@
 package com.biorecorder;
 
+import com.sun.istack.internal.Nullable;
+
 public interface StateChangeListener {
-    void onStateChanged(StateChangeReason changeReason);
+    void onStateChanged(@Nullable Message message);
 }
