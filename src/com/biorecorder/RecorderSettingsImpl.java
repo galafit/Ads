@@ -215,6 +215,49 @@ public class RecorderSettingsImpl implements RecorderSettings {
     }
 
     @Override
+    public boolean isBatteryVoltageChannelDeletingEnable() {
+        return appConfig.getRecorderConfig().isBatteryVoltageChannelDeletingEnable();
+    }
+
+    @Override
+    public void setBatteryVoltageChannelDeletingEnable(boolean isEnable) {
+        appConfig.getRecorderConfig().setBatteryVoltageChannelDeletingEnable(isEnable);
+    }
+
+    @Override
+    public boolean isDurationOfDataRecordAdjustable() {
+        return appConfig.isDurationOfDataRecordAdjustable();
+    }
+
+
+    @Override
+    public void setDurationOfDataRecordAdjustable(boolean isAdjustable) {
+        appConfig.setDurationOfDataRecordAdjustable(isAdjustable);
+
+    }
+
+    @Override
+    public boolean isLabStreamingEnabled() {
+        return appConfig.isLabStreamingEnabled();
+    }
+
+    @Override
+    public void setLabStreamingEnabled(boolean isEnable) {
+        appConfig.setLabStreamingEnabled(isEnable);
+
+    }
+
+    @Override
+    public double getDataRecordDuration() {
+        return appConfig.getRecorderConfig().getDurationOfDataRecord();
+    }
+
+    @Override
+    public void setDataRecordDuration(double duration) {
+        appConfig.getRecorderConfig().setDurationOfDataRecord(duration);
+    }
+
+    @Override
     public String[] getAccelerometerAvailableModes() {
         return ACCELEROMETER_COMMUTATORS;
     }

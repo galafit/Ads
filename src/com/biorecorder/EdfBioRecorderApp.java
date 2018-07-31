@@ -175,7 +175,7 @@ public class EdfBioRecorderApp {
         connectionTask.cancel();
         availableComportsTask.cancel();
         this.isLoffDetecting = isLoffDetection;
-        isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordComputable();
+        isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordAdjustable();
         try {
             createRecorder(comportName);
         } catch (ConnectionRuntimeException ex) {

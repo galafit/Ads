@@ -9,11 +9,11 @@ import java.io.File;
  * Class containing all the necessary settings for running the application
  */
 public class AppConfig {
-    private boolean isDurationOfDataRecordComputable = true;
+    private boolean isDurationOfDataRecordAdjustable = true;
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private boolean[] filter50HzMask;
-    private boolean mathlabWritingEnabled = false;
+    private boolean isLabStreamingEnabled = false;
     private String comportName;
     private String dirToSave;
     @JsonIgnore
@@ -30,7 +30,7 @@ public class AppConfig {
 
     public AppConfig(AppConfig configToCopy) {
         recorderConfig = new RecorderConfig(configToCopy.recorderConfig);
-        isDurationOfDataRecordComputable = configToCopy.isDurationOfDataRecordComputable;
+        isDurationOfDataRecordAdjustable = configToCopy.isDurationOfDataRecordAdjustable;
         patientIdentification = configToCopy.patientIdentification;
         recordingIdentification = configToCopy.recordingIdentification;
         comportName = configToCopy.comportName;
@@ -51,11 +51,11 @@ public class AppConfig {
     }
 
     public boolean isLabStreamingEnabled() {
-        return mathlabWritingEnabled;
+        return isLabStreamingEnabled;
     }
 
-    public void setMathlabWritingEnabled(boolean mathlabWritingEnabled) {
-        this.mathlabWritingEnabled = mathlabWritingEnabled;
+    public void setLabStreamingEnabled(boolean labStreamingEnabled) {
+        this.isLabStreamingEnabled = labStreamingEnabled;
     }
 
     public String getPatientIdentification() {
@@ -83,12 +83,12 @@ public class AppConfig {
          filter50HzMask[channelNumber] = is50HzFilterEnabled;
     }
 
-    public boolean isDurationOfDataRecordComputable() {
-        return isDurationOfDataRecordComputable;
+    public boolean isDurationOfDataRecordAdjustable() {
+        return isDurationOfDataRecordAdjustable;
     }
 
-    public void setDurationOfDataRecordComputable(boolean durationOfDataRecordComputable) {
-        isDurationOfDataRecordComputable = durationOfDataRecordComputable;
+    public void setDurationOfDataRecordAdjustable(boolean durationOfDataRecordAdjustable) {
+        isDurationOfDataRecordAdjustable = durationOfDataRecordAdjustable;
     }
 
     public String getComportName() {

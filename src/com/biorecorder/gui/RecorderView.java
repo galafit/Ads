@@ -20,7 +20,7 @@ import java.util.ArrayList;
  * If it is selected when we change a channel field the same field of all other
  * channels should be automatically changed synchronously ()
  */
-public class RecorderView extends JFrame implements ProgressListener, StateChangeListener, AvailableComportsListener {
+public class RecorderView extends JPanel implements ProgressListener, StateChangeListener, AvailableComportsListener {
     private static final String DIR_CREATION_CONFIRMATION_MSG = "Directory: {0}\ndoes not exist. Do you want to create it?";
     private static final String FILE_REWRITE_CONFIRMATION_MSG = "File: {0}\nalready exist. Do you want to rewrite it?";
 
@@ -72,6 +72,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
 
     private FileToSaveUI fileToSaveUI;
 
+    private JButton advanceButton = new JButton("Advanced >>");
+
     private JButton startRecordingButton = new JButton("Start");
     private JButton stopButton = new JButton("Stop");
     private JButton checkContactsButton = new JButton("Check contacts");
@@ -82,8 +84,6 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private ColoredMarker batteryIcon = new ColoredMarker(new Dimension(45, 16));
     private JLabel batteryLevel = new JLabel();
 
-    private String title = "BioRecorder";
-
     private String filter50Hz = "Filter50Hz";
     private String contacts = "Contacts";
     private JLabel filterOrContactsLabel = new JLabel(filter50Hz, SwingConstants.CENTER);
@@ -91,23 +91,18 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     private JComponent[] channelsHeaders = {new JLabel(" "), new JLabel(" "), new JLabel("Name", SwingConstants.CENTER), new JLabel("Frequency", SwingConstants.CENTER),
             new JLabel("Mode", SwingConstants.CENTER), new JLabel("Gain", SwingConstants.CENTER), filterOrContactsLabel};
 
+    private final JFrame parentFrame;
 
-    public RecorderView(RecorderViewModel recorder) {
+    public RecorderView(RecorderViewModel recorder, JFrame parentFrame) {
         this.recorder = recorder;
+        this.parentFrame = parentFrame;
         startRecordingButton.setForeground(COLOR_BRAND);
         stopButton.setForeground(COLOR_BRAND);
         checkContactsButton.setForeground(COLOR_BRAND);
 
         settings = recorder.getInitialSettings();
         availableComports = settings.getAvailableComports();
-        setTitle(title);
 
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent windowEvent) {
-                recorder.closeApplication(saveSettings());
-            }
-        });
 
         startRecordingButton.addActionListener(new ActionListener() {
             @Override
@@ -131,15 +126,18 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         });
         stopButton.setVisible(false);
 
-        loadData(settings);
+        advanceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                new RecorderAdvancedView(settings, parentFrame);
+            }
+        });
 
-        // place the window to the screen center
-        setLocationRelativeTo(null);
-        setVisible(true);
+        loadDataFromSettings();
     }
 
 
-    private void loadData(RecorderSettings settings) {
+    private void loadDataFromSettings() {
         deviceTypeField = new JComboBox(settings.getAvailableDeviseTypes());
         deviceTypeField.setSelectedItem(settings.getDeviceType());
 
@@ -224,11 +222,32 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         });
 
         arrangeFields();
-        pack();
+        parentFrame.pack();
+    }
+
+    private void saveDataToSettings() {
+        settings.setDeviceType((String) deviceTypeField.getSelectedItem());
+        settings.setComportName((String) comportField.getSelectedItem());
+        settings.setPatientIdentification(patientIdentificationField.getText());
+        settings.setRecordingIdentification(recordingIdentificationField.getText());
+        for (int i = 0; i < channels.length; i++) {
+            settings.setChannelName(i, channels[i].getName());
+            settings.setChannelEnabled(i, channels[i].isEnable());
+            settings.set50HzFilterEnabled(i, channels[i].is50HzFilterEnable());
+            settings.setChannelGain(i, channels[i].getGain());
+            settings.setChannelMode(i, channels[i].getMode());
+            settings.setChannelFrequency(i, channels[i].getFrequency());
+        }
+        settings.setMaxFrequency((Integer) maxFrequencyField.getSelectedItem());
+        settings.setAccelerometerFrequency(accelerometer.getFrequency());
+        settings.setAccelerometerEnabled(accelerometer.isEnabled());
+        settings.setAccelerometerMode(accelerometer.getMode());
+        settings.setFileName(getFilename());
+        settings.setDirToSave(getDirectory());
     }
 
     private void arrangeFields() {
-        getContentPane().removeAll();
+        removeAll();
 
         JPanel topPanel = new JPanel(new MigLayout("fill, insets 5", "center", "center"));
         topPanel.add(deviceTypeLabel);
@@ -237,6 +256,7 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         topPanel.add(deviceTypeField);
         topPanel.add(comportField);
         topPanel.add(maxFrequencyField);
+        topPanel.add(advanceButton);
 
         LC layoutConstraints = new LC();
         layoutConstraints.fill();
@@ -508,7 +528,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
             }
         }
 
-        OperationResult actionResult = recorder.startRecording(saveSettings());
+        saveDataToSettings();
+        OperationResult actionResult = recorder.startRecording(settings);
         if (!actionResult.isMessageEmpty()) {
             showMessage(actionResult.getMessage().getMessage());
         }
@@ -519,13 +540,15 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     }
 
     private void changeDeviceType() {
-        settings = recorder.changeDeviceType(saveSettings());
-        loadData(settings);
+        saveDataToSettings();
+        settings = recorder.changeDeviceType(settings);
+        loadDataFromSettings();
     }
 
     private void changeMaxFrequency() {
-        settings = recorder.changeMaxFrequency(saveSettings());
-        loadData(settings);
+        saveDataToSettings();
+        settings = recorder.changeMaxFrequency(settings);
+        loadDataFromSettings();
     }
 
     private void changeComport() {
@@ -575,7 +598,8 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     }
 
     private void checkContacts() {
-        OperationResult actionResult = recorder.checkContacts(saveSettings());
+        saveDataToSettings();
+        OperationResult actionResult = recorder.checkContacts(settings);
         if (!actionResult.isMessageEmpty()) {
             showMessage(actionResult.getMessage().getMessage());
         }
@@ -622,28 +646,6 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
     }
 
 
-    private RecorderSettings saveSettings() {
-        settings.setDeviceType((String) deviceTypeField.getSelectedItem());
-        settings.setComportName((String) comportField.getSelectedItem());
-        settings.setPatientIdentification(patientIdentificationField.getText());
-        settings.setRecordingIdentification(recordingIdentificationField.getText());
-        for (int i = 0; i < channels.length; i++) {
-            settings.setChannelName(i, channels[i].getName());
-            settings.setChannelEnabled(i, channels[i].isEnable());
-            settings.set50HzFilterEnabled(i, channels[i].is50HzFilterEnable());
-            settings.setChannelGain(i, channels[i].getGain());
-            settings.setChannelMode(i, channels[i].getMode());
-            settings.setChannelFrequency(i, channels[i].getFrequency());
-        }
-        settings.setMaxFrequency((Integer) maxFrequencyField.getSelectedItem());
-        settings.setAccelerometerFrequency(accelerometer.getFrequency());
-        settings.setAccelerometerEnabled(accelerometer.isEnabled());
-        settings.setAccelerometerMode(accelerometer.getMode());
-        settings.setFileName(getFilename());
-        settings.setDirToSave(getDirectory());
-        return settings;
-    }
-
     private String convertToHtml(String text, int rowLength) {
         StringBuilder html = new StringBuilder("<html>");
         String[] givenRows = text.split("\n");
@@ -676,5 +678,10 @@ public class RecorderView extends JFrame implements ProgressListener, StateChang
         resultRows.add(row.toString());
         String[] resultArray = new String[resultRows.size()];
         return resultRows.toArray(resultArray);
+    }
+
+    public void close() {
+        saveDataToSettings();
+        recorder.closeApplication(settings);
     }
 }

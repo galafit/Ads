@@ -72,6 +72,22 @@ public interface RecorderSettings {
 
     void setAccelerometerMode(String mode);
 
+    boolean isBatteryVoltageChannelDeletingEnable();
+
+    void setBatteryVoltageChannelDeletingEnable(boolean isEnable);
+
+    boolean isDurationOfDataRecordAdjustable();
+
+    void setDurationOfDataRecordAdjustable(boolean isAdjustable);
+
+    boolean isLabStreamingEnabled();
+
+    void setLabStreamingEnabled(boolean isEnable);
+
+    double getDataRecordDuration(); // in seconds
+
+    void setDataRecordDuration(double duration); // in seconds
+
 
     public String[] getAvailableDeviseTypes();
 

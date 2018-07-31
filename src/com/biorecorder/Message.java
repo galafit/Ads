@@ -17,7 +17,7 @@ public class Message {
     public static final String TYPE_CHANNELS_AND_ACCELEROMETER_DISABLED = "All channels and accelerometer disabled.\nEnable some of them to record";
     public static final String TYPE_CHANNELS_DISABLED = "All channels disabled.\nEnable some of them to check contacts";
 
-    public static final String TYPE_WRONG_DEVICE = "Specified recorder type\ndoes not coincide with the connected one";
+    public static final String TYPE_WRONG_DEVICE = "Specified recorder type does not coincide\nwith the connected one";
     public static final String TYPE_START_FAILED =  "Start failed!\nCheck whether the Recorder is on" +
             "\nand selected Comport is correct and try again.";
 
