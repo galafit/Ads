@@ -2,8 +2,8 @@ package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.dataformat.*;
-import com.biorecorder.dataformat.DataRecordListener;
-import com.biorecorder.dataformat.NullDataRecordListener;
+import com.biorecorder.dataformat.RecordListener;
+import com.biorecorder.dataformat.NullRecordListener;
 import com.biorecorder.filters.*;
 
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class BioRecorder {
     private final Ads ads;
     private volatile AdsDataHandler adsDataHandler;
 
-    private volatile DataRecordListener dataRecordListener = new NullDataRecordListener();
+    private volatile RecordListener dataRecordListener = new NullRecordListener();
     private volatile EventsListener eventsListener = new NullEventsListener();
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
@@ -116,8 +116,8 @@ public class BioRecorder {
      *
      * @return object describing data records structure
      */
-    public DataRecordConfig getDataConfig(RecorderConfig recorderConfig) {
-        DataRecordConfig dataRecordConfig = new AdsDataHandler(ads, recorderConfig).getResultantDataConfig();
+    public RecordConfig getDataConfig(RecorderConfig recorderConfig) {
+        RecordConfig dataRecordConfig = new AdsDataHandler(ads, recorderConfig).getResultantDataConfig();
         return dataRecordConfig;
     }
 
@@ -160,17 +160,17 @@ public class BioRecorder {
     }
 
     /**
-     * BioRecorder permits to add only ONE DataRecordListener! So if a new listener added
+     * BioRecorder permits to add only ONE RecordListener! So if a new listener added
      * the old one are automatically removed
      */
-    public void addDataListener(DataRecordListener listener) {
+    public void addDataListener(RecordListener listener) {
         if (listener != null) {
             dataRecordListener = listener;
         }
     }
 
     public void removeDataListener() {
-        dataRecordListener = new NullDataRecordListener();
+        dataRecordListener = new NullRecordListener();
     }
 
     /**
@@ -237,8 +237,8 @@ public class BioRecorder {
      * <br> and send resultant filtered and clean data records to the dataRecordListener
      */
     class AdsDataHandler {
-        private AdsDataRecordSender adsDataSender;
-        private DataRecordSender resultantDataSender;
+        private AdsRecordSender adsDataSender;
+        private RecordSender resultantDataSender;
         private int numberOfRecordsToJoin = 1;
 
 
@@ -266,7 +266,7 @@ public class BioRecorder {
                 }
             }
 
-            adsDataSender = new AdsDataRecordSender(ads, recorderConfig.getAdsConfig());
+            adsDataSender = new AdsRecordSender(ads, recorderConfig.getAdsConfig());
             adsDataSender.addButteryLevelListener(batteryListener);
             adsDataSender.addLeadOffListener(leadOffListener);
 
@@ -365,7 +365,7 @@ public class BioRecorder {
             }
         }
 
-        public DataRecordConfig getResultantDataConfig() {
+        public RecordConfig getResultantDataConfig() {
             return resultantDataSender.dataConfig();
         }
 

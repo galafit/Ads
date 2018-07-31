@@ -1,6 +1,6 @@
 package com.biorecorder;
 
-import com.biorecorder.dataformat.DataRecordConfig;
+import com.biorecorder.dataformat.RecordConfig;
 import com.biorecorder.recorder.RecordStream;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
@@ -15,7 +15,7 @@ public class LslStream implements RecordStream {
     private static final Log log = LogFactory.getLog(LslStream.class);
     private LSL.StreamInfo info;
     private LSL.StreamOutlet outlet;
-    private DataRecordConfig dataRecordConfig;
+    private RecordConfig dataRecordConfig;
 
     private int numberOfAdsChannels;
     private int numberOfAccChannels;
@@ -28,7 +28,7 @@ public class LslStream implements RecordStream {
      * @throws IllegalArgumentException if channels have different frequencies or
      * all channels and accelerometer are disabled
      */
-    public LslStream(DataRecordConfig dataRecordConfig, int accChannelsNumber) throws IllegalArgumentException {
+    public LslStream(RecordConfig dataRecordConfig, int accChannelsNumber) throws IllegalArgumentException {
         this.dataRecordConfig = dataRecordConfig;
         numberOfAccChannels = accChannelsNumber;
         numberOfAllChannels = dataRecordConfig.signalsCount();
@@ -94,14 +94,14 @@ public class LslStream implements RecordStream {
             if (channelCount < numberOfAdsChannels) {
                 for (int j = 0; j < adsChannelFactor; j++) {
                     lslRecordCount = sampleCount * adsChannelFactor + j;
-                    lslRecords.get(lslRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
                 lslRecordCount = sampleCount;
-                lslRecords.get(lslRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
             } else {
                 for (int j = 0; j < accFactor; j++) {
                     lslRecordCount = sampleCount * accFactor + j;
-                    lslRecords.get(lslRecordCount)[channelCount] = (float) DataRecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
                 }
             }
 

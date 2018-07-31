@@ -1,10 +1,10 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataRecordListener;
-import com.biorecorder.dataformat.DataRecordSender;
+import com.biorecorder.dataformat.RecordListener;
+import com.biorecorder.dataformat.RecordSender;
 
 /**
- * A RecordsFilter listen (wrap) some other DataRecordSender and transforms
+ * A RecordsFilter listen (wrap) some other RecordSender and transforms
  * receiving data records before
  * to send it to its listeners.
  *
@@ -14,17 +14,17 @@ import com.biorecorder.dataformat.DataRecordSender;
  * PS How to implement thread safe classical observer pattern with multiple listeners
  * see here: https://www.techyourchance.com/thread-safe-observer-design-pattern-in-java/
  */
-public abstract class RecordsFilter implements DataRecordSender, DataRecordListener {
-    protected final DataRecordSender in;
-    private volatile DataRecordListener listener;
+public abstract class RecordsFilter implements RecordSender, RecordListener {
+    protected final RecordSender in;
+    private volatile RecordListener listener;
 
-    public RecordsFilter(DataRecordSender in) {
+    public RecordsFilter(RecordSender in) {
         this.in = in;
-        listener = new NullDataRecordListener();
+        listener = new NullRecordListener();
     }
 
     @Override
-    public void addDataListener(DataRecordListener dataRecordListener) {
+    public void addDataListener(RecordListener dataRecordListener) {
         if(dataRecordListener != null) {
             this.listener = dataRecordListener;
             in.addDataListener(this);
@@ -32,12 +32,12 @@ public abstract class RecordsFilter implements DataRecordSender, DataRecordListe
     }
 
     @Override
-    public void removeDataListener(DataRecordListener dataRecordListener) {
+    public void removeDataListener(RecordListener dataRecordListener) {
         removeDataListener();
     }
 
     public void removeDataListener() {
-        listener = new NullDataRecordListener();
+        listener = new NullRecordListener();
         in.removeDataListener(this);
     }
 
@@ -52,7 +52,7 @@ public abstract class RecordsFilter implements DataRecordSender, DataRecordListe
         listener.onDataReceived(dataRecord);
     }
 
-    class NullDataRecordListener implements DataRecordListener {
+    class NullRecordListener implements RecordListener {
         @Override
         public void onDataReceived(int[] dataRecord) {
             // do nothing;

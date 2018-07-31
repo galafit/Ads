@@ -3,8 +3,8 @@ package com.biorecorder.ads;
 
 import com.biorecorder.comport.Comport;
 import com.biorecorder.comport.ComportFactory;
-import com.biorecorder.dataformat.DataRecordConfig;
-import com.biorecorder.dataformat.DefaultDataRecordConfig;
+import com.biorecorder.dataformat.DefaultRecordConfig;
+import com.biorecorder.dataformat.RecordConfig;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -396,7 +396,7 @@ public class Ads {
     }
 
     /**
-     * Ads permits to add only ONE DataRecordListener! So if a new listener added
+     * Ads permits to add only ONE RecordListener! So if a new listener added
      * the old one are automatically removed
      */
     public void addDataListener(NumberedDataListener listener) {
@@ -441,8 +441,8 @@ public class Ads {
         return ComportFactory.getAvailableComportNames();
     }
 
-    public DataRecordConfig getDataConfig(AdsConfig adsConfig) {
-        DefaultDataRecordConfig edfConfig = new DefaultDataRecordConfig(0);
+    public RecordConfig getDataConfig(AdsConfig adsConfig) {
+        DefaultRecordConfig edfConfig = new DefaultRecordConfig(0);
         edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {

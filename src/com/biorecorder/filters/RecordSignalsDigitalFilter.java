@@ -1,8 +1,8 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataRecordConfig;
-import com.biorecorder.dataformat.DataRecordSender;
-import com.biorecorder.dataformat.DefaultDataRecordConfig;
+import com.biorecorder.dataformat.RecordConfig;
+import com.biorecorder.dataformat.RecordSender;
+import com.biorecorder.dataformat.DefaultRecordConfig;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,15 +18,15 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
     private int inRecordSize;
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public RecordSignalsDigitalFilter(DataRecordSender in) {
+    public RecordSignalsDigitalFilter(RecordSender in) {
         super(in);
         for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
             inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
         }
-        DataRecordConfig inConfig = in.dataConfig();
+        RecordConfig inConfig = in.dataConfig();
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
-            offsets[i] = DataRecordConfig.offset(inConfig, i);
+            offsets[i] = RecordConfig.offset(inConfig, i);
         }
     }
 
@@ -61,8 +61,8 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
     }
 
     @Override
-    public DataRecordConfig dataConfig() {
-        DefaultDataRecordConfig resultantConfig = new DefaultDataRecordConfig(in.dataConfig());
+    public RecordConfig dataConfig() {
+        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(in.dataConfig());
         for (int i = 0; i < resultantConfig.signalsCount(); i++) {
             String prefilter = getSignalFiltersName(i);
             if(in.dataConfig().getPrefiltering(i) != null && ! in.dataConfig().getPrefiltering(i).isEmpty()) {

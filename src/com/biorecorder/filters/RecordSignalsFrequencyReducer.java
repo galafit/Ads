@@ -1,8 +1,8 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.DataRecordConfig;
-import com.biorecorder.dataformat.DataRecordSender;
-import com.biorecorder.dataformat.DefaultDataRecordConfig;
+import com.biorecorder.dataformat.RecordConfig;
+import com.biorecorder.dataformat.RecordSender;
+import com.biorecorder.dataformat.DefaultRecordConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,7 +14,7 @@ public class RecordSignalsFrequencyReducer extends RecordsFilter {
     private Map<Integer, Integer> dividers = new HashMap<>();
     private int resultantRecordSize;
     
-    public RecordSignalsFrequencyReducer(DataRecordSender input) {
+    public RecordSignalsFrequencyReducer(RecordSender input) {
         super(input);
         resultantRecordSize = calculateResultantRecordSize();
     }
@@ -50,8 +50,8 @@ public class RecordSignalsFrequencyReducer extends RecordsFilter {
     }
 
     @Override
-    public DataRecordConfig dataConfig() {
-        DefaultDataRecordConfig resultantConfig = new DefaultDataRecordConfig(in.dataConfig());
+    public RecordConfig dataConfig() {
+        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(in.dataConfig());
         for (int i = 0; i < resultantConfig.signalsCount(); i++) {
             Integer divider = dividers.get(i);
             if(divider != null) {

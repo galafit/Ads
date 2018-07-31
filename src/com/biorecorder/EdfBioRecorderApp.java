@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.dataformat.DataRecordListener;
-import com.biorecorder.dataformat.DataRecordConfig;
+import com.biorecorder.dataformat.RecordConfig;
+import com.biorecorder.dataformat.RecordListener;
 import com.biorecorder.edflib.DataFormat;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
@@ -13,7 +13,6 @@ import org.apache.commons.logging.LogFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
@@ -93,7 +92,6 @@ public class EdfBioRecorderApp {
         }
         return false;
     }
-
 
     public synchronized boolean isActive() {
         if (bioRecorder != null && (bioRecorder.isActive() || bioRecorder.isRecording())) {
@@ -227,7 +225,7 @@ public class EdfBioRecorderApp {
                 return new OperationResult(false, new Message(Message.TYPE_DIRECTORY_NOT_EXIST, dir.toString()));
             }
 
-            DataRecordConfig dataRecordConfig = bioRecorder.getDataConfig(recorderConfig);
+            RecordConfig dataRecordConfig = bioRecorder.getDataConfig(recorderConfig);
 
             // create lab stream
             if (appConfig.isLabStreamingEnabled()) {
@@ -258,7 +256,7 @@ public class EdfBioRecorderApp {
                 return new OperationResult(false, new Message(Message.TYPE_FILE_NOT_ACCESSIBLE, edfFile.toString()));
             }
 
-            bioRecorder.addDataListener(new DataRecordListener() {
+            bioRecorder.addDataListener(new RecordListener() {
                 public void onDataReceived(int[] dataRecord) {
                     try {
                         lslStream.writeRecord(dataRecord);
@@ -304,7 +302,8 @@ public class EdfBioRecorderApp {
                     if (!future.get()) {
                         closeStreams();
                         restartAvailableComportsTask();
-                        if (bioRecorder != null &&  recorderType != bioRecorder.getDeviceType()) {
+                        RecorderType connectedRecorder = getConnectedRecorder();
+                        if (connectedRecorder != null && recorderType != connectedRecorder) {
                             notifyStateChange(new Message(Message.TYPE_WRONG_DEVICE));
 
                         } else {
@@ -334,6 +333,20 @@ public class EdfBioRecorderApp {
                     log.error(ex);
                 }
             }
+            removeRecorderDataListener();
+        }
+    }
+
+    private synchronized  RecorderType getConnectedRecorder() {
+        if(bioRecorder != null) {
+            return bioRecorder.getDeviceType();
+        }
+        return null;
+    }
+
+    private synchronized  void removeRecorderDataListener() {
+        if(bioRecorder != null) {
+            bioRecorder.removeDataListener();
         }
     }
 
@@ -593,7 +606,7 @@ public class EdfBioRecorderApp {
     class EdfStream implements RecordStream {
         private EdfWriter edfWriter;
 
-        public EdfStream(File edfFile, DataRecordConfig dataRecordConfig, String patientIdentification, String recordIdentification) throws FileNotFoundException {
+        public EdfStream(File edfFile, RecordConfig dataRecordConfig, String patientIdentification, String recordIdentification) throws FileNotFoundException {
             // copy data from dataRecordConfig to the EdfHeader
             EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, dataRecordConfig.signalsCount());
             edfHeader.setPatientIdentification(patientIdentification);
