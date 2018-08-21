@@ -385,7 +385,7 @@ public class EdfBioRecorderApp {
                 }
                 edfStream1.close();
                 if (edfStream1.getNumberOfWrittenRecords() > 0) {
-                    msg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfFile + "\n\n" + edfStream1.getWritingInfo());
+                    // msg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfFile + "\n\n" + edfStream1.getWritingInfo());
                     log.info(msg.getMessage());
                 }
             } else {
