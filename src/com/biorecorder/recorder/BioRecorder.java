@@ -301,14 +301,18 @@ public class BioRecorder {
 
             if(recorderConfig.isAccelerometerEnabled()) {
                 Integer divider = recorderConfig.getAccelerometerDivider().getExtraDivider();
-                if(divider > 1) {
-                    if(recorderConfig.isAccelerometerOneChannelMode()) {
-                        extraDividers.put(enableChannelsCount++, divider);
-                    } else {
-                        extraDividers.put(enableChannelsCount++, divider);
-                        extraDividers.put(enableChannelsCount++, divider);
-                        extraDividers.put(enableChannelsCount++, divider);
+                if(recorderConfig.isAccelerometerOneChannelMode()) {
+                    if(divider > 1) {
+                        extraDividers.put(enableChannelsCount, divider);
                     }
+                    enableChannelsCount++;
+                } else {
+                    if(divider > 1) {
+                        extraDividers.put(enableChannelsCount, divider);
+                        extraDividers.put(enableChannelsCount + 1, divider);
+                        extraDividers.put(enableChannelsCount + 2, divider);
+                    }
+                    enableChannelsCount = enableChannelsCount + 3;
                 }
             }
 
@@ -360,9 +364,9 @@ public class BioRecorder {
                     // delete helper BatteryVoltage channel
                     edfSignalsRemover.removeSignal(batteryChannelNumber);
                 }
-                edfSignalsRemover.addDataListener(dataRecordListener);
                 resultantDataSender = edfSignalsRemover;
             }
+            resultantDataSender.addDataListener(dataRecordListener);
         }
 
         public RecordConfig getResultantDataConfig() {

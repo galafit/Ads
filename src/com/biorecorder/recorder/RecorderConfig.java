@@ -22,6 +22,7 @@ public class RecorderConfig {
     }
 
     public RecorderConfig(RecorderConfig configToCopy) {
+        batteryVoltageChannelDeletingEnable = configToCopy.batteryVoltageChannelDeletingEnable;
         durationOfDataRecord = configToCopy.durationOfDataRecord;
         adsConfig = new AdsConfig(configToCopy.adsConfig);
         accelerometerExtraDivider = configToCopy.accelerometerExtraDivider;
