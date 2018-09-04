@@ -23,6 +23,7 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
         for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
             inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
         }
+
         RecordConfig inConfig = in.dataConfig();
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
@@ -79,6 +80,7 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
         int signalNumber = 0;
         int signalStartSampleNumber = 0;
         for (int i = 0; i < inRecordSize; i++) {
+
             if(i >= signalStartSampleNumber + in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber)) {
                 signalStartSampleNumber += in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
                 signalNumber++;
