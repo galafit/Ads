@@ -119,7 +119,7 @@ class AdsRecordSender implements RecordSender {
                     Thread.currentThread().interrupt();
                 }
 
-         /*       int batteryCharge = dataRecord[dataRecord.length - 1];
+                int batteryCharge = dataRecord[dataRecord.length - 1];
 
                 if (adsConfig.isLeadOffEnabled()) {
                     batteryCharge = dataRecord[dataRecord.length - 2];
@@ -138,7 +138,7 @@ class AdsRecordSender implements RecordSender {
                 }
                 if (adsConfig.isBatteryVoltageMeasureEnabled()) {
                     notifyBatteryLevelListener(Ads.lithiumBatteryIntToPercentage(batteryCharge));
-                }*/
+                }
             }
         });
     }
