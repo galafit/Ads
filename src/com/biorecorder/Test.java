@@ -12,12 +12,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by galafit on 28/5/17.
  */
 public class Test {
     public static void main(String[] args) {
+        LinkedBlockingQueue<Integer> dataQueue = new LinkedBlockingQueue<>();
+        dataQueue.size();
+
+
+
         System.out.println(Ads.lithiumBatteryIntToPercentage(7800));
         System.out.println(Ads.lithiumBatteryIntToPercentage(7500));
         System.out.println(Ads.lithiumBatteryIntToPercentage(7240));

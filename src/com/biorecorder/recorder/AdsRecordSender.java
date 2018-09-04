@@ -49,15 +49,7 @@ class AdsRecordSender implements RecordSender {
                 while (!Thread.interrupted()) {
                     try {
                         // block until a request arrives
-                        NumberedDataRecord numberedDataRecord = dataQueue.take();
-
-                        // send to listener
-                        notifyDataListeners(numberedDataRecord.getRecord());
-                        int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
-                        for (int i = 0; i < numberOfLostFrames; i++) {
-                            notifyDataListeners(numberedDataRecord.getRecord());
-                        }
-                        lastDataRecordNumber = numberedDataRecord.getRecordNumber();
+                        handleData(dataQueue.take());
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         // stop
@@ -66,7 +58,7 @@ class AdsRecordSender implements RecordSender {
                 }
             }
         };
-        dataHandlingThread.start();
+         dataHandlingThread.start();
         return ads.startRecording(adsConfig);
     }
 
@@ -121,12 +113,13 @@ class AdsRecordSender implements RecordSender {
                     if (recordNumber > 0) {
                         calculatedDurationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
                     }
-                    dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
+                    putData(new NumberedDataRecord(dataRecord, recordNumber));
+                    //handleData(new NumberedDataRecord(dataRecord, recordNumber));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
 
-                int batteryCharge = dataRecord[dataRecord.length - 1];
+         /*       int batteryCharge = dataRecord[dataRecord.length - 1];
 
                 if (adsConfig.isLeadOffEnabled()) {
                     batteryCharge = dataRecord[dataRecord.length - 2];
@@ -145,9 +138,27 @@ class AdsRecordSender implements RecordSender {
                 }
                 if (adsConfig.isBatteryVoltageMeasureEnabled()) {
                     notifyBatteryLevelListener(Ads.lithiumBatteryIntToPercentage(batteryCharge));
-                }
+                }*/
             }
         });
+    }
+
+
+
+
+
+    private void putData(NumberedDataRecord numberedDataRecord) throws InterruptedException {
+        dataQueue.put(numberedDataRecord);
+    }
+
+    private void handleData(NumberedDataRecord numberedDataRecord) throws InterruptedException{
+        // send to listener
+        notifyDataListeners(numberedDataRecord.getRecord());
+        int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
+        for (int i = 0; i < numberOfLostFrames; i++) {
+            notifyDataListeners(numberedDataRecord.getRecord());
+        }
+        lastDataRecordNumber = numberedDataRecord.getRecordNumber();
     }
 
     @Override

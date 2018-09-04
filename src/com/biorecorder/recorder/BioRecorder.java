@@ -29,7 +29,7 @@ public class BioRecorder {
     private final Ads ads;
     private volatile AdsDataHandler adsDataHandler;
 
-    private volatile RecordListener dataRecordListener = new NullRecordListener();
+    private volatile RecordListener dataListener = new NullRecordListener();
     private volatile EventsListener eventsListener = new NullEventsListener();
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
@@ -165,12 +165,12 @@ public class BioRecorder {
      */
     public void addDataListener(RecordListener listener) {
         if (listener != null) {
-            dataRecordListener = listener;
+            dataListener = listener;
         }
     }
 
     public void removeDataListener() {
-        dataRecordListener = new NullRecordListener();
+        dataListener = new NullRecordListener();
     }
 
     /**
@@ -234,7 +234,7 @@ public class BioRecorder {
      * <br>2) apply specified digital filters to data records
      * <br>3) delete lead off detection info and battery charge info
      * (if flag deleteBatteryVoltageChannel = true) from data records
-     * <br> and send resultant filtered and clean data records to the dataRecordListener
+     * <br> and send resultant filtered and clean data records to the dataListener
      */
     class AdsDataHandler {
         private AdsRecordSender adsDataSender;
@@ -271,6 +271,7 @@ public class BioRecorder {
             adsDataSender.addLeadOffListener(leadOffListener);
 
             resultantDataSender = adsDataSender;
+            /*
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
             numberOfRecordsToJoin = recorderConfig.getNumberOfAdsRecordsToJoin();
@@ -365,8 +366,8 @@ public class BioRecorder {
                     edfSignalsRemover.removeSignal(batteryChannelNumber);
                 }
                 resultantDataSender = edfSignalsRemover;
-            }
-            resultantDataSender.addDataListener(dataRecordListener);
+            }*/
+            resultantDataSender.addDataListener(dataListener);
         }
 
         public RecordConfig getResultantDataConfig() {
