@@ -18,19 +18,19 @@ import com.biorecorder.dataformat.DefaultRecordConfig;
  */
 public class RecordsJoiner extends RecordsFilter {
     private int numberOfRecordsToJoin;
-    private int[] resultantDataRecord;
+    private int[] outDataRecord;
     private int joinedRecordsCounter;
     private int inRecordSize;
-    private int resultantRecordSize;
+    private int outRecordSize;
 
     public RecordsJoiner(RecordSender in, int numberOfRecordsToJoin) {
         super(in);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
         for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
             inRecordSize += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
-        }
-        resultantRecordSize = inRecordSize * numberOfRecordsToJoin;
-        resultantDataRecord = new int[resultantRecordSize];
+         }
+        outRecordSize = inRecordSize * numberOfRecordsToJoin;
+        outDataRecord = new int[outRecordSize];
     }
 
 
@@ -52,28 +52,29 @@ public class RecordsJoiner extends RecordsFilter {
      */
     @Override
     protected void filterData(int[] inputRecord)  {
+        int signalNumber = 0;
+        int signalStart = 0;
+        int signalSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
         for (int inSamplePosition = 0; inSamplePosition < inRecordSize; inSamplePosition++) {
-            int counter = 0;
-            int signalNumber = 0;
-            int numberOfSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(0);
-            while (inSamplePosition >= counter + numberOfSamples) {
-                counter += numberOfSamples;
+
+            if(inSamplePosition >= signalStart + signalSamples) {
+                signalStart += signalSamples;
                 signalNumber++;
-                numberOfSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
+                signalSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
             }
 
-            int outSamplePosition = counter * numberOfRecordsToJoin;
-            outSamplePosition += joinedRecordsCounter * numberOfSamples;
-            outSamplePosition += inSamplePosition - counter;
+            int outSamplePosition = signalStart * numberOfRecordsToJoin;
+            outSamplePosition += joinedRecordsCounter * signalSamples;
+            outSamplePosition += inSamplePosition - signalStart;
 
-            resultantDataRecord[outSamplePosition] = inputRecord[inSamplePosition];
+            outDataRecord[outSamplePosition] = inputRecord[inSamplePosition];
         }
 
         joinedRecordsCounter++;
 
         if(joinedRecordsCounter == numberOfRecordsToJoin) {
-            sendDataToListeners(resultantDataRecord);
-            resultantDataRecord = new int[resultantRecordSize];
+            sendDataToListeners(outDataRecord);
+            outDataRecord = new int[outRecordSize];
             joinedRecordsCounter = 0;
         }
     }

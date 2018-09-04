@@ -275,12 +275,12 @@ public class BioRecorder {
             // join DataRecords to have data records length = resultantDataRecordDuration;
             numberOfRecordsToJoin = recorderConfig.getNumberOfAdsRecordsToJoin();
 
-          /*  if(numberOfRecordsToJoin > 1) {
+            if(numberOfRecordsToJoin > 1) {
                 RecordsJoiner edfJoiner = new RecordsJoiner(resultantDataSender, numberOfRecordsToJoin);
                 resultantDataSender = edfJoiner;
             } else {
                 numberOfRecordsToJoin = 1;
-            }*/
+            }
 
             Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
             Map<Integer, Integer> extraDividers = new HashMap<>();

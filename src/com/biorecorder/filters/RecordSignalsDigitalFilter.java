@@ -76,7 +76,6 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
 
     @Override
     protected void filterData(int[] inputRecord)  {
-        int[] resultantRecord = new int[inRecordSize];
         int signalNumber = 0;
         int signalStartSampleNumber = 0;
         for (int i = 0; i < inRecordSize; i++) {
@@ -93,13 +92,11 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
                 for (DigitalFilter filter : signalFilters) {
                     digValue = filter.filteredValue(digValue);
                 }
-                resultantRecord[i] = new Double(digValue - offsets[signalNumber]).intValue();
-            } else {
-                resultantRecord[i] = inputRecord[i];
+                inputRecord[i] = (int)(digValue - offsets[signalNumber]);
             }
 
         }
-        sendDataToListeners(resultantRecord);
+        sendDataToListeners(inputRecord);
     }
 
     class NamedFilter implements DigitalFilter {

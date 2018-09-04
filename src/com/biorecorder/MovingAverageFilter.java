@@ -2,36 +2,52 @@ package com.biorecorder;
 
 import com.biorecorder.filters.DigitalFilter;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Created by galafit on 30/3/18.
  */
 public class MovingAverageFilter implements DigitalFilter {
-    private List<Double> buffer = new ArrayList();
-    private int bufferSize;
+    private final CircularFifoBuffer buffer;
+    private final int bufferSize;
+    private double sum;
 
     public MovingAverageFilter(int numberOfAveragingPoints) {
-        this.bufferSize = numberOfAveragingPoints;
+        buffer = new CircularFifoBuffer(numberOfAveragingPoints);
+        bufferSize = numberOfAveragingPoints;
     }
 
     public double filteredValue(double value) {
-        this.buffer.add(Double.valueOf(value));
-        if(this.buffer.size() < this.bufferSize) {
+        buffer.add(value);
+        sum += value;
+
+        if(buffer.size() < bufferSize) {
             return value;
         } else {
-            if(this.buffer.size() == this.bufferSize + 1) {
-                this.buffer.remove(0);
+            double avg = sum / bufferSize;
+            sum -= buffer.get();
+            return avg;
+        }
+    }
+
+    /**
+     * Unit Test. Usage Example.
+     */
+    public static void main(String[] args) {
+        int[] arr = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        int numberOfAveragingPoints = 3;
+        MovingAverageFilter filter = new MovingAverageFilter(numberOfAveragingPoints);
+        for (int i = 0; i < arr.length; i++) {
+            double filteredValue = filter.filteredValue(arr[i]);
+            double expectedValue;
+            if(i < numberOfAveragingPoints - 1) {
+                expectedValue = arr[i];
+            } else {
+                expectedValue = 0;
+                for (int j = 0; j < numberOfAveragingPoints; j++) {
+                    expectedValue += arr[i - j];
+                }
+                expectedValue = expectedValue / numberOfAveragingPoints;
             }
-
-            long bufferSum = 0L;
-
-            for(int i = 0; i < this.bufferSize; ++i) {
-                bufferSum = (long)((double)bufferSum + ((Double)this.buffer.get(i)).doubleValue());
-            }
-
-            return (double)(bufferSum / (long)this.bufferSize);
+            System.out.println(i + " filtered value: " + filteredValue + " Expected value " + expectedValue + "  Is equal: " + (filteredValue == expectedValue));
         }
     }
 }
