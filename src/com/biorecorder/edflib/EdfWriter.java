@@ -41,7 +41,6 @@ public class EdfWriter {
 
     private final EdfHeader header;
     private final File file;
-    private volatile long firstRecordTime;
     private volatile long lastRecordTime;
 
     private volatile boolean isClosed = false;
@@ -275,7 +274,7 @@ public class EdfWriter {
         try{
             sampleCount += length;
             if(sampleCount == recordSize) {
-                firstRecordTime = System.currentTimeMillis();
+                long firstRecordTime = System.currentTimeMillis();
                 lastRecordTime = firstRecordTime;
                 if(header.getRecordingStartTimeMs() <= 0) {
                     header.setRecordingStartTimeMs(firstRecordTime);
@@ -319,7 +318,7 @@ public class EdfWriter {
     public String getWritingInfo() {
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
         StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Start recording time = "  + dateFormat.format(new Date(firstRecordTime)) + "\n");
+        stringBuilder.append("Start recording time = "  + dateFormat.format(new Date(header.getRecordingStartTimeMs())) + "\n");
         stringBuilder.append("Stop recording time = " + dateFormat.format(new Date(lastRecordTime)) + "\n");
         stringBuilder.append("Duration of data records(sec) = " + header.getDurationOfDataRecord()+ "\n");
         stringBuilder.append("Number of data records = " + getNumberOfReceivedDataRecords());

@@ -144,9 +144,6 @@ class AdsRecordSender implements RecordSender {
     }
 
 
-
-
-
     private void putData(NumberedDataRecord numberedDataRecord) throws InterruptedException {
         dataQueue.put(numberedDataRecord);
     }
