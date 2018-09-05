@@ -25,9 +25,9 @@ public class RecordSignalsFrequencyReducer extends RecordsFilter {
      * not a multiple of divider
      */
     public void addDivider(int signalNumber, int divider) throws IllegalArgumentException {
-        if(in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber) % divider != 0 ) {
+        if(inConfig.getNumberOfSamplesInEachDataRecord(signalNumber) % divider != 0 ) {
            String errMsg = "Number of samples in DataRecord must be a multiple of divider. Number of samples = "
-                   + in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber)
+                   + inConfig.getNumberOfSamplesInEachDataRecord(signalNumber)
                    + " Divider = " + divider;
            throw new IllegalArgumentException(errMsg);
         }
@@ -38,12 +38,12 @@ public class RecordSignalsFrequencyReducer extends RecordsFilter {
     private int calculateResultantRecordSize() {
         int size = 0;
 
-        for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
+        for (int i = 0; i < inConfig.signalsCount(); i++) {
             Integer divider = dividers.get(i);
             if(divider != null) {
-                size += in.dataConfig().getNumberOfSamplesInEachDataRecord(i) / divider;
+                size += inConfig.getNumberOfSamplesInEachDataRecord(i) / divider;
             } else {
-                size += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+                size += inConfig.getNumberOfSamplesInEachDataRecord(i);
             }
           }
         return size;
@@ -51,7 +51,7 @@ public class RecordSignalsFrequencyReducer extends RecordsFilter {
 
     @Override
     public RecordConfig dataConfig() {
-        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(in.dataConfig());
+        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(inConfig);
         for (int i = 0; i < resultantConfig.signalsCount(); i++) {
             Integer divider = dividers.get(i);
             if(divider != null) {
@@ -95,7 +95,7 @@ public class RecordSignalsFrequencyReducer extends RecordsFilter {
                 count = 0;
                 sum = 0;
             }
-            if(signalSampleCount == in.dataConfig().getNumberOfSamplesInEachDataRecord(signalCount)) {
+            if(signalSampleCount == inConfig.getNumberOfSamplesInEachDataRecord(signalCount)) {
                 signalCount++;
                 signalSampleCount = 0;
             }

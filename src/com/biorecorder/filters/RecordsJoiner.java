@@ -26,8 +26,8 @@ public class RecordsJoiner extends RecordsFilter {
     public RecordsJoiner(RecordSender in, int numberOfRecordsToJoin) {
         super(in);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
-        for (int i = 0; i < in.dataConfig().signalsCount(); i++) {
-            inRecordSize += in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+        for (int i = 0; i < inConfig.signalsCount(); i++) {
+            inRecordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
          }
         outRecordSize = inRecordSize * numberOfRecordsToJoin;
         outDataRecord = new int[outRecordSize];
@@ -37,10 +37,10 @@ public class RecordsJoiner extends RecordsFilter {
 
     @Override
     public RecordConfig dataConfig() {
-        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(in.dataConfig());
-        resultantConfig.setDurationOfDataRecord(in.dataConfig().getDurationOfDataRecord() * numberOfRecordsToJoin);
+        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(inConfig);
+        resultantConfig.setDurationOfDataRecord(inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin);
         for (int i = 0; i < resultantConfig.signalsCount(); i++) {
-            resultantConfig.setNumberOfSamplesInEachDataRecord(i, in.dataConfig().getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
+            resultantConfig.setNumberOfSamplesInEachDataRecord(i, inConfig.getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
         }
         return resultantConfig;
     }
@@ -54,13 +54,13 @@ public class RecordsJoiner extends RecordsFilter {
     protected void filterData(int[] inputRecord)  {
         int signalNumber = 0;
         int signalStart = 0;
-        int signalSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
+        int signalSamples = inConfig.getNumberOfSamplesInEachDataRecord(signalNumber);
         for (int inSamplePosition = 0; inSamplePosition < inRecordSize; inSamplePosition++) {
 
             if(inSamplePosition >= signalStart + signalSamples) {
                 signalStart += signalSamples;
                 signalNumber++;
-                signalSamples = in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
+                signalSamples = inConfig.getNumberOfSamplesInEachDataRecord(signalNumber);
             }
 
             int outSamplePosition = signalStart * numberOfRecordsToJoin;

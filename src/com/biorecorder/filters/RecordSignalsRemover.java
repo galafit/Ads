@@ -17,8 +17,8 @@ public class RecordSignalsRemover extends RecordsFilter {
 
     public RecordSignalsRemover(RecordSender in) {
         super(in);
-        for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
-            inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+        for (int i = 0; i < this.inConfig.signalsCount(); i++) {
+            inRecordSize += this.inConfig.getNumberOfSamplesInEachDataRecord(i);
         }
         resultantRecordSize = calculateResultantRecordSize();
     }
@@ -38,9 +38,9 @@ public class RecordSignalsRemover extends RecordsFilter {
 
     @Override
     public RecordConfig dataConfig() {
-        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(in.dataConfig());
+        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(inConfig);
 
-        for (int i = in.dataConfig().signalsCount() - 1; i >= 0 ; i--) {
+        for (int i = inConfig.signalsCount() - 1; i >= 0 ; i--) {
             if(signalsToRemove.contains(i)) {
                 resultantConfig.removeSignal(i);
             }
@@ -51,7 +51,7 @@ public class RecordSignalsRemover extends RecordsFilter {
     private int calculateResultantRecordSize() {
         int size = inRecordSize;
         for (Integer removedSignal : signalsToRemove) {
-            size -= in.dataConfig().getNumberOfSamplesInEachDataRecord(removedSignal);
+            size -= inConfig.getNumberOfSamplesInEachDataRecord(removedSignal);
         }
         return size;
     }
@@ -69,8 +69,8 @@ public class RecordSignalsRemover extends RecordsFilter {
         int inputSignalStartSampleNumber = 0;
         int resultantSampleCount = 0;
         for (int i = 0; i < inRecordSize; i++) {
-            if(i >= inputSignalStartSampleNumber + in.dataConfig().getNumberOfSamplesInEachDataRecord(inputSignalNumber)) {
-               inputSignalStartSampleNumber += in.dataConfig().getNumberOfSamplesInEachDataRecord(inputSignalNumber);
+            if(i >= inputSignalStartSampleNumber + inConfig.getNumberOfSamplesInEachDataRecord(inputSignalNumber)) {
+               inputSignalStartSampleNumber += inConfig.getNumberOfSamplesInEachDataRecord(inputSignalNumber);
                inputSignalNumber++;
             }
             if(!signalsToRemove.contains(inputSignalNumber)) {

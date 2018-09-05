@@ -20,11 +20,10 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
 
     public RecordSignalsDigitalFilter(RecordSender in) {
         super(in);
-        for (int i = 0; i < this.in.dataConfig().signalsCount(); i++) {
-            inRecordSize += this.in.dataConfig().getNumberOfSamplesInEachDataRecord(i);
+        for (int i = 0; i < this.inConfig.signalsCount(); i++) {
+            inRecordSize += this.inConfig.getNumberOfSamplesInEachDataRecord(i);
         }
 
-        RecordConfig inConfig = in.dataConfig();
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
             offsets[i] = RecordConfig.offset(inConfig, i);
@@ -63,11 +62,11 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
 
     @Override
     public RecordConfig dataConfig() {
-        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(in.dataConfig());
+        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(inConfig);
         for (int i = 0; i < resultantConfig.signalsCount(); i++) {
             String prefilter = getSignalFiltersName(i);
-            if(in.dataConfig().getPrefiltering(i) != null && ! in.dataConfig().getPrefiltering(i).isEmpty()) {
-                prefilter = in.dataConfig().getPrefiltering(i) + ";" +getSignalFiltersName(i);
+            if(inConfig.getPrefiltering(i) != null && ! inConfig.getPrefiltering(i).isEmpty()) {
+                prefilter = inConfig.getPrefiltering(i) + ";" +getSignalFiltersName(i);
             }
             resultantConfig.setPrefiltering(i, prefilter);
         }
@@ -80,8 +79,8 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
         int signalStartSampleNumber = 0;
         for (int i = 0; i < inRecordSize; i++) {
 
-            if(i >= signalStartSampleNumber + in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber)) {
-                signalStartSampleNumber += in.dataConfig().getNumberOfSamplesInEachDataRecord(signalNumber);
+            if(i >= signalStartSampleNumber + inConfig.getNumberOfSamplesInEachDataRecord(signalNumber)) {
+                signalStartSampleNumber += inConfig.getNumberOfSamplesInEachDataRecord(signalNumber);
                 signalNumber++;
             }
 

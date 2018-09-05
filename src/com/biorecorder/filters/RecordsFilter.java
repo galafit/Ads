@@ -1,5 +1,6 @@
 package com.biorecorder.filters;
 
+import com.biorecorder.dataformat.RecordConfig;
 import com.biorecorder.dataformat.RecordListener;
 import com.biorecorder.dataformat.RecordSender;
 
@@ -15,11 +16,13 @@ import com.biorecorder.dataformat.RecordSender;
  * see here: https://www.techyourchance.com/thread-safe-observer-design-pattern-in-java/
  */
 public abstract class RecordsFilter implements RecordSender, RecordListener {
-    protected final RecordSender in;
+    private final RecordSender in;
+    protected final RecordConfig inConfig;
     private volatile RecordListener listener;
 
     public RecordsFilter(RecordSender in) {
         this.in = in;
+        inConfig = in.dataConfig();
         listener = new NullRecordListener();
     }
 

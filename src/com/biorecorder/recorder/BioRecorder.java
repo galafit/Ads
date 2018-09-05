@@ -273,7 +273,7 @@ public class BioRecorder {
             resultantDataSender = adsDataSender;
 
             // join DataRecords to have data records length = resultantDataRecordDuration;
-    /*        numberOfRecordsToJoin = recorderConfig.getNumberOfAdsRecordsToJoin();
+            numberOfRecordsToJoin = recorderConfig.getNumberOfAdsRecordsToJoin();
 
             if(numberOfRecordsToJoin > 1) {
                 RecordsJoiner edfJoiner = new RecordsJoiner(resultantDataSender, numberOfRecordsToJoin);
@@ -365,17 +365,7 @@ public class BioRecorder {
                     edfSignalsRemover.removeSignal(batteryChannelNumber);
                 }
                 resultantDataSender = edfSignalsRemover;
-            }*/
-
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-            resultantDataSender = new TestFilter(resultantDataSender);
-
+            }
             resultantDataSender.addDataListener(dataListener);
         }
 
