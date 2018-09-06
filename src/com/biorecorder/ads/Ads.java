@@ -517,9 +517,11 @@ public class Ads {
      * Helper method to convert digital value (integer) with lead-off info (last integer of data frame) to the bit-mask.
      * <p>
      * "Lead-Off" detection serves to alert/notify when an electrode is making poor electrical
-     * contact or disconnecting. Therefore in Lead-Off detection mask TRUE means DISCONNECTED and
-     * FALSE means CONNECTED (or if the channel is disabled or its lead-off detection disabled or
-     * its commutator state != "input").
+     * contact or disconnecting. Therefore in Lead-Off detection mask
+     * <br>TRUE means DISCONNECTED
+     * <br>FALSE means CONNECTED
+     * <br> NULL if the channel is disabled or its lead-off detection disabled or
+     * its commutator state != "input".
      * <p>
      * Every ads-channel has 2 electrodes (Positive and Negative) so in leadOff detection mask:
      * <br>
@@ -529,64 +531,93 @@ public class Ads {
      * element-14 and element-15 correspond to Positive and Negative electrodes of ads channel 8.
      * <p>
      *
-     * @param leadOffInt       - integer with lead-off info
-     * @param adsChannelsCount - number of ads channels (2 or 8)
-     * @return leadOff detection mask or null if ads is stopped or
-     * leadOff detection is disabled
-     * @throws IllegalArgumentException if specified number of ads channels != 2 or 8
+     * @param dataRecord - data record
+     * @param adsConfig ads config during recording data
+     * @return leadOff detection mask
+     * @throws IllegalArgumentException if lead off detection is disabled in given AdsConfig
      */
-    public static boolean[] leadOffIntToBitMask(int leadOffInt, int adsChannelsCount) throws IllegalArgumentException {
-        int maskLength = 2 * adsChannelsCount; // 2 electrodes for every channel
-        if (adsChannelsCount == 2) {
+    public static Boolean[] extractLeadOffBitMask(int[] dataRecord, AdsConfig adsConfig) throws IllegalArgumentException {
+        if (!adsConfig.isLeadOffEnabled()) {
+            String errMsg = "Lead off detection is disabled";
+            throw new IllegalArgumentException(errMsg);
+        }
 
-            boolean[] bm = new boolean[maskLength];
-            for (int k = 0; k < bm.length; k++) {
-                if (((leadOffInt >> k) & 1) == 1) {
-                    bm[k] = true;
+        int leadOffInt = dataRecord[dataRecord.length - 1];
+        int maskLength = 2 * adsConfig.getAdsChannelsCount(); // 2 electrodes for every channel
+        Boolean[] bm = new Boolean[maskLength];
+
+        if (adsConfig.getAdsChannelsCount() == 2) {
+            int channel;
+            for (int i = 0; i < bm.length; i++) {
+                channel = i / 2;
+                if(adsConfig.isAdsChannelEnabled(channel) && adsConfig.isAdsChannelLeadOffEnable(channel)
+                        && adsConfig.getAdsChannelCommutatorState(channel).equals(Commutator.INPUT)) {
+                    if (((leadOffInt >> i) & 1) == 1) {
+                        bm[i] = true;
+                    } else {
+                        bm[i] = false;
+                    }
                 }
             }
             return bm;
         }
 
-        if (adsChannelsCount == 8) {
+        if (adsConfig.getAdsChannelsCount() == 8) {
         /*
          * ads_8channel send lead-off status in different manner:
          * first byte - states of all negative electrodes from 8 channels
          * second byte - states of all positive electrodes from 8 channels
          */
-            boolean[] bm = new boolean[maskLength];
-            for (int k = 0; k < bm.length; k++) {
-                if (k < 8) { // first byte
-                    if (((leadOffInt >> k) & 1) == 1) {
-                        bm[2 * k + 1] = true;
-                    }
+            int channel;
+            int electrode;
+            for (int i = 0; i < bm.length; i++) {
+                if (i < 8) { // first byte
+                    channel = i;
+                    electrode = 2 * channel + 1;
+
                 } else { // second byte
-                    if (((leadOffInt >> k) & 1) == 1) {
-                        bm[2 * (k - 8)] = true;
+                    channel = i - 8;
+                    electrode = 2 * channel;
+                }
+                if(adsConfig.isAdsChannelEnabled(channel) && adsConfig.isAdsChannelLeadOffEnable(channel)
+                        && adsConfig.getAdsChannelCommutatorState(channel).equals(Commutator.INPUT)) {
+                    if (((leadOffInt >> i) & 1) == 1) {
+                        bm[electrode] = true;
+                    } else {
+                        bm[electrode] = false;
                     }
                 }
-
             }
+
+
             return bm;
         }
 
-        String msg = "Invalid Ads channels count: " + adsChannelsCount + ". Number of Ads channels should be 2 or 8";
+        String msg = "Invalid Ads channels count: " + adsConfig.getAdsChannelsCount() + ". Number of Ads channels should be 2 or 8";
         throw new IllegalArgumentException(msg);
     }
 
     /**
-     * Helper method to convert digital value (integer) with buttery charge value
-     * to buttery percentage level. Percentage level can be estimated only
-     * roughly. So this method return ROUNDED percentage values:
-     * 100, 90, 80, 70, 60, 50, 40, 30, 20, 10.
-     * All values less then 10% will be rounded to 10%
-     * @param batteryInt - digital (int) value of battery charge
+     * Helper method to extract buttery charge value from data record and convert it
+     * to buttery percentage level.
+     * @param dataRecord - data record
+     * @param adsConfig ads config during recording data
      * @return battery level (percentage): 100, 90, 80, 70, 60, 50, 40, 30, 20, 10
-     * @throws IllegalArgumentException if batteryInt < BatteryDigitalMin (0) or batteryInt > BatteryDigitalMax (10240)
+     * @throws IllegalArgumentException if 1)battery voltage measuring disabled in given AdsConfig<br>
+     * 2)batteryInt < BatteryDigitalMin (0) or batteryInt > BatteryDigitalMax (10240)
      */
-    public static int lithiumBatteryIntToPercentage(int batteryInt) throws IllegalArgumentException {
-        if (batteryInt < getBatteryVoltageDigitalMin() || batteryInt > getBatteryVoltageDigitalMax()) {
-            String errMsg = "Invalid battery digital value: " + batteryInt + " Expected > " + getBatteryVoltageDigitalMin() + " and <= " + getBatteryVoltageDigitalMax();
+    public static int extractLithiumBatteryPercentage(int[] dataRecord, AdsConfig adsConfig) throws IllegalArgumentException {
+        if(! adsConfig.isBatteryVoltageMeasureEnabled()) {
+            String errMsg = "Battery Voltage Measure is disabled";
+            throw new IllegalArgumentException(errMsg);
+        }
+        int batteryCharge = dataRecord[dataRecord.length - 1];
+        if (adsConfig.isLeadOffEnabled()) {
+            batteryCharge = dataRecord[dataRecord.length - 2];
+        }
+
+        if (batteryCharge < getBatteryVoltageDigitalMin() || batteryCharge > getBatteryVoltageDigitalMax()) {
+            String errMsg = "Invalid battery digital value: " + batteryCharge + " Expected > " + getBatteryVoltageDigitalMin() + " and <= " + getBatteryVoltageDigitalMax();
             throw new IllegalArgumentException(errMsg);
         }
 
@@ -597,7 +628,7 @@ public class Ads {
         int percentage_max = 100;
         int percentage_min = 10;
 
-        int percentage = percentage_min + (percentage_max - percentage_min) * (batteryInt - lithiumBatteryDigitalMin) / (lithiumBatteryDigitalMax - lithiumBatteryDigitalMin);
+        int percentage = percentage_min + (percentage_max - percentage_min) * (batteryCharge - lithiumBatteryDigitalMin) / (lithiumBatteryDigitalMax - lithiumBatteryDigitalMin);
         if (percentage > percentage_max) {
             percentage = percentage_max;
         }
@@ -605,9 +636,7 @@ public class Ads {
             percentage = percentage_min;
         }
 
-        int percentageRound = (int)Math.round(percentage/10.0);
-
-        return percentageRound * 10;
+        return percentage;
     }
 
     public static double getAdsChannelPhysicalMax(Gain channelGain) {

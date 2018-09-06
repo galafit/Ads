@@ -34,6 +34,7 @@ class AdsRecordSender implements RecordSender {
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
     private volatile double calculatedDurationOfDataRecord; // sec
+    private volatile int batterryCurrentPct = 100; // 100%
 
 
     public AdsRecordSender(Ads ads, AdsConfig adsConfig) {
@@ -58,12 +59,12 @@ class AdsRecordSender implements RecordSender {
                 }
             }
         };
-         dataHandlingThread.start();
+        dataHandlingThread.start();
         return ads.startRecording(adsConfig);
     }
 
     public boolean stop() throws IllegalStateException {
-        if(dataHandlingThread != null) {
+        if (dataHandlingThread != null) {
             dataHandlingThread.interrupt();
         }
         ads.removeDataListener();
@@ -77,7 +78,7 @@ class AdsRecordSender implements RecordSender {
      * @return start measuring time
      */
     public long getStartMeasuringTime() {
-        if(firstRecordTime == 0) {
+        if (firstRecordTime == 0) {
             return 0;
         }
         return firstRecordTime - (long) (calculatedDurationOfDataRecord * 1000);
@@ -119,25 +120,25 @@ class AdsRecordSender implements RecordSender {
                     Thread.currentThread().interrupt();
                 }
 
-                int batteryCharge = dataRecord[dataRecord.length - 1];
-
+                // notify lead off listener
                 if (adsConfig.isLeadOffEnabled()) {
-                    batteryCharge = dataRecord[dataRecord.length - 2];
-
-                    boolean[] loffMask = Ads.leadOffIntToBitMask(dataRecord[dataRecord.length - 1], adsConfig.getAdsChannelsCount());
-                    Boolean[] resultantLoffMask = new Boolean[loffMask.length];
-                    for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
-                        if (adsConfig.isAdsChannelEnabled(i) && adsConfig.isAdsChannelLeadOffEnable(i)
-                                && adsConfig.getAdsChannelCommutatorState(i).equals(Commutator.INPUT)) {
-                            resultantLoffMask[2 * i] = loffMask[2 * i];
-                            resultantLoffMask[2 * i + 1] = loffMask[2 * i + 1];
-                        }
-
-                    }
-                    notifyLeadOffListeners(resultantLoffMask);
+                    notifyLeadOffListeners(Ads.extractLeadOffBitMask(dataRecord, adsConfig));
                 }
+
+                // notify battery voltage listener
                 if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-                    notifyBatteryLevelListener(Ads.lithiumBatteryIntToPercentage(batteryCharge));
+                    int batteryPct = Ads.extractLithiumBatteryPercentage(dataRecord, adsConfig);
+                    // Percentage level actually are estimated roughly.
+                    // So we round its value to tens: 100, 90, 80, 70, 60, 50, 40, 30, 20, 10.
+                    int percentageRound = ((int) Math.round(batteryPct / 10.0)) * 10;
+
+                    // this permits to avoid "forward-back" jumps when percentageRound are
+                    // changing from one ten to the next one (30-40 or 80-90 ...)
+                    if (percentageRound < batterryCurrentPct) {
+                        batterryCurrentPct = percentageRound;
+                    }
+
+                    notifyBatteryLevelListener(batterryCurrentPct);
                 }
             }
         });
@@ -148,7 +149,7 @@ class AdsRecordSender implements RecordSender {
         dataQueue.put(numberedDataRecord);
     }
 
-    private void handleData(NumberedDataRecord numberedDataRecord) throws InterruptedException{
+    private void handleData(NumberedDataRecord numberedDataRecord) throws InterruptedException {
         // send to listener
         notifyDataListeners(numberedDataRecord.getRecord());
         int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;

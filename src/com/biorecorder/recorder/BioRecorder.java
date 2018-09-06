@@ -347,13 +347,12 @@ public class BioRecorder {
                 enableChannelsCount++;
             }
 
-            // if some helper channels have to be deleted
+            // delete helper channels
             if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
 
-                // Filter to remove helper channels
                 SignalRemover edfSignalsRemover = new SignalRemover(resultantDataSender);
                 if (isAccelerometerOnly) {
-                    // delete helper enabled channel
+                    // delete helper ads channel
                     edfSignalsRemover.removeSignal(0);
                 }
                 if (recorderConfig.isLeadOffEnabled()) {
