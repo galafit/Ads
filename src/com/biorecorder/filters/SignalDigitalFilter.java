@@ -1,8 +1,7 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.dataformat.RecordSender;
-import com.biorecorder.dataformat.DefaultRecordConfig;
+import com.biorecorder.MovingAverageFilter;
+import com.biorecorder.dataformat.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,17 +12,12 @@ import java.util.Map;
  * Permits to  add digital filters to any signal and realize corresponding
  * transformation  with the data samples belonging to the signals
  */
-public class RecordSignalsDigitalFilter extends RecordsFilter {
+public class SignalDigitalFilter extends RecordFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
-    private int inRecordSize;
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public RecordSignalsDigitalFilter(RecordSender in) {
+    public SignalDigitalFilter(RecordSender in) {
         super(in);
-        for (int i = 0; i < this.inConfig.signalsCount(); i++) {
-            inRecordSize += this.inConfig.getNumberOfSamplesInEachDataRecord(i);
-        }
-
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
             offsets[i] = RecordConfig.offset(inConfig, i);
@@ -62,19 +56,20 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
 
     @Override
     public RecordConfig dataConfig() {
-        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(inConfig);
-        for (int i = 0; i < resultantConfig.signalsCount(); i++) {
+        DefaultRecordConfig outConfig = new DefaultRecordConfig(inConfig);
+        for (int i = 0; i < outConfig.signalsCount(); i++) {
             String prefilter = getSignalFiltersName(i);
             if(inConfig.getPrefiltering(i) != null && ! inConfig.getPrefiltering(i).isEmpty()) {
                 prefilter = inConfig.getPrefiltering(i) + ";" +getSignalFiltersName(i);
             }
-            resultantConfig.setPrefiltering(i, prefilter);
+            outConfig.setPrefiltering(i, prefilter);
         }
-        return resultantConfig;
+        return outConfig;
     }
 
     @Override
     protected void filterData(int[] inputRecord)  {
+        int[] outRecord = new int[inputRecord.length];
         int signalNumber = 0;
         int signalStartSampleNumber = 0;
         for (int i = 0; i < inRecordSize; i++) {
@@ -91,11 +86,13 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
                 for (DigitalFilter filter : signalFilters) {
                     digValue = filter.filteredValue(digValue);
                 }
-                inputRecord[i] = (int)(digValue - offsets[signalNumber]);
+                outRecord[i] = (int)(digValue - offsets[signalNumber]);
+            } else {
+                outRecord[i] = inputRecord[i];
             }
 
         }
-        sendDataToListeners(inputRecord);
+        sendDataToListeners(outRecord);
     }
 
     class NamedFilter implements DigitalFilter {
@@ -115,6 +112,67 @@ public class RecordSignalsDigitalFilter extends RecordsFilter {
         public String getFilterName() {
             return filterName;
         }
+    }
+
+    /**
+     * Unit Test. Usage Example.
+     */
+    public static void main(String[] args) {
+
+        // 0 channel 1 sample, 1 channel 6 samples, 2 channel 2 samples
+        int[] dataRecord = {1,  2,4,8,6,0,8,  3,5};
+
+        DefaultRecordConfig dataConfig = new DefaultRecordConfig(3);
+
+        dataConfig.setNumberOfSamplesInEachDataRecord(0, 1);
+        dataConfig.setNumberOfSamplesInEachDataRecord(1, 6);
+        dataConfig.setNumberOfSamplesInEachDataRecord(2, 2);
+
+        TestRecordSender recordSender = new TestRecordSender(dataConfig);
+
+        // Moving average filter to channel 1
+        SignalDigitalFilter recordFilter = new SignalDigitalFilter(recordSender);
+        recordFilter.addSignalFilter(1, new MovingAverageFilter(2), "movAvg:2");
+
+        // expected dataRecords
+        int[] expectedDataRecord1 = {1,  2,3,6,7,3,4,  3,5};
+        int[] expectedDataRecord2 = {1,  5,3,6,7,3,4,  3,5};
+
+
+        recordFilter.addDataListener(new RecordListener() {
+            int i = 1;
+            @Override
+            public void onDataReceived(int[] dataRecord1) {
+                boolean isTestOk = true;
+                int[] expectedDataRecord;
+                if(i == 1) {
+                   expectedDataRecord = expectedDataRecord1;
+                } else {
+                    expectedDataRecord = expectedDataRecord2;
+                }
+                i++;
+                if(expectedDataRecord.length != dataRecord1.length) {
+                    System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
+                    isTestOk = false;
+                }
+
+                for (int i = 0; i < dataRecord1.length; i++) {
+                    if(dataRecord1[i] != expectedDataRecord[i]) {
+                        System.out.println(i + " resultant data: "+dataRecord1[i]+ " expected data: "+expectedDataRecord[i]);
+                        isTestOk = false;
+                        // break;
+                    }
+                }
+
+                System.out.println("Is test ok: "+isTestOk);
+            }
+        });
+
+        // send 4 records and get 4 resultant records
+        recordSender.sendRecord(dataRecord);
+        recordSender.sendRecord(dataRecord);
+        recordSender.sendRecord(dataRecord);
+        recordSender.sendRecord(dataRecord);
     }
 
 }

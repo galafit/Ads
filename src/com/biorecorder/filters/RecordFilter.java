@@ -15,14 +15,20 @@ import com.biorecorder.dataformat.RecordSender;
  * PS How to implement thread safe classical observer pattern with multiple listeners
  * see here: https://www.techyourchance.com/thread-safe-observer-design-pattern-in-java/
  */
-public abstract class RecordsFilter implements RecordSender, RecordListener {
+public abstract class RecordFilter implements RecordSender, RecordListener {
     private final RecordSender in;
     protected final RecordConfig inConfig;
+    protected final int inRecordSize;
     private volatile RecordListener listener;
 
-    public RecordsFilter(RecordSender in) {
+    public RecordFilter(RecordSender in) {
         this.in = in;
         inConfig = in.dataConfig();
+        int recordSize = 0;
+        for (int i = 0; i < this.inConfig.signalsCount(); i++) {
+            recordSize += this.inConfig.getNumberOfSamplesInEachDataRecord(i);
+        }
+        inRecordSize = recordSize;
         listener = new NullRecordListener();
     }
 

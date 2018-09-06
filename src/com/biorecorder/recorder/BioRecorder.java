@@ -318,7 +318,7 @@ public class BioRecorder {
 
             // reduce signals frequencies
             if(!extraDividers.isEmpty()) {
-                RecordSignalsFrequencyReducer edfFrequencyDivider = new RecordSignalsFrequencyReducer(resultantDataSender);
+                SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(resultantDataSender);
                 for (Integer signal : extraDividers.keySet()){
                     edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
                 }
@@ -327,7 +327,7 @@ public class BioRecorder {
 
             // Add digital filters to ads channels
             if(!enableChannelsFilters.isEmpty()) {
-                RecordSignalsDigitalFilter edfSignalsFilter = new RecordSignalsDigitalFilter(resultantDataSender);
+                SignalDigitalFilter edfSignalsFilter = new SignalDigitalFilter(resultantDataSender);
                 for (Integer signal : enableChannelsFilters.keySet()){
                     List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
                     for (NamedDigitalFilter filter : channelFilters) {
@@ -351,7 +351,7 @@ public class BioRecorder {
             if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
 
                 // Filter to remove helper channels
-                RecordSignalsRemover edfSignalsRemover = new RecordSignalsRemover(resultantDataSender);
+                SignalRemover edfSignalsRemover = new SignalRemover(resultantDataSender);
                 if (isAccelerometerOnly) {
                     // delete helper enabled channel
                     edfSignalsRemover.removeSignal(0);

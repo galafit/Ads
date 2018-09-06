@@ -8,7 +8,6 @@ import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * EdfWriter permits to write digital or physical samples
@@ -49,7 +48,7 @@ public class EdfWriter {
 
     private final FileOutputStream fileOutputStream;
     private final int recordSize; // helper field to avoid unnecessary calculations
-    private int signalWritePosition;
+    private int currentSignal;
 
     /**
      * Creates EdfWriter to write data samples to the file represented by
@@ -110,9 +109,9 @@ public class EdfWriter {
         if(header.signalsCount() == 0) {
             throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
         }
-        int sn = header.getNumberOfSamplesInEachDataRecord(signalWritePosition);
-        int digMin = header.getDigitalMin(signalWritePosition);
-        int digMax = header.getDigitalMax(signalWritePosition);
+        int sn = header.getNumberOfSamplesInEachDataRecord(currentSignal);
+        int digMin = header.getDigitalMin(currentSignal);
+        int digMax = header.getDigitalMax(currentSignal);
         for (int i = 0; i < sn; i++) {
             if(digitalSamples[i] < digMin) {
                 digitalSamples[i] = digMin;
@@ -122,9 +121,9 @@ public class EdfWriter {
             }
         }
         writeDataToFile(digitalSamples, sn);
-        signalWritePosition++;
-        if(signalWritePosition == header.signalsCount()) {
-            signalWritePosition = 0;
+        currentSignal++;
+        if(currentSignal == header.signalsCount()) {
+            currentSignal = 0;
         }
     }
 
@@ -145,7 +144,7 @@ public class EdfWriter {
         if(header.signalsCount() == 0) {
             throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
         }
-        if(signalWritePosition != 0) {
+        if(currentSignal != 0) {
             throw new IllegalStateException(RECORD_INCOMPLETE);
         }
         int counter = 0;
@@ -185,10 +184,10 @@ public class EdfWriter {
      * or number of signals for that file is 0
      */
     public void writePhysicalSamples(double[] physicalSamples) throws IOException, IllegalStateException {
-        int ns = header.getNumberOfSamplesInEachDataRecord(signalWritePosition);
+        int ns = header.getNumberOfSamplesInEachDataRecord(currentSignal);
         int digSamples[] = new int[ns];
         for (int i = 0; i < ns; i++) {
-            digSamples[i] = header.physicalValueToDigital(signalWritePosition, physicalSamples[i]);
+            digSamples[i] = header.physicalValueToDigital(currentSignal, physicalSamples[i]);
         }
         writeDigitalSamples(digSamples);
     }
@@ -277,7 +276,7 @@ public class EdfWriter {
                 long firstRecordTime = System.currentTimeMillis();
                 lastRecordTime = firstRecordTime;
                 if(header.getRecordingStartTimeMs() <= 0) {
-                    header.setRecordingStartTimeMs(firstRecordTime);
+                    header.setRecordingStartTimeMs(firstRecordTime - (int)(header.getDurationOfDataRecord() * 1000));
                 }
                 writeHeaderToFile();
             }
@@ -319,7 +318,7 @@ public class EdfWriter {
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Start recording time = "  + dateFormat.format(new Date(header.getRecordingStartTimeMs())) + "\n");
-        stringBuilder.append("Stop recording time = " + dateFormat.format(new Date(lastRecordTime)) + "\n");
+        stringBuilder.append("Stop recording time = " + dateFormat.format(new Date(lastRecordTime - (int)(header.getDurationOfDataRecord() * 1000))) + "\n");
         stringBuilder.append("Duration of data records(sec) = " + header.getDurationOfDataRecord()+ "\n");
         stringBuilder.append("Number of data records = " + getNumberOfReceivedDataRecords());
 

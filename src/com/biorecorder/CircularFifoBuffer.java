@@ -154,10 +154,16 @@ public class CircularFifoBuffer {
     public static void main(String[] args) {
         int bufferSize = 3;
         CircularFifoBuffer buffer = new CircularFifoBuffer(bufferSize);
+        boolean isTestOk = true;
         for (int i = 1; i < 10; i++) {
             buffer.add(i);
             double expected = (i <= bufferSize) ? 1 : i - bufferSize + 1;
-            System.out.println("Add to buffer: "+ i + "  Get from buffer: "+buffer.get() + " Expected: "+ expected);
+            if(expected != buffer.get()) {
+                System.out.println(i + "  Get from buffer: "+ buffer.get() + " Expected: "+ expected);
+                isTestOk = false;
+                break;
+            }
         }
+        System.out.println("Is test ok: "+isTestOk);
     }
 }

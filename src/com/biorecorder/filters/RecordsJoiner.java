@@ -1,12 +1,10 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.dataformat.RecordSender;
-import com.biorecorder.dataformat.DefaultRecordConfig;
+import com.biorecorder.dataformat.*;
 
 /**
  * Permits to join (piece together) given number of incoming DataRecords.
- * Resultant  data records (that will be send to the listener)
+ * out  data records (that will be send to the listener)
  * have the following structure:
  * <br>  number of samples from channel_0 in original DataRecord * numberOfRecordsToJoin ,
  * <br>  number of samples from channel_1 in original DataRecord * numberOfRecordsToJoin,
@@ -16,16 +14,16 @@ import com.biorecorder.dataformat.DefaultRecordConfig;
  *
  * <br>duration of resulting DataRecord = duration of original DataRecord * numberOfRecordsToJoin
  */
-public class RecordsJoiner extends RecordsFilter {
+public class RecordsJoiner extends RecordFilter {
     private int numberOfRecordsToJoin;
     private int[] outDataRecord;
     private int joinedRecordsCounter;
-    private int inRecordSize;
     private int outRecordSize;
 
     public RecordsJoiner(RecordSender in, int numberOfRecordsToJoin) {
         super(in);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
+        int inRecordSize = 0;
         for (int i = 0; i < inConfig.signalsCount(); i++) {
             inRecordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
          }
@@ -37,17 +35,17 @@ public class RecordsJoiner extends RecordsFilter {
 
     @Override
     public RecordConfig dataConfig() {
-        DefaultRecordConfig resultantConfig = new DefaultRecordConfig(inConfig);
-        resultantConfig.setDurationOfDataRecord(inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin);
-        for (int i = 0; i < resultantConfig.signalsCount(); i++) {
-            resultantConfig.setNumberOfSamplesInEachDataRecord(i, inConfig.getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
+        DefaultRecordConfig outConfig = new DefaultRecordConfig(inConfig);
+        outConfig.setDurationOfDataRecord(inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin);
+        for (int i = 0; i < outConfig.signalsCount(); i++) {
+            outConfig.setNumberOfSamplesInEachDataRecord(i, inConfig.getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
         }
-        return resultantConfig;
+        return outConfig;
     }
 
 
     /**
-     * Accumulate and join the specified number of incoming samples into one resultant
+     * Accumulate and join the specified number of incoming samples into one out
      * DataRecord and when it is ready send it to the dataListener
      */
     @Override
@@ -77,5 +75,55 @@ public class RecordsJoiner extends RecordsFilter {
             outDataRecord = new int[outRecordSize];
             joinedRecordsCounter = 0;
         }
+    }
+
+    /**
+     * Unit Test. Usage Example.
+     */
+    public static void main(String[] args) {
+
+        // 0 channel 3 samples, 1 channel 2 samples, 3 channel 4 samples
+        int[] dataRecord = {1,3,8,  2,4,  7,6,8,6};
+
+        DefaultRecordConfig dataConfig = new DefaultRecordConfig(3);
+        dataConfig.setNumberOfSamplesInEachDataRecord(0, 3);
+        dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
+        dataConfig.setNumberOfSamplesInEachDataRecord(2, 4);
+
+        TestRecordSender recordSender = new TestRecordSender(dataConfig);
+
+        // join 2 records
+        RecordsJoiner recordFilter = new RecordsJoiner(recordSender, 2);
+
+
+        // expected dataRecord
+        int[] expectedDataRecord = {1,3,8,1,3,8,  2,4,2,4,  7,6,8,6,7,6,8,6};
+
+        recordFilter.addDataListener(new RecordListener() {
+            @Override
+            public void onDataReceived(int[] dataRecord1) {
+                boolean isTestOk = true;
+                if(expectedDataRecord.length != dataRecord1.length) {
+                    System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
+                    isTestOk = false;
+                }
+
+                for (int i = 0; i < dataRecord1.length; i++) {
+                    if(dataRecord1[i] != expectedDataRecord[i]) {
+                        System.out.println(i + " resultant data: "+dataRecord1[i]+ " expected data: "+expectedDataRecord[i]);
+                        isTestOk = false;
+                        break;
+                    }
+                }
+
+                System.out.println("Is test ok: "+isTestOk);
+            }
+        });
+
+        // send 4 records and get as result 2 joined records
+        recordSender.sendRecord(dataRecord);
+        recordSender.sendRecord(dataRecord);
+        recordSender.sendRecord(dataRecord);
+        recordSender.sendRecord(dataRecord);
     }
 }

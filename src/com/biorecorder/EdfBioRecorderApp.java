@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EdfBioRecorderApp {
     private static final Log log = LogFactory.getLog(EdfBioRecorderApp.class);
 
-    private static final int PROGRESS_NOTIFICATION_PERIOD_MS = 1000;
+    private static final int PROGRESS_NOTIFICATION_PERIOD_MS = 500;
     private static final int COMPORT_CONNECTION_PERIOD_MS = 2000;
     private static final int AVAILABLE_COMPORTS_CHECKING_PERIOD_MS = 3000;
     private static final int FUTURE_CHECKING_PERIOD_MS = 1000;

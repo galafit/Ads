@@ -35,6 +35,7 @@ public class MovingAverageFilter implements DigitalFilter {
         int[] arr = {1, 2, 3, 4, 5, 6, 7, 8, 9};
         int numberOfAveragingPoints = 3;
         MovingAverageFilter filter = new MovingAverageFilter(numberOfAveragingPoints);
+        boolean isTestOk = true;
         for (int i = 0; i < arr.length; i++) {
             double filteredValue = filter.filteredValue(arr[i]);
             double expectedValue;
@@ -47,7 +48,13 @@ public class MovingAverageFilter implements DigitalFilter {
                 }
                 expectedValue = expectedValue / numberOfAveragingPoints;
             }
-            System.out.println(i + " filtered value: " + filteredValue + " Expected value " + expectedValue + "  Is equal: " + (filteredValue == expectedValue));
+
+            if(filteredValue != expectedValue) {
+                System.out.println(i + "Error! filtered value: " + filteredValue + " Expected value " + expectedValue);
+                isTestOk = false;
+                break;
+            }
         }
+        System.out.println("Is test ok: "+isTestOk);
     }
 }
