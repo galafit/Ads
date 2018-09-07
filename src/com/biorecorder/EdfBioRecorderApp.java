@@ -302,7 +302,7 @@ public class EdfBioRecorderApp {
                         availableComportsTask.cancel();
                         notificationTask.cancel();
                     } else { // // if start failed
-                        closeStreams();
+                        closeStreamsAndStartMonitoring();
                         RecorderType connectedRecorder = getConnectedRecorder();
                         if (connectedRecorder != null && recorderType != connectedRecorder) {
                             notifyStateChange(new Message(Message.TYPE_WRONG_DEVICE));
@@ -312,11 +312,11 @@ public class EdfBioRecorderApp {
                         }
                     }
                 } catch (ExecutionException e) { // some unknown execution error (never should occur)
-                    closeStreams();
+                    closeStreamsAndStartMonitoring();
                     notifyStateChange(new Message(Message.TYPE_UNKNOWN_ERROR, e.getMessage()));
                     log.error(e.getMessage());
                 } catch (Exception e) { // stop or canceling start
-                    closeStreams();
+                    closeStreamsAndStartMonitoring();
                     notifyStateChange(null);
                 } finally {
                     cancel(); // cancel this task
@@ -324,7 +324,7 @@ public class EdfBioRecorderApp {
             }
         }
 
-        private void closeStreams() {
+        private void closeStreamsAndStartMonitoring() {
             startMonitoring();
             for (RecordStream stream : streams) {
                 try {
