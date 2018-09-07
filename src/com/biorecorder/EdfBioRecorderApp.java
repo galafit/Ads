@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EdfBioRecorderApp {
     private static final Log log = LogFactory.getLog(EdfBioRecorderApp.class);
 
-    private static final int PROGRESS_NOTIFICATION_PERIOD_MS = 500;
+    private static final int NOTIFICATION_PERIOD_MS = 1000;
+    private static final int NOTIFICATION_QUARTER_PERIOD_MS = NOTIFICATION_PERIOD_MS / 4;
     private static final int COMPORT_CONNECTION_PERIOD_MS = 2000;
     private static final int AVAILABLE_COMPORTS_CHECKING_PERIOD_MS = 3000;
     private static final int FUTURE_CHECKING_PERIOD_MS = 1000;
@@ -45,32 +46,28 @@ public class EdfBioRecorderApp {
     private volatile String comportName;
     private volatile TimerTask connectionTask = new ConnectionTask();
     private volatile TimerTask availableComportsTask = new AvailableComportsTask();
+    private volatile TimerTask notificationTask = new NotificationTask();
+
     private volatile TimerTask startFutureHandlingTask;
     private volatile boolean isLoffDetecting;
 
     private volatile boolean isDurationOfDataRecordComputable = false;
+    private volatile long lastNotificationTime;
 
     private volatile RecordStream lslStream = new NullRecordStream();
     private volatile RecordStream edfStream = new NullRecordStream();
 
     public EdfBioRecorderApp() {
-        timer.schedule(new TimerTask() {
-            public void run() {
-                notifyProgress();
-            }
-        }, PROGRESS_NOTIFICATION_PERIOD_MS, PROGRESS_NOTIFICATION_PERIOD_MS);
-
-        timer.schedule(availableComportsTask, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS);
-    }
+        restartAvailableComportsTask();
+        restartNotificationTask();
+     }
 
     public boolean connectToComport(String comportName) {
         if (comportName == null || comportName.isEmpty() || isRecording()) {
             return false;
         }
         this.comportName = comportName;
-        connectionTask.cancel();
-        connectionTask = new ConnectionTask();
-        timer.schedule(connectionTask, COMPORT_CONNECTION_PERIOD_MS, COMPORT_CONNECTION_PERIOD_MS);
+        restartConnectionTask();
         return true;
     }
 
@@ -124,6 +121,7 @@ public class EdfBioRecorderApp {
         bioRecorder.addLeadOffListener(new LeadOffListener() {
             public void onLeadOffMaskReceived(Boolean[] leadOffMask) {
                 leadOffBitMask = leadOffMask;
+                notifyProgressOnDataReceived();
             }
         });
     }
@@ -173,7 +171,7 @@ public class EdfBioRecorderApp {
 
         this.comportName = comportName;
         connectionTask.cancel();
-        availableComportsTask.cancel();
+
         this.isLoffDetecting = isLoffDetection;
         isDurationOfDataRecordComputable = appConfig.isDurationOfDataRecordAdjustable();
         try {
@@ -262,6 +260,7 @@ public class EdfBioRecorderApp {
                         lslStream.writeRecord(dataRecord);
                         edfStream.writeRecord(dataRecord);
                         numberOfWrittenDataRecords.incrementAndGet();
+                        notifyProgressOnDataReceived();
                     } catch (IORuntimeException ex) {
                         notifyStateChange(new Message(Message.TYPE_FAILED_WRITE_DATA, edfFile.toString()));
                         stop();
@@ -299,9 +298,11 @@ public class EdfBioRecorderApp {
         public void run() {
             if (future.isDone()) {
                 try {
-                    if (!future.get()) {
+                    if (future.get()) { // if start successful
+                        availableComportsTask.cancel();
+                        notificationTask.cancel();
+                    } else { // // if start failed
                         closeStreams();
-                        restartAvailableComportsTask();
                         RecorderType connectedRecorder = getConnectedRecorder();
                         if (connectedRecorder != null && recorderType != connectedRecorder) {
                             notifyStateChange(new Message(Message.TYPE_WRONG_DEVICE));
@@ -312,12 +313,10 @@ public class EdfBioRecorderApp {
                     }
                 } catch (ExecutionException e) { // some unknown execution error (never should occur)
                     closeStreams();
-                    restartAvailableComportsTask();
                     notifyStateChange(new Message(Message.TYPE_UNKNOWN_ERROR, e.getMessage()));
                     log.error(e.getMessage());
                 } catch (Exception e) { // stop or canceling start
                     closeStreams();
-                    restartAvailableComportsTask();
                     notifyStateChange(null);
                 } finally {
                     cancel(); // cancel this task
@@ -326,6 +325,7 @@ public class EdfBioRecorderApp {
         }
 
         private void closeStreams() {
+            startMonitoring();
             for (RecordStream stream : streams) {
                 try {
                     stream.close();
@@ -356,6 +356,33 @@ public class EdfBioRecorderApp {
         timer.schedule(availableComportsTask, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS, AVAILABLE_COMPORTS_CHECKING_PERIOD_MS);
     }
 
+    private void restartNotificationTask() {
+        notificationTask.cancel();
+        notificationTask = new NotificationTask();
+        timer.schedule(notificationTask, NOTIFICATION_PERIOD_MS, NOTIFICATION_PERIOD_MS);
+    }
+
+    private void restartConnectionTask() {
+        connectionTask.cancel();
+        connectionTask = new ConnectionTask();
+        timer.schedule(connectionTask, COMPORT_CONNECTION_PERIOD_MS, COMPORT_CONNECTION_PERIOD_MS);
+    }
+
+    /**
+     * When ads stopped we do notification by timer.
+     * When ads recording we do notification on data receiving.
+     * After "bluetooth disconnection" all "lost" records come
+     * at once and to avoid "notifications overload" we check
+     * the time between current data and previous one
+     * and notify only if that time is bigger then some given time
+     */
+    private void notifyProgressOnDataReceived() {
+        long time = System.currentTimeMillis();
+        if(time - lastNotificationTime > NOTIFICATION_QUARTER_PERIOD_MS) {
+            notifyProgress();
+            lastNotificationTime = time;
+        }
+    }
 
     private synchronized void stop1() {
         if (bioRecorder != null) {
@@ -367,6 +394,7 @@ public class EdfBioRecorderApp {
         }
 
         restartAvailableComportsTask();
+        restartNotificationTask();
         try {
             lslStream.close();
         } catch (Exception ex) {
@@ -571,6 +599,12 @@ public class EdfBioRecorderApp {
         }
     }
 
+    class NotificationTask extends TimerTask {
+        public void run() {
+            notifyProgress();
+        }
+    }
+
     class AvailableComportsTask extends TimerTask {
         public void run() {
             notifyAvailableComports(getAvailableComports());
@@ -578,7 +612,6 @@ public class EdfBioRecorderApp {
     }
 
     class ConnectionTask extends TimerTask {
-
         public void run() {
             try {
                 createRecorder(comportName);
