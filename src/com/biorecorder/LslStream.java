@@ -16,27 +16,27 @@ public class LslStream implements RecordStream {
     private LSL.StreamOutlet outlet;
     private RecordConfig dataRecordConfig;
 
-    private int numberOfAdsChannels;
-    private int numberOfAccChannels;
-    private int numberOfAllChannels;
+    private int adsChannelsCount;
+    private int channelsCount;
     private int accFactor = 1;
     private int adsChannelFactor = 1;
     private int numberOfLslRecords;
+    private int dataRecordLength = 0;
 
     /**
      * @throws IllegalArgumentException if channels have different frequencies or
      * all channels and accelerometer are disabled
      */
-    public LslStream(RecordConfig dataRecordConfig, int accChannelsNumber) throws IllegalArgumentException {
+    public LslStream(RecordConfig dataRecordConfig,int adsChannelsCount, int accChannelsCount) throws IllegalArgumentException {
         this.dataRecordConfig = dataRecordConfig;
-        numberOfAccChannels = accChannelsNumber;
-        numberOfAllChannels = dataRecordConfig.signalsCount();
-        numberOfAdsChannels = numberOfAllChannels - numberOfAccChannels;
+        this.adsChannelsCount = adsChannelsCount;
+        channelsCount = adsChannelsCount + accChannelsCount;
 
         int numberOfAdsChSamples = 0;
         int numberOfAccChSamples = 0;
 
-        for (int i = 0; i < numberOfAdsChannels; i++) {
+
+        for (int i = 0; i < adsChannelsCount; i++) {
             if(numberOfAdsChSamples == 0) {
                numberOfAdsChSamples = dataRecordConfig.getNumberOfSamplesInEachDataRecord(i);
             } else {
@@ -47,16 +47,23 @@ public class LslStream implements RecordStream {
             }
         }
 
-        if(numberOfAccChannels > 0) {
-            numberOfAccChSamples = dataRecordConfig.getNumberOfSamplesInEachDataRecord(numberOfAllChannels - 1);
+        if(accChannelsCount > 0) {
+            numberOfAccChSamples = dataRecordConfig.getNumberOfSamplesInEachDataRecord(channelsCount - 1);
         }
 
+        dataRecordLength = numberOfAdsChSamples * adsChannelsCount + numberOfAccChSamples * accChannelsCount;
+
+        // las need equal frequencies for all channels.
+        // So if numberOfAccChSamples != numberOfAdsChSamples we
+        // will add additional samples to make
+        // ads and acc numbers of samples in each data record equals
+
         int maxNumberOfSamplesInRecord;
-        if(numberOfAccChannels == 0) { // accelerometer disabled
+        if(accChannelsCount == 0) { // accelerometer disabled
             maxNumberOfSamplesInRecord = numberOfAdsChSamples;
-        } else if(numberOfAdsChannels == 0) { // all ads channels disabled
+        } else if(adsChannelsCount == 0) { // all ads channels disabled
             maxNumberOfSamplesInRecord = numberOfAccChSamples;
-        } else if(numberOfAccChannels > 0 && numberOfAdsChannels > 0) {
+        } else if(accChannelsCount > 0 && adsChannelsCount > 0) {
             maxNumberOfSamplesInRecord = Math.max(numberOfAccChSamples, numberOfAdsChSamples);
             accFactor = maxNumberOfSamplesInRecord / numberOfAccChSamples;
             adsChannelFactor = maxNumberOfSamplesInRecord / numberOfAdsChSamples;
@@ -83,14 +90,14 @@ public class LslStream implements RecordStream {
         ArrayList<float[]> lslRecords = new ArrayList<>(numberOfLslRecords);
 
         for (int i = 0; i < numberOfLslRecords; i++) {
-            lslRecords.add(new float[numberOfAllChannels]);
+            lslRecords.add(new float[channelsCount]);
         }
 
         int channelCount = 0;
         int sampleCount = 0;
         int lslRecordCount;
-        for (int i = 0; i < dataRecord.length; i++) {
-            if (channelCount < numberOfAdsChannels) {
+        for (int i = 0; i < dataRecordLength; i++) {
+            if (channelCount < adsChannelsCount) {
                 for (int j = 0; j < adsChannelFactor; j++) {
                     lslRecordCount = sampleCount * adsChannelFactor + j;
                     lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);

@@ -227,16 +227,23 @@ public class EdfBioRecorderApp {
 
             // create lab stream
             if (appConfig.isLabStreamingEnabled()) {
-                try {
-                    int numberOfAccChannels = 0;
-                    if (appConfig.getRecorderConfig().isAccelerometerEnabled()) {
-                        if (appConfig.getRecorderConfig().isAccelerometerOneChannelMode()) {
-                            numberOfAccChannels = 1;
-                        } else {
-                            numberOfAccChannels = 3;
-                        }
+                int numberOfAccChannels = 0;
+                int numberOfAdsChannels = 0;
+
+                for (int i = 0; i < appConfig.getRecorderConfig().getChannelsCount(); i++) {
+                    if(appConfig.getRecorderConfig().isChannelEnabled(i)) {
+                        numberOfAdsChannels++;
                     }
-                    lslStream = new LslStream(dataRecordConfig, numberOfAccChannels);
+                }
+                if (appConfig.getRecorderConfig().isAccelerometerEnabled()) {
+                    if (appConfig.getRecorderConfig().isAccelerometerOneChannelMode()) {
+                        numberOfAccChannels = 1;
+                    } else {
+                        numberOfAccChannels = 3;
+                    }
+                }
+                try {
+                    lslStream = new LslStream(dataRecordConfig, numberOfAdsChannels, numberOfAccChannels);
                 } catch (IllegalArgumentException ex) {
                     log.info("LabStreaming failed to start", ex);
                     return new OperationResult(false, new Message(Message.TYPE_LAB_STREAMING_FAILED));
