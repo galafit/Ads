@@ -114,7 +114,7 @@ public class SignalFrequencyReducer extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 6);
 
-        TestRecordSender recordSender = new TestRecordSender(dataConfig);
+        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
         // reduce signals frequencies by 4, 2, 2
         SignalFrequencyReducer recordFilter = new SignalFrequencyReducer(recordSender);

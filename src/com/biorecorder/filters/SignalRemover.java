@@ -90,7 +90,7 @@ public class SignalRemover extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(3, 4);
 
 
-        TestRecordSender recordSender = new TestRecordSender(dataConfig);
+        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
 
         // remove signals 0 and 2

@@ -128,7 +128,7 @@ public class SignalDigitalFilter extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 6);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 2);
 
-        TestRecordSender recordSender = new TestRecordSender(dataConfig);
+        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
         // Moving average filter to channel 1
         SignalDigitalFilter recordFilter = new SignalDigitalFilter(recordSender);

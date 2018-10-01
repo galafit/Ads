@@ -239,7 +239,6 @@ public class BioRecorder {
     class AdsDataHandler {
         private AdsRecordSender adsDataSender;
         private RecordSender resultantDataSender;
-        private int numberOfRecordsToJoin = 1;
 
 
         public AdsDataHandler(Ads ads, RecorderConfig recorderConfig1) {
@@ -272,15 +271,6 @@ public class BioRecorder {
 
             resultantDataSender = adsDataSender;
 
-            // join DataRecords to have data records length = resultantDataRecordDuration;
-            numberOfRecordsToJoin = recorderConfig.getNumberOfAdsRecordsToJoin();
-
-            if(numberOfRecordsToJoin > 1) {
-                RecordsJoiner edfJoiner = new RecordsJoiner(resultantDataSender, numberOfRecordsToJoin);
-                resultantDataSender = edfJoiner;
-            } else {
-                numberOfRecordsToJoin = 1;
-            }
 
             Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
             Map<Integer, Integer> extraDividers = new HashMap<>();
@@ -385,7 +375,7 @@ public class BioRecorder {
         }
 
         public double getCalculatedDurationOfDataRecord() {
-            return adsDataSender.calculateDurationOfDataRecord() * numberOfRecordsToJoin;
+            return adsDataSender.calculateDurationOfDataRecord();
         }
     }
 

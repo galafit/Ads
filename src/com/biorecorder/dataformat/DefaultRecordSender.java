@@ -3,11 +3,11 @@ package com.biorecorder.dataformat;
 /**
  * Created by galafit on 5/9/18.
  */
-public class TestRecordSender implements RecordSender {
+public class DefaultRecordSender implements RecordSender {
     RecordListener listener = new NullRecordListener();
     RecordConfig config;
 
-    public TestRecordSender(RecordConfig config) {
+    public DefaultRecordSender(RecordConfig config) {
         this.config = config;
     }
 
@@ -27,6 +27,10 @@ public class TestRecordSender implements RecordSender {
 
     @Override
     public void removeDataListener(RecordListener dataRecordListener) {
+        removeDataListener();
+    }
+
+    public void removeDataListener() {
         listener = new NullRecordListener();
     }
 }

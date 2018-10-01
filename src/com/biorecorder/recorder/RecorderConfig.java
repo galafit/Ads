@@ -6,8 +6,6 @@ import com.biorecorder.ads.*;
  *
  */
 public class RecorderConfig {
-
-    private double durationOfDataRecord = 1; // sec
     private boolean batteryVoltageChannelDeletingEnable = true;
     private int[] channelsExtraDividers;
     private int accelerometerExtraDivider = 1;
@@ -23,7 +21,6 @@ public class RecorderConfig {
 
     public RecorderConfig(RecorderConfig configToCopy) {
         batteryVoltageChannelDeletingEnable = configToCopy.batteryVoltageChannelDeletingEnable;
-        durationOfDataRecord = configToCopy.durationOfDataRecord;
         adsConfig = new AdsConfig(configToCopy.adsConfig);
         accelerometerExtraDivider = configToCopy.accelerometerExtraDivider;
         channelsExtraDividers = new int[RecorderType.getMaxChannelsCount()];
@@ -36,13 +33,6 @@ public class RecorderConfig {
         return adsConfig;
     }
 
-    int getNumberOfAdsRecordsToJoin() {
-        int numberOfRecordsToJoin = (int) (durationOfDataRecord / adsConfig.getDurationOfDataRecord());
-        if(numberOfRecordsToJoin > 1) {
-            return numberOfRecordsToJoin;
-        }
-        return 1;
-    }
 
     public boolean isBatteryVoltageChannelDeletingEnable() {
         return batteryVoltageChannelDeletingEnable;
@@ -170,12 +160,9 @@ public class RecorderConfig {
     }
 
     public double getDurationOfDataRecord() {
-        return adsConfig.getDurationOfDataRecord() * getNumberOfAdsRecordsToJoin();
+        return adsConfig.getDurationOfDataRecord();
     }
 
-    public void setDurationOfDataRecord(double durationOfDataRecord) {
-        this.durationOfDataRecord = durationOfDataRecord;
-    }
 
     public int getChannelSampleRate(int channelNumber) {
         return getSampleRate() / getChannelDivider(channelNumber).getValue();

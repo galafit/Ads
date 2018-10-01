@@ -90,7 +90,7 @@ public class RecordsJoiner extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 4);
 
-        TestRecordSender recordSender = new TestRecordSender(dataConfig);
+        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
         // join 2 records
         RecordsJoiner recordFilter = new RecordsJoiner(recordSender, 2);

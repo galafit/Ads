@@ -9,6 +9,8 @@ import java.io.File;
  * Class containing all the necessary settings for running the application
  */
 public class AppConfig {
+
+    private double durationOfDataRecord = 1; // sec
     private boolean isDurationOfDataRecordAdjustable = true;
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
@@ -30,6 +32,7 @@ public class AppConfig {
 
     public AppConfig(AppConfig configToCopy) {
         recorderConfig = new RecorderConfig(configToCopy.recorderConfig);
+        durationOfDataRecord = configToCopy.durationOfDataRecord;
         isDurationOfDataRecordAdjustable = configToCopy.isDurationOfDataRecordAdjustable;
         patientIdentification = configToCopy.patientIdentification;
         recordingIdentification = configToCopy.recordingIdentification;
@@ -128,5 +131,21 @@ public class AppConfig {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    int getNumberOfRecordsToJoin() {
+        int numberOfRecordsToJoin = (int) (durationOfDataRecord / recorderConfig.getDurationOfDataRecord());
+        if(numberOfRecordsToJoin > 1) {
+            return numberOfRecordsToJoin;
+        }
+        return 1;
+    }
+
+    public double getDurationOfDataRecord() {
+        return recorderConfig.getDurationOfDataRecord() * getNumberOfRecordsToJoin();
+    }
+
+    public void setDurationOfDataRecord(double durationOfDataRecord) {
+        this.durationOfDataRecord = durationOfDataRecord;
     }
 }

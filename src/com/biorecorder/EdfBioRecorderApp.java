@@ -1,10 +1,13 @@
 package com.biorecorder;
 
+import com.biorecorder.dataformat.DefaultRecordSender;
 import com.biorecorder.dataformat.RecordConfig;
 import com.biorecorder.dataformat.RecordListener;
+import com.biorecorder.dataformat.RecordSender;
 import com.biorecorder.edflib.DataFormat;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
+import com.biorecorder.filters.RecordsJoiner;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -255,7 +258,7 @@ public class EdfBioRecorderApp {
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
             try {
-                edfStream = new EdfStream(edfFile, dataRecordConfig, appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
+                edfStream = new EdfStream(edfFile, dataRecordConfig, appConfig.getNumberOfRecordsToJoin(),  appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
             } catch (FileNotFoundException ex) {
                 log.error(ex);
                 return new OperationResult(false, new Message(Message.TYPE_FILE_NOT_ACCESSIBLE, edfFile.toString()));
@@ -645,37 +648,57 @@ public class EdfBioRecorderApp {
 
 
     class EdfStream implements RecordStream {
+        private DefaultRecordSender inRecordSender;
+        private int numberOfRecordsToJoin;
         private EdfWriter edfWriter;
 
-        public EdfStream(File edfFile, RecordConfig dataRecordConfig, String patientIdentification, String recordIdentification) throws FileNotFoundException {
-            // copy data from dataRecordConfig to the EdfHeader
-            EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, dataRecordConfig.signalsCount());
+        public EdfStream(File edfFile, RecordConfig inRecordConfig, int numberOfRecordsToJoin, String patientIdentification, String recordIdentification) throws FileNotFoundException {
+            this.numberOfRecordsToJoin = numberOfRecordsToJoin;
+            inRecordSender = new DefaultRecordSender(inRecordConfig);
+            RecordSender resultantDataSender = inRecordSender;
+            if(numberOfRecordsToJoin > 1) {
+                // join DataRecords
+                resultantDataSender = new RecordsJoiner(inRecordSender, numberOfRecordsToJoin);
+            }
+
+            RecordConfig resultantRecordConfig = resultantDataSender.dataConfig();
+
+            // copy data from recordConfig to the EdfHeader
+            EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, resultantRecordConfig.signalsCount());
             edfHeader.setPatientIdentification(patientIdentification);
             edfHeader.setRecordingIdentification(recordIdentification);
-            edfHeader.setDurationOfDataRecord(dataRecordConfig.getDurationOfDataRecord());
-            for (int i = 0; i < dataRecordConfig.signalsCount(); i++) {
-                edfHeader.setNumberOfSamplesInEachDataRecord(i, dataRecordConfig.getNumberOfSamplesInEachDataRecord(i));
-                edfHeader.setPrefiltering(i, dataRecordConfig.getPrefiltering(i));
-                edfHeader.setTransducer(i, dataRecordConfig.getTransducer(i));
-                edfHeader.setLabel(i, dataRecordConfig.getLabel(i));
-                edfHeader.setDigitalRange(i, dataRecordConfig.getDigitalMin(i), dataRecordConfig.getDigitalMax(i));
-                edfHeader.setPhysicalRange(i, dataRecordConfig.getPhysicalMin(i), dataRecordConfig.getPhysicalMax(i));
-                edfHeader.setPhysicalDimension(i, dataRecordConfig.getPhysicalDimension(i));
+            edfHeader.setDurationOfDataRecord(resultantRecordConfig.getDurationOfDataRecord());
+            for (int i = 0; i < resultantRecordConfig.signalsCount(); i++) {
+                edfHeader.setNumberOfSamplesInEachDataRecord(i, resultantRecordConfig.getNumberOfSamplesInEachDataRecord(i));
+                edfHeader.setPrefiltering(i, resultantRecordConfig.getPrefiltering(i));
+                edfHeader.setTransducer(i, resultantRecordConfig.getTransducer(i));
+                edfHeader.setLabel(i, resultantRecordConfig.getLabel(i));
+                edfHeader.setDigitalRange(i, resultantRecordConfig.getDigitalMin(i), resultantRecordConfig.getDigitalMax(i));
+                edfHeader.setPhysicalRange(i, resultantRecordConfig.getPhysicalMin(i), resultantRecordConfig.getPhysicalMax(i));
+                edfHeader.setPhysicalDimension(i, resultantRecordConfig.getPhysicalDimension(i));
             }
             edfWriter = new EdfWriter(edfFile, edfHeader);
+
+            resultantDataSender.addDataListener(new RecordListener() {
+                @Override
+                public void onDataReceived(int[] dataRecord) {
+                    try {
+                        edfWriter.writeDigitalRecord(dataRecord);
+                    } catch (IOException e) {
+                        throw new IORuntimeException(e);
+                    }
+                }
+            });
         }
 
         @Override
         public void writeRecord(int[] dataRecord) throws IORuntimeException {
-            try {
-                edfWriter.writeDigitalRecord(dataRecord);
-            } catch (IOException e) {
-                throw new IORuntimeException(e);
-            }
+           inRecordSender.sendRecord(dataRecord);
         }
 
         @Override
         public void close() throws IORuntimeException {
+            inRecordSender.removeDataListener();
             try {
                 edfWriter.close();
                 if (edfWriter.getNumberOfReceivedDataRecords() == 0) {
@@ -693,7 +716,7 @@ public class EdfBioRecorderApp {
         }
 
         public void setDurationOfDataRecords(double durationOfDataRecord) {
-            edfWriter.setDurationOfDataRecords(durationOfDataRecord);
+            edfWriter.setDurationOfDataRecords(durationOfDataRecord * numberOfRecordsToJoin);
         }
 
         public long getNumberOfWrittenRecords() {
@@ -707,6 +730,7 @@ public class EdfBioRecorderApp {
         public File getFile() {
             return edfWriter.getFile();
         }
+
     }
 
     class NullRecordStream implements RecordStream {
