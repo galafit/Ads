@@ -99,7 +99,7 @@ public class Ads {
         messageListener = new NullMessageListener();
         ThreadFactory namedThreadFactory = new ThreadFactory() {
             public Thread newThread(Runnable r) {
-                return new Thread(r, "«Ads» thread");
+                return new Thread(r, "«Data Records handling» thread");
             }
         };
         singleThreadExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);

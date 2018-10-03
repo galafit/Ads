@@ -1,6 +1,7 @@
 package com.biorecorder;
 
 import com.biorecorder.dataformat.RecordConfig;
+import com.biorecorder.dataformat.RecordStream;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -1,13 +1,11 @@
 package com.biorecorder;
 
-import com.biorecorder.dataformat.DefaultRecordSender;
+import com.biorecorder.dataformat.RecordStream;
+import com.biorecorder.filters.*;
 import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.dataformat.RecordListener;
-import com.biorecorder.dataformat.RecordSender;
 import com.biorecorder.edflib.DataFormat;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
-import com.biorecorder.filters.RecordsJoiner;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -265,7 +263,7 @@ public class EdfBioRecorderApp {
             }
 
             bioRecorder.addDataListener(new RecordListener() {
-                public void onDataReceived(int[] dataRecord) {
+                public void writeRecord(int[] dataRecord) {
                     try {
                         lslStream.writeRecord(dataRecord);
                         edfStream.writeRecord(dataRecord);
@@ -681,7 +679,7 @@ public class EdfBioRecorderApp {
 
             resultantDataSender.addDataListener(new RecordListener() {
                 @Override
-                public void onDataReceived(int[] dataRecord) {
+                public void writeRecord(int[] dataRecord) {
                     try {
                         edfWriter.writeDigitalRecord(dataRecord);
                     } catch (IOException e) {

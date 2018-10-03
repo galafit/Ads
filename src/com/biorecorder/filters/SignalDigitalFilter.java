@@ -16,8 +16,8 @@ public class SignalDigitalFilter extends RecordFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public SignalDigitalFilter(RecordSender in) {
-        super(in);
+    public SignalDigitalFilter(RecordConfig inConfig) {
+        super(inConfig);
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
             offsets[i] = RecordConfig.offset(inConfig, i);
@@ -92,7 +92,7 @@ public class SignalDigitalFilter extends RecordFilter {
             }
 
         }
-        sendDataToListeners(outRecord);
+        outStream.writeRecord(outRecord);
     }
 
     class NamedFilter implements DigitalFilter {
@@ -128,10 +128,9 @@ public class SignalDigitalFilter extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 6);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 2);
 
-        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
         // Moving average filter to channel 1
-        SignalDigitalFilter recordFilter = new SignalDigitalFilter(recordSender);
+        SignalDigitalFilter recordFilter = new SignalDigitalFilter(dataConfig);
         recordFilter.addSignalFilter(1, new MovingAverageFilter(2), "movAvg:2");
 
         // expected dataRecords
@@ -139,10 +138,10 @@ public class SignalDigitalFilter extends RecordFilter {
         int[] expectedDataRecord2 = {1,  5,3,6,7,3,4,  3,5};
 
 
-        recordFilter.addDataListener(new RecordListener() {
+        recordFilter.setOutStream(new RecordStream() {
             int i = 1;
             @Override
-            public void onDataReceived(int[] dataRecord1) {
+            public void writeRecord(int[] dataRecord1) {
                 boolean isTestOk = true;
                 int[] expectedDataRecord;
                 if(i == 1) {
@@ -166,13 +165,18 @@ public class SignalDigitalFilter extends RecordFilter {
 
                 System.out.println("Is test ok: "+isTestOk);
             }
+
+            @Override
+            public void close() {
+
+            }
         });
 
         // send 4 records and get 4 resultant records
-        recordSender.sendRecord(dataRecord);
-        recordSender.sendRecord(dataRecord);
-        recordSender.sendRecord(dataRecord);
-        recordSender.sendRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
     }
 
 }

@@ -2,11 +2,11 @@ package com.biorecorder.recorder;
 
 import com.biorecorder.ads.Ads;
 import com.biorecorder.ads.AdsConfig;
-import com.biorecorder.ads.Commutator;
 import com.biorecorder.ads.NumberedDataListener;
 import com.biorecorder.dataformat.*;
-import com.biorecorder.dataformat.RecordListener;
-import com.biorecorder.dataformat.NullRecordListener;
+import com.biorecorder.filters.RecordListener;
+import com.biorecorder.filters.NullRecordListener;
+
 
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -26,11 +26,12 @@ class AdsRecordSender implements RecordSender {
 
     private final Ads ads;
     private final AdsConfig adsConfig;
-    private int lastDataRecordNumber = -1;
+
     private volatile RecordListener dataRecordListener = new NullRecordListener();
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
 
+    private int lastDataRecordNumber = -1;
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
     private volatile double calculatedDurationOfDataRecord; // sec
@@ -175,7 +176,7 @@ class AdsRecordSender implements RecordSender {
     }
 
     private void notifyDataListeners(int[] dataRecord) {
-        dataRecordListener.onDataReceived(dataRecord);
+        dataRecordListener.writeRecord(dataRecord);
     }
 
     private void notifyBatteryLevelListener(int batteryVoltage) {

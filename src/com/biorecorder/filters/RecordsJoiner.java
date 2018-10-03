@@ -20,8 +20,8 @@ public class RecordsJoiner extends RecordFilter {
     private int joinedRecordsCounter;
     private int outRecordSize;
 
-    public RecordsJoiner(RecordSender in, int numberOfRecordsToJoin) {
-        super(in);
+    public RecordsJoiner(RecordConfig inConfig, int numberOfRecordsToJoin) {
+        super(inConfig);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
         int inRecordSize = 0;
         for (int i = 0; i < inConfig.signalsCount(); i++) {
@@ -71,7 +71,7 @@ public class RecordsJoiner extends RecordFilter {
         joinedRecordsCounter++;
 
         if(joinedRecordsCounter == numberOfRecordsToJoin) {
-            sendDataToListeners(outDataRecord);
+            outStream.writeRecord(outDataRecord);
             outDataRecord = new int[outRecordSize];
             joinedRecordsCounter = 0;
         }
@@ -90,18 +90,17 @@ public class RecordsJoiner extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 4);
 
-        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
         // join 2 records
-        RecordsJoiner recordFilter = new RecordsJoiner(recordSender, 2);
+        RecordsJoiner recordFilter = new RecordsJoiner(dataConfig, 2);
 
 
         // expected dataRecord
         int[] expectedDataRecord = {1,3,8,1,3,8,  2,4,2,4,  7,6,8,6,7,6,8,6};
 
-        recordFilter.addDataListener(new RecordListener() {
+        recordFilter.setOutStream(new RecordStream() {
             @Override
-            public void onDataReceived(int[] dataRecord1) {
+            public void writeRecord(int[] dataRecord1) {
                 boolean isTestOk = true;
                 if(expectedDataRecord.length != dataRecord1.length) {
                     System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
@@ -118,12 +117,17 @@ public class RecordsJoiner extends RecordFilter {
 
                 System.out.println("Is test ok: "+isTestOk);
             }
+
+            @Override
+            public void close() {
+
+            }
         });
 
         // send 4 records and get as result 2 joined records
-        recordSender.sendRecord(dataRecord);
-        recordSender.sendRecord(dataRecord);
-        recordSender.sendRecord(dataRecord);
-        recordSender.sendRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeRecord(dataRecord);
     }
 }

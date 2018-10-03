@@ -12,8 +12,8 @@ public class SignalFrequencyReducer extends RecordFilter {
     private Map<Integer, Integer> dividers = new HashMap<>();
     private int outRecordSize;
     
-    public SignalFrequencyReducer(RecordSender input) {
-        super(input);
+    public SignalFrequencyReducer(RecordConfig inConfig) {
+        super(inConfig);
         outRecordSize = calculateOutRecordSize();
     }
 
@@ -98,7 +98,7 @@ public class SignalFrequencyReducer extends RecordFilter {
                 signalSampleCount = 0;
             }
         }
-        sendDataToListeners(outRecord);
+        outStream.writeRecord(outRecord);
     }
 
     /**
@@ -114,10 +114,9 @@ public class SignalFrequencyReducer extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 6);
 
-        DefaultRecordSender recordSender = new DefaultRecordSender(dataConfig);
 
         // reduce signals frequencies by 4, 2, 2
-        SignalFrequencyReducer recordFilter = new SignalFrequencyReducer(recordSender);
+        SignalFrequencyReducer recordFilter = new SignalFrequencyReducer(dataConfig);
         recordFilter.addDivider(0, 4);
         recordFilter.addDivider(1, 2);
         recordFilter.addDivider(2, 2);
@@ -125,9 +124,9 @@ public class SignalFrequencyReducer extends RecordFilter {
         // expected dataRecord
         int[] expectedDataRecord = {4,  3,  6,7,3};
 
-        recordFilter.addDataListener(new RecordListener() {
+        recordFilter.setOutStream(new RecordStream() {
             @Override
-            public void onDataReceived(int[] dataRecord1) {
+            public void writeRecord(int[] dataRecord1) {
                 boolean isTestOk = true;
                 if(expectedDataRecord.length != dataRecord1.length) {
                     System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
@@ -144,7 +143,13 @@ public class SignalFrequencyReducer extends RecordFilter {
 
                 System.out.println("Is test ok: "+isTestOk);
             }
+
+            @Override
+            public void close() {
+
+            }
         });
-        recordSender.sendRecord(dataRecord);
+
+        recordFilter.writeRecord(dataRecord);
     }
 }

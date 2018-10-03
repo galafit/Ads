@@ -1,11 +1,11 @@
-package com.biorecorder.dataformat;
+package com.biorecorder.filters;
 
 /**
  * Created by galafit on 27/5/18.
  */
 public class NullRecordListener implements RecordListener {
     @Override
-    public void onDataReceived(int[] dataRecord) {
+    public void writeRecord(int[] dataRecord) {
         // do nothing;
     }
 }

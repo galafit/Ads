@@ -1,4 +1,4 @@
-package com.biorecorder.dataformat;
+package com.biorecorder.filters;
 
 /**
  * The listener interface for receiving data records.
@@ -7,5 +7,5 @@ package com.biorecorder.dataformat;
  * a "data sender"
  */
 public interface RecordListener {
-    public void onDataReceived(int[] dataRecord);
+    public void writeRecord(int[] dataRecord);
 }

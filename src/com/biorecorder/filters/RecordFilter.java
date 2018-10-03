@@ -1,8 +1,7 @@
 package com.biorecorder.filters;
 
 import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.dataformat.RecordListener;
-import com.biorecorder.dataformat.RecordSender;
+import com.biorecorder.dataformat.RecordStream;
 
 /**
  * A RecordsFilter listen (wrap) some other RecordSender and transforms
@@ -15,56 +14,59 @@ import com.biorecorder.dataformat.RecordSender;
  * PS How to implement thread safe classical observer pattern with multiple listeners
  * see here: https://www.techyourchance.com/thread-safe-observer-design-pattern-in-java/
  */
-public abstract class RecordFilter implements RecordSender, RecordListener {
-    private final RecordSender in;
+public class RecordFilter implements RecordStream {
     protected final RecordConfig inConfig;
     protected final int inRecordSize;
-    private volatile RecordListener listener;
+    protected volatile RecordStream outStream;
 
-    public RecordFilter(RecordSender in) {
-        this.in = in;
-        inConfig = in.dataConfig();
+    public RecordFilter(RecordConfig inConfig) {
+        this.inConfig = inConfig;
         int recordSize = 0;
-        for (int i = 0; i < this.inConfig.signalsCount(); i++) {
-            recordSize += this.inConfig.getNumberOfSamplesInEachDataRecord(i);
+        for (int i = 0; i < inConfig.signalsCount(); i++) {
+            recordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
         }
         inRecordSize = recordSize;
-        listener = new NullRecordListener();
+        outStream = new NullStream();
     }
 
-    @Override
-    public void addDataListener(RecordListener dataRecordListener) {
-        if(dataRecordListener != null) {
-            this.listener = dataRecordListener;
-            in.addDataListener(this);
+
+    public void setOutStream(RecordStream outStream) {
+        if(outStream != null) {
+            this.outStream = outStream;
         }
     }
 
-    @Override
-    public void removeDataListener(RecordListener dataRecordListener) {
-        removeDataListener();
-    }
-
-    public void removeDataListener() {
-        listener = new NullRecordListener();
-        in.removeDataListener(this);
+    public void removeOutStream() {
+        outStream = new NullStream();
     }
 
     @Override
-    public void onDataReceived(int[] dataRecord) {
+    public void writeRecord(int[] dataRecord) {
         filterData(dataRecord);
     }
 
-    protected abstract void filterData(int[] inputRecord);
-
-    protected void sendDataToListeners(int[] dataRecord) {
-        listener.onDataReceived(dataRecord);
+    @Override
+    public void close() {
+        outStream.close();
     }
 
-    class NullRecordListener implements RecordListener {
+    public RecordConfig dataConfig() {
+        return inConfig;
+    }
+
+    protected void filterData(int[] inputRecord) {
+       outStream.writeRecord(inputRecord);
+    }
+
+    class NullStream implements RecordStream {
         @Override
-        public void onDataReceived(int[] dataRecord) {
+        public void writeRecord(int[] dataRecord) {
             // do nothing;
+        }
+
+        @Override
+        public void close() {
+            // do nothing
         }
     }
 }
