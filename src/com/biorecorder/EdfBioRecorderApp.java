@@ -35,7 +35,6 @@ public class EdfBioRecorderApp {
     private static final int FUTURE_CHECKING_PERIOD_MS = 1000;
 
     private final Timer timer = new Timer("EdfBioRecorderApp Timer");
-    private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
     private volatile ProgressListener progressListener = new NullProgressListener();
     private volatile StateChangeListener stateChangeListener = new NullStateChangeListener();
@@ -190,6 +189,8 @@ public class EdfBioRecorderApp {
 
         // remove all previously added filters
         bioRecorder.removeChannelsFilters();
+        edfStream = new NullRecordStream();
+        lslStream = new NullRecordStream();
 
         if (isLoffDetection) { // lead off detection
             leadOffBitMask = null;
@@ -252,8 +253,6 @@ public class EdfBioRecorderApp {
                 }
             }
 
-            numberOfWrittenDataRecords.set(0);
-
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
             try {
@@ -269,7 +268,6 @@ public class EdfBioRecorderApp {
                     try {
                         lslStream.writeRecord(dataRecord);
                         edfStream.writeRecord(dataRecord);
-                        numberOfWrittenDataRecords.incrementAndGet();
                         notifyProgressOnDataReceived();
                     } catch (IORuntimeException ex) {
                         notifyStateChange(new Message(Message.TYPE_FAILED_WRITE_DATA, edfFile.toString()));
@@ -410,7 +408,7 @@ public class EdfBioRecorderApp {
         } catch (Exception ex) {
             log.error(ex);
         }
-        lslStream = new NullRecordStream();
+
 
         Message msg = null;
         try {
@@ -434,7 +432,6 @@ public class EdfBioRecorderApp {
             log.error(ex);
             msg = new Message(Message.TYPE_FAILED_CLOSE_FILE, ex.getMessage());
         }
-        edfStream = new NullRecordStream();
 
         notifyStateChange(msg);
     }
@@ -548,7 +545,10 @@ public class EdfBioRecorderApp {
     }
 
     public long getNumberOfWrittenDataRecords() {
-        return numberOfWrittenDataRecords.get();
+        if(edfStream instanceof EdfStream) {
+            return ((EdfStream)edfStream).getNumberOfWrittenDataRecords();
+        }
+        return 0;
     }
 
 

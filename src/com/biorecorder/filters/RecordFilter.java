@@ -24,9 +24,9 @@ public class RecordFilter implements RecordStream {
     }
 
 
-    public RecordConfig getResultantConfig(RecordConfig inConfig){
+    public RecordConfig getResultantConfig(){
         if(outStream instanceof RecordFilter) {
-            return ((RecordFilter) outStream).getResultantConfig(inConfig);
+            return ((RecordFilter) outStream).getResultantConfig();
         } else {
             return getOutConfig();
         }

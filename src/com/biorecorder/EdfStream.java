@@ -12,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by galafit on 4/10/18.
@@ -25,6 +26,8 @@ public class EdfStream implements RecordStream {
     private String recordIdentification;
     private final File file;
     private RecordStream fileStream;
+    private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
+
 
     public EdfStream(File edfFile, int numberOfRecordsToJoin, String patientIdentification, String recordIdentification) {
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
@@ -52,6 +55,7 @@ public class EdfStream implements RecordStream {
                     edfHeader.setPhysicalRange(i, recordConfig.getPhysicalMin(i), recordConfig.getPhysicalMax(i));
                     edfHeader.setPhysicalDimension(i, recordConfig.getPhysicalDimension(i));
                 }
+
                 try {
                     edfWriter = new EdfWriter(file, edfHeader);
                 } catch (FileNotFoundException e) {
@@ -61,8 +65,9 @@ public class EdfStream implements RecordStream {
 
             @Override
             public void writeRecord(int[] dataRecord) {
-                try {
+               try {
                     edfWriter.writeDigitalRecord(dataRecord);
+                    numberOfWrittenDataRecords.incrementAndGet();
                 } catch (IOException e) {
                     throw new IORuntimeException(e);
                 }
@@ -88,6 +93,8 @@ public class EdfStream implements RecordStream {
             // join DataRecords
             fileStream = new RecordsJoiner(fileStream, numberOfRecordsToJoin);
         }
+
+        fileStream.setRecordConfig(recordConfig);
     }
 
     @Override
@@ -118,5 +125,9 @@ public class EdfStream implements RecordStream {
 
     public File getFile() {
         return file;
+    }
+
+    public long getNumberOfWrittenDataRecords() {
+        return numberOfWrittenDataRecords.get();
     }
 }

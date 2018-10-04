@@ -39,7 +39,6 @@ public class BioRecorder {
     private final ExecutorService singleThreadExecutor;
     private volatile Future executorFuture;
     private volatile int lastDataRecordNumber = -1;
-    private volatile RecordFilter recordFilter;
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
     private volatile double calculatedDurationOfDataRecord; // sec
@@ -73,7 +72,6 @@ public class BioRecorder {
     public void removeChannelsFilters() {
         filters = new HashMap();
     }
-
 
     /**
      * Start BioRecorder measurements.
@@ -177,10 +175,10 @@ public class BioRecorder {
                     // block until a request arrives
                     NumberedDataRecord numberedDataRecord = dataQueue.take();
                     // send to listener
-                    recordFilter.writeRecord(numberedDataRecord.getRecord());
+                    dataStream.writeRecord(numberedDataRecord.getRecord());
                     int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
                     for (int i = 0; i < numberOfLostFrames; i++) {
-                        recordFilter.writeRecord(numberedDataRecord.getRecord());
+                        dataStream.writeRecord(numberedDataRecord.getRecord());
                     }
                     lastDataRecordNumber = numberedDataRecord.getRecordNumber();
                 } catch (InterruptedException ie) {
@@ -233,7 +231,10 @@ public class BioRecorder {
      */
     public RecordConfig getDataConfig(RecorderConfig recorderConfig) {
         RecordConfig adsDataConfig = ads.getDataConfig(recorderConfig.getAdsConfig());
-        return createDataFilter(recorderConfig, false).getResultantConfig(adsDataConfig);
+        RecordFilter dataFilter =  createDataFilter(recorderConfig, false);
+        dataFilter.setRecordConfig(adsDataConfig);
+        RecordConfig config = dataFilter.getResultantConfig();
+        return config;
     }
 
     public RecorderType getDeviceType() {
@@ -365,22 +366,22 @@ public class BioRecorder {
                     enableChannelsFilters.put(enableChannelsCount, channelFilters);
                 }
                 Integer divider = recorderConfig.getChannelDivider(i).getExtraDivider();
-                if(divider > 1) {
+                if (divider > 1) {
                     extraDividers.put(enableChannelsCount, divider);
                 }
                 enableChannelsCount++;
             }
         }
 
-        if(recorderConfig.isAccelerometerEnabled()) {
+        if (recorderConfig.isAccelerometerEnabled()) {
             Integer divider = recorderConfig.getAccelerometerDivider().getExtraDivider();
-            if(recorderConfig.isAccelerometerOneChannelMode()) {
-                if(divider > 1) {
+            if (recorderConfig.isAccelerometerOneChannelMode()) {
+                if (divider > 1) {
                     extraDividers.put(enableChannelsCount, divider);
                 }
                 enableChannelsCount++;
             } else {
-                if(divider > 1) {
+                if (divider > 1) {
                     extraDividers.put(enableChannelsCount, divider);
                     extraDividers.put(enableChannelsCount + 1, divider);
                     extraDividers.put(enableChannelsCount + 2, divider);
@@ -391,11 +392,11 @@ public class BioRecorder {
 
         int batteryChannelNumber = -1;
         int leadOffChannelNumber = -1;
-        if(recorderConfig.isBatteryVoltageMeasureEnabled()) {
+        if (recorderConfig.isBatteryVoltageMeasureEnabled()) {
             batteryChannelNumber = enableChannelsCount;
             enableChannelsCount++;
         }
-        if(recorderConfig.isLeadOffEnabled()) {
+        if (recorderConfig.isLeadOffEnabled()) {
             leadOffChannelNumber = enableChannelsCount;
             enableChannelsCount++;
         }
@@ -421,7 +422,7 @@ public class BioRecorder {
         RecordFilter dataFilter = new RecordFilter(recordStream);
 
         // delete helper channels
-        if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
+        if (isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
 
             SignalRemover edfSignalsRemover = new SignalRemover(dataFilter);
             if (isAccelerometerOnly) {
@@ -441,9 +442,9 @@ public class BioRecorder {
         }
 
         // Add digital filters to ads channels
-        if(!enableChannelsFilters.isEmpty()) {
+        if (!enableChannelsFilters.isEmpty()) {
             SignalDigitalFilter edfSignalsFilter = new SignalDigitalFilter(dataFilter);
-            for (Integer signal : enableChannelsFilters.keySet()){
+            for (Integer signal : enableChannelsFilters.keySet()) {
                 List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
                 for (NamedDigitalFilter filter : channelFilters) {
                     edfSignalsFilter.addSignalFilter(signal, filter, filter.getName());
@@ -453,15 +454,16 @@ public class BioRecorder {
         }
 
         // reduce signals frequencies
-       if(!extraDividers.isEmpty()) {
-           SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(dataFilter);
-           for (Integer signal : extraDividers.keySet()){
-               edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
-           }
+        if (!extraDividers.isEmpty()) {
+            SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(dataFilter);
+            for (Integer signal : extraDividers.keySet()) {
+                edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
+            }
 
-           dataFilter = edfFrequencyDivider;
-       }
-       return dataFilter;
+            dataFilter = edfFrequencyDivider;
+        }
+
+        return dataFilter;
     }
 
 
