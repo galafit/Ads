@@ -244,7 +244,8 @@ public class EdfBioRecorderApp {
                     }
                 }
                 try {
-                    lslStream = new LslStream(dataRecordConfig, numberOfAdsChannels, numberOfAccChannels);
+                    lslStream = new LslStream(numberOfAdsChannels, numberOfAccChannels);
+                    lslStream.setRecordConfig(dataRecordConfig);
                 } catch (IllegalArgumentException ex) {
                     log.info("LabStreaming failed to start", ex);
                     return new OperationResult(false, new Message(Message.TYPE_LAB_STREAMING_FAILED));
@@ -256,8 +257,9 @@ public class EdfBioRecorderApp {
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
             try {
-                edfStream = new EdfStream(edfFile, dataRecordConfig, appConfig.getNumberOfRecordsToJoin(),  appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
-            } catch (FileNotFoundException ex) {
+                edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
+                edfStream.setRecordConfig(dataRecordConfig);
+            } catch (FileNotFoundRuntimeException ex) {
                 log.error(ex);
                 return new OperationResult(false, new Message(Message.TYPE_FILE_NOT_ACCESSIBLE, edfFile.toString()));
             }
@@ -644,93 +646,6 @@ public class EdfBioRecorderApp {
         }
     }
 
-
-    class EdfStream implements RecordStream {
-        private DefaultRecordSender inRecordSender;
-        private int numberOfRecordsToJoin;
-        private EdfWriter edfWriter;
-
-        public EdfStream(File edfFile, RecordConfig inRecordConfig, int numberOfRecordsToJoin, String patientIdentification, String recordIdentification) throws FileNotFoundException {
-            this.numberOfRecordsToJoin = numberOfRecordsToJoin;
-            inRecordSender = new DefaultRecordSender(inRecordConfig);
-            RecordSender resultantDataSender = inRecordSender;
-            if(numberOfRecordsToJoin > 1) {
-                // join DataRecords
-                resultantDataSender = new RecordsJoiner(inRecordSender, numberOfRecordsToJoin);
-            }
-
-            RecordConfig resultantRecordConfig = resultantDataSender.dataConfig();
-
-            // copy data from recordConfig to the EdfHeader
-            EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, resultantRecordConfig.signalsCount());
-            edfHeader.setPatientIdentification(patientIdentification);
-            edfHeader.setRecordingIdentification(recordIdentification);
-            edfHeader.setDurationOfDataRecord(resultantRecordConfig.getDurationOfDataRecord());
-            for (int i = 0; i < resultantRecordConfig.signalsCount(); i++) {
-                edfHeader.setNumberOfSamplesInEachDataRecord(i, resultantRecordConfig.getNumberOfSamplesInEachDataRecord(i));
-                edfHeader.setPrefiltering(i, resultantRecordConfig.getPrefiltering(i));
-                edfHeader.setTransducer(i, resultantRecordConfig.getTransducer(i));
-                edfHeader.setLabel(i, resultantRecordConfig.getLabel(i));
-                edfHeader.setDigitalRange(i, resultantRecordConfig.getDigitalMin(i), resultantRecordConfig.getDigitalMax(i));
-                edfHeader.setPhysicalRange(i, resultantRecordConfig.getPhysicalMin(i), resultantRecordConfig.getPhysicalMax(i));
-                edfHeader.setPhysicalDimension(i, resultantRecordConfig.getPhysicalDimension(i));
-            }
-            edfWriter = new EdfWriter(edfFile, edfHeader);
-
-            resultantDataSender.addDataListener(new RecordListener() {
-                @Override
-                public void writeRecord(int[] dataRecord) {
-                    try {
-                        edfWriter.writeDigitalRecord(dataRecord);
-                    } catch (IOException e) {
-                        throw new IORuntimeException(e);
-                    }
-                }
-            });
-        }
-
-        @Override
-        public void writeRecord(int[] dataRecord) throws IORuntimeException {
-           inRecordSender.sendRecord(dataRecord);
-        }
-
-        @Override
-        public void close() throws IORuntimeException {
-            inRecordSender.removeDataListener();
-            try {
-                edfWriter.close();
-                if (edfWriter.getNumberOfReceivedDataRecords() == 0) {
-                    edfWriter.getFile().delete();
-                }
-            } catch (IOException e) {
-                throw new IORuntimeException(e);
-            } catch (Exception e) {
-                log.error(e);
-            }
-        }
-
-        public void setStartRecordingTime(long time) {
-            edfWriter.setStartRecordingTime(time);
-        }
-
-        public void setDurationOfDataRecords(double durationOfDataRecord) {
-            edfWriter.setDurationOfDataRecords(durationOfDataRecord * numberOfRecordsToJoin);
-        }
-
-        public long getNumberOfWrittenRecords() {
-            return edfWriter.getNumberOfReceivedDataRecords();
-        }
-
-        public String getWritingInfo() {
-            return edfWriter.getWritingInfo();
-        }
-
-        public File getFile() {
-            return edfWriter.getFile();
-        }
-
-    }
-
     class NullRecordStream implements RecordStream {
         @Override
         public void writeRecord(int[] dataRecord) {
@@ -739,6 +654,11 @@ public class EdfBioRecorderApp {
 
         @Override
         public void close() {
+            // do nothing
+        }
+
+        @Override
+        public void setRecordConfig(RecordConfig recordConfig) {
             // do nothing
         }
     }

@@ -15,34 +15,36 @@ import com.biorecorder.dataformat.RecordStream;
  * see here: https://www.techyourchance.com/thread-safe-observer-design-pattern-in-java/
  */
 public class RecordFilter implements RecordStream {
-    protected final RecordConfig inConfig;
-    protected final int inRecordSize;
-    protected volatile RecordStream outStream;
+    protected RecordConfig inConfig;
+    protected int inRecordSize;
+    protected RecordStream outStream;
 
-    public RecordFilter(RecordConfig inConfig) {
+    public RecordFilter(RecordStream outStream) {
+        this.outStream = outStream;
+    }
+
+
+    public RecordConfig getResultantConfig(RecordConfig inConfig){
+        if(outStream instanceof RecordFilter) {
+            return ((RecordFilter) outStream).getResultantConfig(inConfig);
+        } else {
+            return getOutConfig();
+        }
+    }
+
+    @Override
+    public void setRecordConfig(RecordConfig inConfig) {
         this.inConfig = inConfig;
-        int recordSize = 0;
+        inRecordSize = 0;
         for (int i = 0; i < inConfig.signalsCount(); i++) {
-            recordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
+            inRecordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
         }
-        inRecordSize = recordSize;
-        outStream = new NullStream();
-    }
-
-
-    public void setOutStream(RecordStream outStream) {
-        if(outStream != null) {
-            this.outStream = outStream;
-        }
-    }
-
-    public void removeOutStream() {
-        outStream = new NullStream();
+        outStream.setRecordConfig(getOutConfig());
     }
 
     @Override
     public void writeRecord(int[] dataRecord) {
-        filterData(dataRecord);
+        outStream.writeRecord(dataRecord);
     }
 
     @Override
@@ -50,23 +52,7 @@ public class RecordFilter implements RecordStream {
         outStream.close();
     }
 
-    public RecordConfig dataConfig() {
+    protected RecordConfig getOutConfig() {
         return inConfig;
-    }
-
-    protected void filterData(int[] inputRecord) {
-       outStream.writeRecord(inputRecord);
-    }
-
-    class NullStream implements RecordStream {
-        @Override
-        public void writeRecord(int[] dataRecord) {
-            // do nothing;
-        }
-
-        @Override
-        public void close() {
-            // do nothing
-        }
     }
 }

@@ -12,8 +12,13 @@ public class SignalRemover extends RecordFilter {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
     private int outRecordSize;
 
-    public SignalRemover(RecordConfig inConfig) {
-        super(inConfig);
+    public SignalRemover(RecordStream outStream) {
+        super(outStream);
+    }
+
+    @Override
+    public void setRecordConfig(RecordConfig inConfig) {
+        super.setRecordConfig(inConfig);
         outRecordSize = calculateOutRecordSize();
     }
 
@@ -27,11 +32,14 @@ public class SignalRemover extends RecordFilter {
      */
     public void removeSignal(int signalNumber) {
         signalsToRemove.add(signalNumber);
-        outRecordSize = calculateOutRecordSize();
+        if(inConfig != null) {
+            outRecordSize = calculateOutRecordSize();
+            outStream.setRecordConfig(getOutConfig());
+        }
     }
 
     @Override
-    public RecordConfig dataConfig() {
+    public RecordConfig getOutConfig() {
         DefaultRecordConfig outConfig = new DefaultRecordConfig(inConfig);
 
         for (int i = inConfig.signalsCount() - 1; i >= 0 ; i--) {
@@ -56,7 +64,7 @@ public class SignalRemover extends RecordFilter {
      * create out array of samples
      */
     @Override
-    protected void filterData(int[] inputRecord) {
+    public void writeRecord(int[] inputRecord) {
         int[] outRecord = new int[outRecordSize];
 
         int signalNumber = 0;
@@ -89,42 +97,15 @@ public class SignalRemover extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(3, 4);
 
-
         // remove signals 0 and 2
-        SignalRemover recordFilter = new SignalRemover(dataConfig);
-        recordFilter.removeSignal(0);
-        recordFilter.removeSignal(2);
 
         // expected dataRecord
         int[] expectedDataRecord = {2,3,   7,8,9,0};
 
-        recordFilter.setOutStream(new RecordStream() {
-            @Override
-            public void writeRecord(int[] dataRecord1) {
-                boolean isTestOk = true;
-                if(expectedDataRecord.length != dataRecord1.length) {
-                    System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
-                    isTestOk = false;
-                }
-                if(recordFilter.dataConfig().signalsCount() != 2) {
-                    isTestOk = false;
-                }
-                for (int i = 0; i < dataRecord1.length; i++) {
-                    if(dataRecord1[i] != expectedDataRecord[i]) {
-                        System.out.println(i + " resultant data: "+dataRecord1[i]+ " expected data: "+expectedDataRecord[i]);
-                        isTestOk = false;
-                        break;
-                    }
-                }
-
-                System.out.println("Is test ok: "+isTestOk);
-            }
-
-            @Override
-            public void close() {
-
-            }
-        });
+        SignalRemover recordFilter = new SignalRemover(new TestStream(expectedDataRecord));
+        recordFilter.removeSignal(0);
+        recordFilter.removeSignal(2);
+        recordFilter.setRecordConfig(dataConfig);
 
         recordFilter.writeRecord(dataRecord);
     }

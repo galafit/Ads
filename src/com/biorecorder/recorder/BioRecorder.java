@@ -37,7 +37,8 @@ public class BioRecorder {
 
     private final LinkedBlockingQueue<NumberedDataRecord> dataQueue = new LinkedBlockingQueue<>();
     private final ExecutorService singleThreadExecutor;
-    private int lastDataRecordNumber = -1;
+    private volatile Future executorFuture;
+    private volatile int lastDataRecordNumber = -1;
     private volatile RecordFilter recordFilter;
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
@@ -87,9 +88,34 @@ public class BioRecorder {
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
     public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
-        StartData startData = prepareToStart(recorderConfig);
+        // make copy to safely change in the case of accelerometer only mode
+        RecorderConfig recorderConfig1 = new RecorderConfig(recorderConfig);
 
-        AdsConfig adsConfig = recorderConfig.getAdsConfig();
+        boolean isAllChannelsDisabled = true;
+        for (int i = 0; i < recorderConfig1.getChannelsCount(); i++) {
+            if (recorderConfig1.isChannelEnabled(i)) {
+                isAllChannelsDisabled = false;
+                break;
+            }
+        }
+        boolean isAccelerometerOnly = false;
+        if (isAllChannelsDisabled) {
+            if (!recorderConfig1.isAccelerometerEnabled()) {
+                throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
+            } else { // we enable some ads channel to make possible accelerometer measuring
+                isAccelerometerOnly = true;
+                recorderConfig1.setChannelEnabled(0, true);
+                recorderConfig1.setChannelDivider(0, RecorderDivider.D10);
+                recorderConfig1.setChannelLeadOffEnable(0, false);
+                recorderConfig1.setSampleRate(RecorderSampleRate.S500);
+            }
+        }
+
+        RecordFilter dataFilter = createDataFilter(recorderConfig1, isAccelerometerOnly);
+        AdsConfig adsConfig = recorderConfig1.getAdsConfig();
+        dataFilter.setRecordConfig(ads.getDataConfig(adsConfig));
+
+        dataQueue.clear();
         ads.addDataListener(new NumberedDataListener() {
             @Override
             public void onDataReceived(int[] dataRecord, int recordNumber) {
@@ -103,8 +129,8 @@ public class BioRecorder {
                     if (recordNumber > 0) {
                         calculatedDurationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
                     }
-                    putData(new NumberedDataRecord(dataRecord, recordNumber));
-                    //handleData(new NumberedDataRecord(dataRecord, recordNumber));
+
+                    dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -132,22 +158,40 @@ public class BioRecorder {
             }
         });
 
-        return ads.startRecording(startData.getAdsConfig());
+        executorFuture = singleThreadExecutor.submit(new DataHandlingTask(dataFilter));
+        return ads.startRecording(adsConfig);
     }
 
-    private void putData(NumberedDataRecord numberedDataRecord) throws InterruptedException {
-        dataQueue.put(numberedDataRecord);
-    }
 
-    private void handleData(NumberedDataRecord numberedDataRecord) throws InterruptedException {
-        // send to listener
-        recordFilter.writeRecord(numberedDataRecord.getRecord());
-        int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
-        for (int i = 0; i < numberOfLostFrames; i++) {
-            recordFilter.writeRecord(numberedDataRecord.getRecord());
+    class DataHandlingTask implements Runnable {
+        RecordStream dataStream;
+
+        public DataHandlingTask(RecordStream dataStream) {
+            this.dataStream = dataStream;
         }
-        lastDataRecordNumber = numberedDataRecord.getRecordNumber();
+
+        @Override
+        public void run() {
+            while (!Thread.interrupted()) {
+                try {
+                    // block until a request arrives
+                    NumberedDataRecord numberedDataRecord = dataQueue.take();
+                    // send to listener
+                    recordFilter.writeRecord(numberedDataRecord.getRecord());
+                    int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
+                    for (int i = 0; i < numberOfLostFrames; i++) {
+                        recordFilter.writeRecord(numberedDataRecord.getRecord());
+                    }
+                    lastDataRecordNumber = numberedDataRecord.getRecordNumber();
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    // stop
+                    break;
+                }
+            }
+        }
     }
+
 
     public boolean stop() throws IllegalStateException {
         return ads.stop();
@@ -188,7 +232,8 @@ public class BioRecorder {
      * @return object describing data records structure
      */
     public RecordConfig getDataConfig(RecorderConfig recorderConfig) {
-        return prepareToStart(recorderConfig).getResultantDataConfig();
+        RecordConfig adsDataConfig = ads.getDataConfig(recorderConfig.getAdsConfig());
+        return createDataFilter(recorderConfig, false).getResultantConfig(adsDataConfig);
     }
 
     public RecorderType getDeviceType() {
@@ -222,7 +267,7 @@ public class BioRecorder {
      *
      * @return calculated duration of data records
      */
-    public double calculateDurationOfDataRecord() {
+    public double getCalculatedDurationOfDataRecord() {
         return calculatedDurationOfDataRecord;
     }
 
@@ -309,163 +354,115 @@ public class BioRecorder {
     }
 
 
-    private StartData prepareToStart(RecorderConfig recorderConfig1) {
-       // make copy to safely change
-       RecorderConfig recorderConfig = new RecorderConfig(recorderConfig1);
+    private RecordFilter createDataFilter(RecorderConfig recorderConfig, boolean isAccelerometerOnly) {
+        Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
+        Map<Integer, Integer> extraDividers = new HashMap<>();
+        int enableChannelsCount = 0;
+        for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+            if (recorderConfig.isChannelEnabled(i)) {
+                List<NamedDigitalFilter> channelFilters = filters.get(i);
+                if (channelFilters != null) {
+                    enableChannelsFilters.put(enableChannelsCount, channelFilters);
+                }
+                Integer divider = recorderConfig.getChannelDivider(i).getExtraDivider();
+                if(divider > 1) {
+                    extraDividers.put(enableChannelsCount, divider);
+                }
+                enableChannelsCount++;
+            }
+        }
 
-       boolean isAllChannelsDisabled = true;
-       for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
-           if (recorderConfig.isChannelEnabled(i)) {
-               isAllChannelsDisabled = false;
-               break;
-           }
-       }
-       boolean isAccelerometerOnly = false;
-       if (isAllChannelsDisabled) {
-           if (!recorderConfig.isAccelerometerEnabled()) {
-               throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
-           } else { // we enable some ads channel to make possible accelerometer measuring
-               isAccelerometerOnly = true;
-               recorderConfig.setChannelEnabled(0, true);
-               recorderConfig.setChannelDivider(0, RecorderDivider.D10);
-               recorderConfig.setChannelLeadOffEnable(0, false);
-               recorderConfig.setSampleRate(RecorderSampleRate.S500);
-           }
-       }
+        if(recorderConfig.isAccelerometerEnabled()) {
+            Integer divider = recorderConfig.getAccelerometerDivider().getExtraDivider();
+            if(recorderConfig.isAccelerometerOneChannelMode()) {
+                if(divider > 1) {
+                    extraDividers.put(enableChannelsCount, divider);
+                }
+                enableChannelsCount++;
+            } else {
+                if(divider > 1) {
+                    extraDividers.put(enableChannelsCount, divider);
+                    extraDividers.put(enableChannelsCount + 1, divider);
+                    extraDividers.put(enableChannelsCount + 2, divider);
+                }
+                enableChannelsCount = enableChannelsCount + 3;
+            }
+        }
 
-       Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
-       Map<Integer, Integer> extraDividers = new HashMap<>();
-       int enableChannelsCount = 0;
-       for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
-           if (recorderConfig.isChannelEnabled(i)) {
-               List<NamedDigitalFilter> channelFilters = filters.get(i);
-               if (channelFilters != null) {
-                   enableChannelsFilters.put(enableChannelsCount, channelFilters);
-               }
-               Integer divider = recorderConfig.getChannelDivider(i).getExtraDivider();
-               if(divider > 1) {
-                   extraDividers.put(enableChannelsCount, divider);
-               }
-               enableChannelsCount++;
-           }
-       }
+        int batteryChannelNumber = -1;
+        int leadOffChannelNumber = -1;
+        if(recorderConfig.isBatteryVoltageMeasureEnabled()) {
+            batteryChannelNumber = enableChannelsCount;
+            enableChannelsCount++;
+        }
+        if(recorderConfig.isLeadOffEnabled()) {
+            leadOffChannelNumber = enableChannelsCount;
+            enableChannelsCount++;
+        }
 
-       if(recorderConfig.isAccelerometerEnabled()) {
-           Integer divider = recorderConfig.getAccelerometerDivider().getExtraDivider();
-           if(recorderConfig.isAccelerometerOneChannelMode()) {
-               if(divider > 1) {
-                   extraDividers.put(enableChannelsCount, divider);
-               }
-               enableChannelsCount++;
-           } else {
-               if(divider > 1) {
-                   extraDividers.put(enableChannelsCount, divider);
-                   extraDividers.put(enableChannelsCount + 1, divider);
-                   extraDividers.put(enableChannelsCount + 2, divider);
-               }
-               enableChannelsCount = enableChannelsCount + 3;
-           }
-       }
+        RecordStream recordStream = new RecordStream() {
+            @Override
+            public void writeRecord(int[] dataRecord) {
+                dataListener.writeRecord(dataRecord);
+            }
 
-       AdsConfig adsConfig = recorderConfig.getAdsConfig();
-       RecordConfig resultantDataConfig = ads.getDataConfig(adsConfig);
-       RecordFilter dataFilter = new RecordFilter(resultantDataConfig);
-       recordFilter = dataFilter;
+            @Override
+            public void setRecordConfig(RecordConfig recordConfig) {
+                // do nothing
+            }
 
 
+            @Override
+            public void close() {
+                // do nothing
+            }
+        };
 
-       // reduce signals frequencies
+        RecordFilter dataFilter = new RecordFilter(recordStream);
+
+        // delete helper channels
+        if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
+
+            SignalRemover edfSignalsRemover = new SignalRemover(dataFilter);
+            if (isAccelerometerOnly) {
+                // delete helper ads channel
+                edfSignalsRemover.removeSignal(0);
+            }
+            if (recorderConfig.isLeadOffEnabled()) {
+                // delete helper Lead-off channel
+                edfSignalsRemover.removeSignal(leadOffChannelNumber);
+            }
+            if (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable()) {
+                // delete helper BatteryVoltage channel
+                edfSignalsRemover.removeSignal(batteryChannelNumber);
+            }
+
+            dataFilter = edfSignalsRemover;
+        }
+
+        // Add digital filters to ads channels
+        if(!enableChannelsFilters.isEmpty()) {
+            SignalDigitalFilter edfSignalsFilter = new SignalDigitalFilter(dataFilter);
+            for (Integer signal : enableChannelsFilters.keySet()){
+                List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
+                for (NamedDigitalFilter filter : channelFilters) {
+                    edfSignalsFilter.addSignalFilter(signal, filter, filter.getName());
+                }
+            }
+            dataFilter = edfSignalsFilter;
+        }
+
+        // reduce signals frequencies
        if(!extraDividers.isEmpty()) {
-           SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(resultantDataConfig);
+           SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(dataFilter);
            for (Integer signal : extraDividers.keySet()){
                edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
            }
-           dataFilter.setOutStream(edfFrequencyDivider);
+
            dataFilter = edfFrequencyDivider;
-           resultantDataConfig = dataFilter.dataConfig();
        }
-
-       // Add digital filters to ads channels
-       if(!enableChannelsFilters.isEmpty()) {
-           SignalDigitalFilter edfSignalsFilter = new SignalDigitalFilter(resultantDataConfig);
-           for (Integer signal : enableChannelsFilters.keySet()){
-               List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
-               for (NamedDigitalFilter filter : channelFilters) {
-                   edfSignalsFilter.addSignalFilter(signal, filter, filter.getName());
-               }
-           }
-
-           dataFilter.setOutStream(edfSignalsFilter);
-           dataFilter = edfSignalsFilter;
-           resultantDataConfig = dataFilter.dataConfig();
-
-
-       }
-       int batteryChannelNumber = -1;
-       int leadOffChannelNumber = -1;
-       if(recorderConfig.isBatteryVoltageMeasureEnabled()) {
-           batteryChannelNumber = enableChannelsCount;
-           enableChannelsCount++;
-       }
-       if(recorderConfig.isLeadOffEnabled()) {
-           leadOffChannelNumber = enableChannelsCount;
-           enableChannelsCount++;
-       }
-
-       // delete helper channels
-       if(isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
-
-           SignalRemover edfSignalsRemover = new SignalRemover(resultantDataConfig);
-           if (isAccelerometerOnly) {
-               // delete helper ads channel
-               edfSignalsRemover.removeSignal(0);
-           }
-           if (recorderConfig.isLeadOffEnabled()) {
-               // delete helper Lead-off channel
-               edfSignalsRemover.removeSignal(leadOffChannelNumber);
-           }
-           if (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable()) {
-               // delete helper BatteryVoltage channel
-               edfSignalsRemover.removeSignal(batteryChannelNumber);
-           }
-           dataFilter.setOutStream(edfSignalsRemover);
-           dataFilter = edfSignalsRemover;
-           resultantDataConfig = dataFilter.dataConfig();
-
-       }
-       dataFilter.setOutStream(new RecordStream() {
-           @Override
-           public void writeRecord(int[] dataRecord) {
-               dataListener.writeRecord(dataRecord);
-           }
-
-           @Override
-           public void close() {
-
-           }
-       });
-
-       return new StartData(adsConfig, resultantDataConfig);
-   }
-
-   class StartData {
-        private AdsConfig adsConfig;
-        private RecordConfig resultantDataConfig;
-
-       public StartData(AdsConfig adsConfig, RecordConfig resultantDataConfig) {
-           this.adsConfig = adsConfig;
-           this.resultantDataConfig = resultantDataConfig;
-       }
-
-       public AdsConfig getAdsConfig() {
-           return adsConfig;
-       }
-
-
-       public RecordConfig getResultantDataConfig() {
-           return resultantDataConfig;
-       }
-   }
+       return dataFilter;
+    }
 
 
     class NullLeadOffListener implements LeadOffListener {

@@ -11,9 +11,14 @@ import java.util.Map;
 public class SignalFrequencyReducer extends RecordFilter {
     private Map<Integer, Integer> dividers = new HashMap<>();
     private int outRecordSize;
-    
-    public SignalFrequencyReducer(RecordConfig inConfig) {
-        super(inConfig);
+
+    public SignalFrequencyReducer(RecordStream outStream) {
+        super(outStream);
+    }
+
+    @Override
+    public void setRecordConfig(RecordConfig inConfig) {
+        super.setRecordConfig(inConfig);
         outRecordSize = calculateOutRecordSize();
     }
 
@@ -23,18 +28,21 @@ public class SignalFrequencyReducer extends RecordFilter {
      * not a multiple of divider
      */
     public void addDivider(int signalNumber, int divider) throws IllegalArgumentException {
-        if(inConfig.getNumberOfSamplesInEachDataRecord(signalNumber) % divider != 0 ) {
+        if(inConfig != null && inConfig.getNumberOfSamplesInEachDataRecord(signalNumber) % divider != 0 ) {
            String errMsg = "Number of samples in DataRecord must be a multiple of divider. Number of samples = "
                    + inConfig.getNumberOfSamplesInEachDataRecord(signalNumber)
                    + " Divider = " + divider;
            throw new IllegalArgumentException(errMsg);
         }
         dividers.put(signalNumber, divider);
-        calculateOutRecordSize();
+        if(inConfig != null) {
+            outRecordSize = calculateOutRecordSize();
+            outStream.setRecordConfig(getOutConfig());
+        }
     }
 
     private int calculateOutRecordSize() {
-        outRecordSize = 0;
+        int outRecordSize = 0;
 
         for (int i = 0; i < inConfig.signalsCount(); i++) {
             Integer divider = dividers.get(i);
@@ -48,7 +56,7 @@ public class SignalFrequencyReducer extends RecordFilter {
     }
 
     @Override
-    public RecordConfig dataConfig() {
+    public RecordConfig getOutConfig() {
         DefaultRecordConfig outConfig = new DefaultRecordConfig(inConfig);
         for (int i = 0; i < outConfig.signalsCount(); i++) {
             Integer divider = dividers.get(i);
@@ -61,7 +69,7 @@ public class SignalFrequencyReducer extends RecordFilter {
     }
 
     @Override
-    protected void filterData(int[] inputRecord) {
+    public void writeRecord(int[] inputRecord) {
         int[] outRecord = new int[outRecordSize];
 
         int signalCount = 0;
@@ -116,39 +124,16 @@ public class SignalFrequencyReducer extends RecordFilter {
 
 
         // reduce signals frequencies by 4, 2, 2
-        SignalFrequencyReducer recordFilter = new SignalFrequencyReducer(dataConfig);
-        recordFilter.addDivider(0, 4);
-        recordFilter.addDivider(1, 2);
-        recordFilter.addDivider(2, 2);
 
         // expected dataRecord
         int[] expectedDataRecord = {4,  3,  6,7,3};
 
-        recordFilter.setOutStream(new RecordStream() {
-            @Override
-            public void writeRecord(int[] dataRecord1) {
-                boolean isTestOk = true;
-                if(expectedDataRecord.length != dataRecord1.length) {
-                    System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
-                    isTestOk = false;
-                }
+        SignalFrequencyReducer recordFilter = new SignalFrequencyReducer(new TestStream(expectedDataRecord));
+        recordFilter.addDivider(0, 4);
+        recordFilter.addDivider(1, 2);
+        recordFilter.addDivider(2, 2);
 
-                for (int i = 0; i < dataRecord1.length; i++) {
-                    if(dataRecord1[i] != expectedDataRecord[i]) {
-                        System.out.println(i + " resultant data: "+dataRecord1[i]+ " expected data: "+expectedDataRecord[i]);
-                        isTestOk = false;
-                        break;
-                    }
-                }
-
-                System.out.println("Is test ok: "+isTestOk);
-            }
-
-            @Override
-            public void close() {
-
-            }
-        });
+        recordFilter.setRecordConfig(dataConfig);
 
         recordFilter.writeRecord(dataRecord);
     }

@@ -20,21 +20,21 @@ public class RecordsJoiner extends RecordFilter {
     private int joinedRecordsCounter;
     private int outRecordSize;
 
-    public RecordsJoiner(RecordConfig inConfig, int numberOfRecordsToJoin) {
-        super(inConfig);
+    public RecordsJoiner(RecordStream outStream, int numberOfRecordsToJoin) {
+        super(outStream);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
-        int inRecordSize = 0;
-        for (int i = 0; i < inConfig.signalsCount(); i++) {
-            inRecordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
-         }
+    }
+
+
+    @Override
+    public void setRecordConfig(RecordConfig inConfig) {
+        super.setRecordConfig(inConfig);
         outRecordSize = inRecordSize * numberOfRecordsToJoin;
         outDataRecord = new int[outRecordSize];
     }
 
-
-
     @Override
-    public RecordConfig dataConfig() {
+    public RecordConfig getOutConfig() {
         DefaultRecordConfig outConfig = new DefaultRecordConfig(inConfig);
         outConfig.setDurationOfDataRecord(inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin);
         for (int i = 0; i < outConfig.signalsCount(); i++) {
@@ -49,7 +49,7 @@ public class RecordsJoiner extends RecordFilter {
      * DataRecord and when it is ready send it to the dataListener
      */
     @Override
-    protected void filterData(int[] inputRecord)  {
+    public void writeRecord(int[] inputRecord)  {
         int signalNumber = 0;
         int signalStart = 0;
         int signalSamples = inConfig.getNumberOfSamplesInEachDataRecord(signalNumber);
@@ -90,39 +90,14 @@ public class RecordsJoiner extends RecordFilter {
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 4);
 
-
         // join 2 records
-        RecordsJoiner recordFilter = new RecordsJoiner(dataConfig, 2);
-
-
+        int numberOfRecordsToJoin = 2;
         // expected dataRecord
         int[] expectedDataRecord = {1,3,8,1,3,8,  2,4,2,4,  7,6,8,6,7,6,8,6};
 
-        recordFilter.setOutStream(new RecordStream() {
-            @Override
-            public void writeRecord(int[] dataRecord1) {
-                boolean isTestOk = true;
-                if(expectedDataRecord.length != dataRecord1.length) {
-                    System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
-                    isTestOk = false;
-                }
+        RecordsJoiner recordFilter = new RecordsJoiner(new TestStream(expectedDataRecord), numberOfRecordsToJoin);
 
-                for (int i = 0; i < dataRecord1.length; i++) {
-                    if(dataRecord1[i] != expectedDataRecord[i]) {
-                        System.out.println(i + " resultant data: "+dataRecord1[i]+ " expected data: "+expectedDataRecord[i]);
-                        isTestOk = false;
-                        break;
-                    }
-                }
-
-                System.out.println("Is test ok: "+isTestOk);
-            }
-
-            @Override
-            public void close() {
-
-            }
-        });
+        recordFilter.setRecordConfig(dataConfig);
 
         // send 4 records and get as result 2 joined records
         recordFilter.writeRecord(dataRecord);

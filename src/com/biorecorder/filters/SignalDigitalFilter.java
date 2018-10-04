@@ -16,8 +16,13 @@ public class SignalDigitalFilter extends RecordFilter {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public SignalDigitalFilter(RecordConfig inConfig) {
-        super(inConfig);
+    public SignalDigitalFilter(RecordStream outStream) {
+        super(outStream);
+    }
+
+    @Override
+    public void setRecordConfig(RecordConfig inConfig) {
+        super.setRecordConfig(inConfig);
         offsets = new double[inConfig.signalsCount()];
         for (int i = 0; i < offsets.length; i++) {
             offsets[i] = RecordConfig.offset(inConfig, i);
@@ -40,6 +45,9 @@ public class SignalDigitalFilter extends RecordFilter {
             filters.put(signalNumber, signalFilters);
         }
         signalFilters.add(new NamedFilter(signalFilter, filterName));
+        if(inConfig != null) {
+            outStream.setRecordConfig(getOutConfig());
+        }
     }
 
 
@@ -55,7 +63,7 @@ public class SignalDigitalFilter extends RecordFilter {
     }
 
     @Override
-    public RecordConfig dataConfig() {
+    public RecordConfig getOutConfig() {
         DefaultRecordConfig outConfig = new DefaultRecordConfig(inConfig);
         for (int i = 0; i < outConfig.signalsCount(); i++) {
             String prefilter = getSignalFiltersName(i);
@@ -68,7 +76,7 @@ public class SignalDigitalFilter extends RecordFilter {
     }
 
     @Override
-    protected void filterData(int[] inputRecord)  {
+    public void writeRecord(int[] inputRecord)  {
         int[] outRecord = new int[inputRecord.length];
         int signalNumber = 0;
         int signalStartSampleNumber = 0;
@@ -130,47 +138,17 @@ public class SignalDigitalFilter extends RecordFilter {
 
 
         // Moving average filter to channel 1
-        SignalDigitalFilter recordFilter = new SignalDigitalFilter(dataConfig);
-        recordFilter.addSignalFilter(1, new MovingAverageFilter(2), "movAvg:2");
 
         // expected dataRecords
         int[] expectedDataRecord1 = {1,  2,3,6,7,3,4,  3,5};
         int[] expectedDataRecord2 = {1,  5,3,6,7,3,4,  3,5};
+        List<int[]> expectedRecords = new ArrayList<>(2);
+        expectedRecords.add(expectedDataRecord1);
+        expectedRecords.add(expectedDataRecord2);
 
-
-        recordFilter.setOutStream(new RecordStream() {
-            int i = 1;
-            @Override
-            public void writeRecord(int[] dataRecord1) {
-                boolean isTestOk = true;
-                int[] expectedDataRecord;
-                if(i == 1) {
-                   expectedDataRecord = expectedDataRecord1;
-                } else {
-                    expectedDataRecord = expectedDataRecord2;
-                }
-                i++;
-                if(expectedDataRecord.length != dataRecord1.length) {
-                    System.out.println("Error!!! Resultant record length: "+dataRecord1.length+ " Expected record length : "+expectedDataRecord.length);
-                    isTestOk = false;
-                }
-
-                for (int i = 0; i < dataRecord1.length; i++) {
-                    if(dataRecord1[i] != expectedDataRecord[i]) {
-                        System.out.println(i + " resultant data: "+dataRecord1[i]+ " expected data: "+expectedDataRecord[i]);
-                        isTestOk = false;
-                        // break;
-                    }
-                }
-
-                System.out.println("Is test ok: "+isTestOk);
-            }
-
-            @Override
-            public void close() {
-
-            }
-        });
+        SignalDigitalFilter recordFilter = new SignalDigitalFilter(new TestStream(expectedRecords));
+        recordFilter.addSignalFilter(1, new MovingAverageFilter(2), "movAvg:2");
+        recordFilter.setRecordConfig(dataConfig);
 
         // send 4 records and get 4 resultant records
         recordFilter.writeRecord(dataRecord);

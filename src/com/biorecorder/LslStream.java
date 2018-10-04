@@ -15,33 +15,38 @@ public class LslStream implements RecordStream {
     private static final Log log = LogFactory.getLog(LslStream.class);
     private LSL.StreamInfo info;
     private LSL.StreamOutlet outlet;
-    private RecordConfig dataRecordConfig;
+    private RecordConfig recordConfig;
 
     private int adsChannelsCount;
     private int channelsCount;
     private int accFactor = 1;
     private int adsChannelFactor = 1;
     private int numberOfLslRecords;
-    private int dataRecordLength = 0;
+    private int recordLength = 0;
 
     /**
      * @throws IllegalArgumentException if channels have different frequencies or
      * all channels and accelerometer are disabled
      */
-    public LslStream(RecordConfig dataRecordConfig,int adsChannelsCount, int accChannelsCount) throws IllegalArgumentException {
-        this.dataRecordConfig = dataRecordConfig;
+    public LslStream(int adsChannelsCount, int accChannelsCount) throws IllegalArgumentException {
         this.adsChannelsCount = adsChannelsCount;
         channelsCount = adsChannelsCount + accChannelsCount;
 
+    }
+
+    @Override
+    public void setRecordConfig(RecordConfig recordConfig) {
+        this.recordConfig = recordConfig;
         int numberOfAdsChSamples = 0;
         int numberOfAccChSamples = 0;
 
+        int accChannelsCount = channelsCount - adsChannelsCount;
 
         for (int i = 0; i < adsChannelsCount; i++) {
             if(numberOfAdsChSamples == 0) {
-               numberOfAdsChSamples = dataRecordConfig.getNumberOfSamplesInEachDataRecord(i);
+                numberOfAdsChSamples = recordConfig.getNumberOfSamplesInEachDataRecord(i);
             } else {
-                if (numberOfAdsChSamples != dataRecordConfig.getNumberOfSamplesInEachDataRecord(i)) {
+                if (numberOfAdsChSamples != recordConfig.getNumberOfSamplesInEachDataRecord(i)) {
                     String errMsg = "Channels frequencies must be the same";
                     throw new IllegalArgumentException(errMsg);
                 }
@@ -49,10 +54,10 @@ public class LslStream implements RecordStream {
         }
 
         if(accChannelsCount > 0) {
-            numberOfAccChSamples = dataRecordConfig.getNumberOfSamplesInEachDataRecord(channelsCount - 1);
+            numberOfAccChSamples = recordConfig.getNumberOfSamplesInEachDataRecord(channelsCount - 1);
         }
 
-        dataRecordLength = numberOfAdsChSamples * adsChannelsCount + numberOfAccChSamples * accChannelsCount;
+        recordLength = numberOfAdsChSamples * adsChannelsCount + numberOfAccChSamples * accChannelsCount;
 
         // las need equal frequencies for all channels.
         // So if numberOfAccChSamples != numberOfAdsChSamples we
@@ -74,14 +79,15 @@ public class LslStream implements RecordStream {
         }
 
 
-        int maxFrequency = (int)Math.round(maxNumberOfSamplesInRecord / dataRecordConfig.getDurationOfDataRecord());
-        info = new LSL.StreamInfo("BioSemi", "EEG", dataRecordConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
+        int maxFrequency = (int)Math.round(maxNumberOfSamplesInRecord / recordConfig.getDurationOfDataRecord());
+        info = new LSL.StreamInfo("BioSemi", "EEG", recordConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
         outlet = new LSL.StreamOutlet(info);
 
         numberOfLslRecords = maxNumberOfSamplesInRecord;
 
-        log.info("MatlabDataListener initialization. Number of enabled channels = " + dataRecordConfig.signalsCount() +
+        log.info("MatlabDataListener initialization. Number of enabled channels = " + recordConfig.signalsCount() +
                 ". Frequency = " + maxFrequency + ". Number of samples in BDF data record = " + maxNumberOfSamplesInRecord);
+
     }
 
     @Override
@@ -97,23 +103,23 @@ public class LslStream implements RecordStream {
         int channelCount = 0;
         int sampleCount = 0;
         int lslRecordCount;
-        for (int i = 0; i < dataRecordLength; i++) {
+        for (int i = 0; i < recordLength; i++) {
             if (channelCount < adsChannelsCount) {
                 for (int j = 0; j < adsChannelFactor; j++) {
                     lslRecordCount = sampleCount * adsChannelFactor + j;
-                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(recordConfig, channelCount, dataRecord[i]);
                 }
                 lslRecordCount = sampleCount;
-                lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(recordConfig, channelCount, dataRecord[i]);
             } else {
                 for (int j = 0; j < accFactor; j++) {
                     lslRecordCount = sampleCount * accFactor + j;
-                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(dataRecordConfig, channelCount, dataRecord[i]);
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(recordConfig, channelCount, dataRecord[i]);
                 }
             }
 
             sampleCount++;
-            if (sampleCount == dataRecordConfig.getNumberOfSamplesInEachDataRecord(channelCount)) {
+            if (sampleCount == recordConfig.getNumberOfSamplesInEachDataRecord(channelCount)) {
                 sampleCount = 0;
                 channelCount++;
             }
