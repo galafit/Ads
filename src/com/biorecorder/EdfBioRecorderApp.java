@@ -15,10 +15,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -255,8 +252,35 @@ public class EdfBioRecorderApp {
 
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
+
+            // extra dividers
             try {
-                edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
+                Map<Integer, Integer> extraDividers = new HashMap<>();
+                int enableChannelsCount = 0;
+                for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+                    if (recorderConfig.isChannelEnabled(i)) {
+                        int extraDivider = appConfig.getChannelExtraDivider(i).getValue();
+                        if (extraDivider > 1) {
+                            extraDividers.put(enableChannelsCount, extraDivider);
+                        }
+                        enableChannelsCount++;
+                    }
+                }
+
+                if (recorderConfig.isAccelerometerEnabled()) {
+                    Integer extraDivider = appConfig.getAccelerometerExtraDivider().getValue();
+                    if(extraDivider > 1) {
+                        if (recorderConfig.isAccelerometerOneChannelMode()) {
+                            extraDividers.put(enableChannelsCount, extraDivider);
+                        } else {
+                            extraDividers.put(enableChannelsCount, extraDivider);
+                            extraDividers.put(enableChannelsCount + 1, extraDivider);
+                            extraDividers.put(enableChannelsCount + 2, extraDivider);
+                        }
+                    }
+                }
+
+                edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), extraDividers, appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
                 edfStream.setRecordConfig(dataRecordConfig);
             } catch (FileNotFoundRuntimeException ex) {
                 log.error(ex);

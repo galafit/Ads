@@ -318,6 +318,7 @@ public class Ads {
     }
 
     public boolean disconnect() {
+        singleThreadExecutor.shutdownNow();
         if (!comport.isOpened()) {
             return true;
         }
@@ -325,7 +326,6 @@ public class Ads {
            stop1();
         }
         if (comport.close()) {
-            singleThreadExecutor.shutdownNow();
             removeDataListener();
             removeMessageListener();
             return true;

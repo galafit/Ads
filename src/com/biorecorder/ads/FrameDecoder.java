@@ -318,11 +318,13 @@ class FrameDecoder implements ComportListener {
             return 0;
         }
         int result = 0;
-        int maxDiv = Divider.getMaxDivider().getValue();
+
+        Divider[] dividers = Divider.values();
+        int maxDivider = dividers[dividers.length].getValue();
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {
                 int divider = adsConfig.getAdsChannelDivider(i);
-                result += (maxDiv / divider);
+                result += (maxDivider / divider);
             }
         }
         return result;

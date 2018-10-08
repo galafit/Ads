@@ -7,26 +7,15 @@ import com.biorecorder.ads.*;
  */
 public class RecorderConfig {
     private boolean batteryVoltageChannelDeletingEnable = true;
-    private int[] channelsExtraDividers;
-    private int accelerometerExtraDivider = 1;
-
     private AdsConfig adsConfig = new AdsConfig();
 
     public RecorderConfig() {
-        channelsExtraDividers = new int[RecorderType.getMaxChannelsCount()];
-        for (int i = 0; i < channelsExtraDividers.length; i++) {
-            channelsExtraDividers[i] = 1;
-        }
+
     }
 
     public RecorderConfig(RecorderConfig configToCopy) {
         batteryVoltageChannelDeletingEnable = configToCopy.batteryVoltageChannelDeletingEnable;
         adsConfig = new AdsConfig(configToCopy.adsConfig);
-        accelerometerExtraDivider = configToCopy.accelerometerExtraDivider;
-        channelsExtraDividers = new int[RecorderType.getMaxChannelsCount()];
-        for (int i = 0; i < channelsExtraDividers.length; i++) {
-            channelsExtraDividers[i] = configToCopy.channelsExtraDividers[i];
-        }
     }
 
     AdsConfig getAdsConfig() {
@@ -42,26 +31,18 @@ public class RecorderConfig {
         this.batteryVoltageChannelDeletingEnable = batteryVoltageChannelDeletingEnable;
     }
 
+    public RecorderDivider getAccelerometerDivider() {
+        return RecorderDivider.valueOf(adsConfig.getAccelerometerDivider());
+    }
+
     public RecorderDivider getChannelDivider(int channelNumber) {
-        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber), channelsExtraDividers[channelNumber]);
+        return RecorderDivider.valueOf(adsConfig.getAdsChannelDivider(channelNumber));
     }
 
     public void setChannelDivider(int channelNumber, RecorderDivider recorderDivider) {
         adsConfig.setAdsChannelDivider(channelNumber, recorderDivider.getAdsDivider());
-        channelsExtraDividers[channelNumber] = recorderDivider.getExtraDivider();
     }
 
-    public RecorderDivider[] getAccelerometerAvailableDividers() {
-        return getDeviceType().getAccelerometerAvailableDividers();
-    }
-
-    public void setAccelerometerDivider(RecorderDivider recorderDivider) {
-        accelerometerExtraDivider = recorderDivider.getExtraDivider();
-    }
-
-    public RecorderDivider getAccelerometerDivider() {
-        return RecorderDivider.valueOf(adsConfig.getAccelerometerDivider(), accelerometerExtraDivider);
-    }
 
     public boolean isLeadOffEnabled() {
         return adsConfig.isLeadOffEnabled();

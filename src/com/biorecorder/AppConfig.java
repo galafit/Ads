@@ -15,6 +15,9 @@ public class AppConfig {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private boolean[] filter50HzMask;
+    private ExtraDivider[] channelsExtraDividers;
+    private ExtraDivider accelerometerExtraDivider = ExtraDivider.D1;
+
     private boolean isLabStreamingEnabled = false;
     private String comportName;
     private String dirToSave;
@@ -27,6 +30,10 @@ public class AppConfig {
         filter50HzMask = new boolean[RecorderType.getMaxChannelsCount()];
         for (int i = 0; i < filter50HzMask.length; i++) {
             filter50HzMask[i] = true;
+        }
+        channelsExtraDividers = new ExtraDivider[RecorderType.getMaxChannelsCount()];
+        for (int i = 0; i < channelsExtraDividers.length; i++) {
+            channelsExtraDividers[i] = ExtraDivider.D1;
         }
     }
 
@@ -41,6 +48,11 @@ public class AppConfig {
         fileName = configToCopy.fileName;
         for (int i = 0; i < filter50HzMask.length; i++) {
             filter50HzMask[i] = configToCopy.filter50HzMask[i];
+        }
+        accelerometerExtraDivider = configToCopy.accelerometerExtraDivider;
+        channelsExtraDividers = new ExtraDivider[configToCopy.channelsExtraDividers.length];
+        for (int i = 0; i < channelsExtraDividers.length; i++) {
+            channelsExtraDividers[i] = configToCopy.channelsExtraDividers[i];
         }
     }
 
@@ -84,6 +96,22 @@ public class AppConfig {
 
     public void set50HzFilterEnabled(int channelNumber, boolean is50HzFilterEnabled) {
          filter50HzMask[channelNumber] = is50HzFilterEnabled;
+    }
+
+    public ExtraDivider getChannelExtraDivider(int channelNumber) {
+        return channelsExtraDividers[channelNumber];
+    }
+
+    public void setChannelExtraDivider(int channelNumber, ExtraDivider extraDivider) {
+        channelsExtraDividers[channelNumber] = extraDivider;
+    }
+
+    public ExtraDivider getAccelerometerExtraDivider() {
+        return accelerometerExtraDivider;
+    }
+
+    public void setAccelerometerExtraDivider(ExtraDivider accelerometerExtraDivider) {
+        this.accelerometerExtraDivider = accelerometerExtraDivider;
     }
 
     public boolean isDurationOfDataRecordAdjustable() {

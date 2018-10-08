@@ -166,7 +166,9 @@ public class AdsConfig {
     }
 
     public double getDurationOfDataRecord() {
-        return (1.0 * Divider.getMaxDivider().getValue())/getSampleRate().getValue();
+        Divider[] dividers = Divider.values();
+        int maxDivider = dividers[dividers.length - 1].getValue();
+        return (1.0 * maxDivider)/getSampleRate().getValue();
     }
 
 }

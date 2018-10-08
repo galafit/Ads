@@ -17,9 +17,8 @@ public enum RecorderType {
         this.adsType = adsType;
     }
 
-    public RecorderDivider[] getAccelerometerAvailableDividers() {
-        RecorderDivider[]  accDividers = {RecorderDivider.D10, RecorderDivider.D20};
-        return accDividers;
+    public RecorderDivider getAccelerometerAvailableDivider() {
+        return RecorderDivider.valueOf(AdsType.getAccelerometerAvailableDivider());
     }
 
     public int getChannelsCount() {

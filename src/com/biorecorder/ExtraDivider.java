@@ -1,23 +1,20 @@
-package com.biorecorder.ads;
+package com.biorecorder;
 
 /**
- * Important!!! It is supposed that dividers ordered from min to max.
- * We find max divider as Dividers.values[Dividers.values.length - 1]
+ * Created by galafit on 6/10/18.
  */
-public enum Divider {
+public enum ExtraDivider {
     D1(1),
-    D2(2),
-    D5(5),
-    D10(10);
+    D2(2);
 
     private int value;
 
-    private Divider(int value) {
+    private ExtraDivider(int value) {
         this.value = value;
     }
 
-    public static Divider valueOf(int value) throws IllegalArgumentException {
-        for (Divider divider : Divider.values()) {
+    public static ExtraDivider valueOf(int value) throws IllegalArgumentException {
+        for (ExtraDivider divider : ExtraDivider.values()) {
             if (divider.getValue() == value) {
                 return divider;
             }

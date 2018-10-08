@@ -9,8 +9,13 @@ import org.apache.commons.logging.LogFactory;
 import java.util.ArrayList;
 
 /**
+
+ * This class write data records to the LSL stream. But before transform
+ * income data records so that all channels have equal frequencies
+ * <p>
  * Class thread safe
  */
+
 public class LslStream implements RecordStream {
     private static final Log log = LogFactory.getLog(LslStream.class);
     private LSL.StreamInfo info;

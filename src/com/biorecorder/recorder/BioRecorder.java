@@ -15,7 +15,6 @@ import java.util.concurrent.*;
 /**
  * Wrapper class that does some transformations with Ads data-frames:
  * <ul>
- * <li>joins Ads data frames so that resultant frame has standard duration = 1 sec</li>
  * <li>removes  helper technical info about lead-off status and battery charge</li>
  * <li>permits to add to ads channels data some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
  * </ul>
@@ -25,6 +24,7 @@ import java.util.concurrent.*;
  */
 public class BioRecorder {
     private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Recording Impossible";
+    public static final int START_CHECKING_PERIOD_MS = 10;
 
     private final Ads ads;
     private volatile Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
@@ -42,7 +42,7 @@ public class BioRecorder {
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
     private volatile double calculatedDurationOfDataRecord; // sec
-    private volatile int batterryCurrentPct = 100; // 100%
+    private volatile int batteryCurrentPct = 100; // 100%
 
 
     public BioRecorder(String comportName) throws ConnectionRuntimeException {
@@ -114,50 +114,94 @@ public class BioRecorder {
         dataFilter.setRecordConfig(ads.getDataConfig(adsConfig));
 
         dataQueue.clear();
-        ads.addDataListener(new NumberedDataListener() {
-            @Override
-            public void onDataReceived(int[] dataRecord, int recordNumber) {
-                try {
-                    if (recordNumber == 0) {
-                        firstRecordTime = System.currentTimeMillis();
-                        lastRecordTime = firstRecordTime;
-                    } else {
-                        lastRecordTime = System.currentTimeMillis();
-                    }
-                    if (recordNumber > 0) {
-                        calculatedDurationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
-                    }
+        ads.addDataListener(new AdsDataHandler(adsConfig));
 
-                    dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
+        Future<Boolean> startFuture = ads.startRecording(adsConfig);
+        executorFuture = singleThreadExecutor.submit(new StartFutureHandlingTask(startFuture, new DataHandlingTask(dataFilter)));
+        return startFuture;
+    }
+
+    class AdsDataHandler implements NumberedDataListener {
+        private final AdsConfig adsConfig;
+
+        public AdsDataHandler(AdsConfig adsConfig) {
+            this.adsConfig = adsConfig;
+        }
+
+        @Override
+        public void onDataReceived(int[] dataRecord, int recordNumber) {
+            try {
+                if (recordNumber == 0) {
+                    firstRecordTime = System.currentTimeMillis();
+                    lastRecordTime = firstRecordTime;
+                } else {
+                    lastRecordTime = System.currentTimeMillis();
+                }
+                if (recordNumber > 0) {
+                    calculatedDurationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
+                }
+
+                dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            // notify lead off listener
+            if (adsConfig.isLeadOffEnabled()) {
+                notifyLeadOffListeners(Ads.extractLeadOffBitMask(dataRecord, adsConfig));
+            }
+
+            // notify battery voltage listener
+            if (adsConfig.isBatteryVoltageMeasureEnabled()) {
+                int batteryPct = Ads.extractLithiumBatteryPercentage(dataRecord, adsConfig);
+                // Percentage level actually are estimated roughly.
+                // So we round its value to tens: 100, 90, 80, 70, 60, 50, 40, 30, 20, 10.
+                int percentageRound = ((int) Math.round(batteryPct / 10.0)) * 10;
+
+                // this permits to avoid "forward-back" jumps when percentageRound are
+                // changing from one ten to the next one (30-40 or 80-90 ...)
+                if (percentageRound < batteryCurrentPct) {
+                    batteryCurrentPct = percentageRound;
+                }
+
+                notifyBatteryLevelListener(batteryCurrentPct);
+            }
+        }
+    }
+
+    class StartFutureHandlingTask implements Runnable {
+        private volatile Future<Boolean> startFuture;
+        private Runnable dataHandlingTask;
+
+        public StartFutureHandlingTask(Future<Boolean> startFuture, Runnable dataHandlingTask) {
+            this.startFuture = startFuture;
+            this.dataHandlingTask = dataHandlingTask;
+        }
+
+        @Override
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                if (startFuture.isDone()) {
+                    try {
+                        if (startFuture.get()) { // if start successful
+                            executorFuture = singleThreadExecutor.submit(dataHandlingTask);
+                        } else { // // if start failed
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    } catch (Throwable tr) { // some unknown execution error (never should occur)
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                try {
+                    Thread.sleep(START_CHECKING_PERIOD_MS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                }
-
-                // notify lead off listener
-                if (adsConfig.isLeadOffEnabled()) {
-                    notifyLeadOffListeners(Ads.extractLeadOffBitMask(dataRecord, adsConfig));
-                }
-
-                // notify battery voltage listener
-                if (adsConfig.isBatteryVoltageMeasureEnabled()) {
-                    int batteryPct = Ads.extractLithiumBatteryPercentage(dataRecord, adsConfig);
-                    // Percentage level actually are estimated roughly.
-                    // So we round its value to tens: 100, 90, 80, 70, 60, 50, 40, 30, 20, 10.
-                    int percentageRound = ((int) Math.round(batteryPct / 10.0)) * 10;
-
-                    // this permits to avoid "forward-back" jumps when percentageRound are
-                    // changing from one ten to the next one (30-40 or 80-90 ...)
-                    if (percentageRound < batterryCurrentPct) {
-                        batterryCurrentPct = percentageRound;
-                    }
-
-                    notifyBatteryLevelListener(batterryCurrentPct);
+                    break;
                 }
             }
-        });
-
-        executorFuture = singleThreadExecutor.submit(new DataHandlingTask(dataFilter));
-        return ads.startRecording(adsConfig);
+        }
     }
 
 
@@ -170,7 +214,7 @@ public class BioRecorder {
 
         @Override
         public void run() {
-            while (!Thread.interrupted()) {
+            while (!Thread.currentThread().isInterrupted()) {
                 try {
                     // block until a request arrives
                     NumberedDataRecord numberedDataRecord = dataQueue.take();
@@ -183,7 +227,6 @@ public class BioRecorder {
                     lastDataRecordNumber = numberedDataRecord.getRecordNumber();
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    // stop
                     break;
                 }
             }
@@ -192,16 +235,21 @@ public class BioRecorder {
 
 
     public boolean stop() throws IllegalStateException {
+        if(executorFuture != null) {
+            executorFuture.cancel(true);
+        }
         return ads.stop();
     }
 
     public boolean disconnect() {
+        singleThreadExecutor.shutdownNow();
         if (ads.disconnect()) {
             ads.removeDataListener();
             ads.removeMessageListener();
             removeButteryLevelListener();
             removeLeadOffListener();
             removeEventsListener();
+            removeDataListener();
             return true;
         }
         return false;
@@ -355,9 +403,8 @@ public class BioRecorder {
     }
 
 
-    private RecordFilter createDataFilter(RecorderConfig recorderConfig, boolean isAccelerometerOnly) {
+    private RecordFilter createDataFilter(RecorderConfig recorderConfig, boolean isZeroChannelShouldBeRemoved) {
         Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
-        Map<Integer, Integer> extraDividers = new HashMap<>();
         int enableChannelsCount = 0;
         for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
             if (recorderConfig.isChannelEnabled(i)) {
@@ -365,27 +412,15 @@ public class BioRecorder {
                 if (channelFilters != null) {
                     enableChannelsFilters.put(enableChannelsCount, channelFilters);
                 }
-                Integer divider = recorderConfig.getChannelDivider(i).getExtraDivider();
-                if (divider > 1) {
-                    extraDividers.put(enableChannelsCount, divider);
-                }
                 enableChannelsCount++;
             }
         }
 
         if (recorderConfig.isAccelerometerEnabled()) {
-            Integer divider = recorderConfig.getAccelerometerDivider().getExtraDivider();
             if (recorderConfig.isAccelerometerOneChannelMode()) {
-                if (divider > 1) {
-                    extraDividers.put(enableChannelsCount, divider);
-                }
                 enableChannelsCount++;
+
             } else {
-                if (divider > 1) {
-                    extraDividers.put(enableChannelsCount, divider);
-                    extraDividers.put(enableChannelsCount + 1, divider);
-                    extraDividers.put(enableChannelsCount + 2, divider);
-                }
                 enableChannelsCount = enableChannelsCount + 3;
             }
         }
@@ -422,10 +457,10 @@ public class BioRecorder {
         RecordFilter dataFilter = new RecordFilter(recordStream);
 
         // delete helper channels
-        if (isAccelerometerOnly || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
+        if (isZeroChannelShouldBeRemoved || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
 
             SignalRemover edfSignalsRemover = new SignalRemover(dataFilter);
-            if (isAccelerometerOnly) {
+            if (isZeroChannelShouldBeRemoved) {
                 // delete helper ads channel
                 edfSignalsRemover.removeSignal(0);
             }
@@ -451,16 +486,6 @@ public class BioRecorder {
                 }
             }
             dataFilter = edfSignalsFilter;
-        }
-
-        // reduce signals frequencies
-        if (!extraDividers.isEmpty()) {
-            SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(dataFilter);
-            for (Integer signal : extraDividers.keySet()) {
-                edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
-            }
-
-            dataFilter = edfFrequencyDivider;
         }
 
         return dataFilter;

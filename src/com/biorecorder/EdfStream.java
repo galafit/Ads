@@ -6,32 +6,42 @@ import com.biorecorder.edflib.DataFormat;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
 import com.biorecorder.filters.RecordsJoiner;
+import com.biorecorder.filters.SignalFrequencyReducer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Created by galafit on 4/10/18.
+ * This class write data records to the edf/bdf file. But before do
+ * some transformation with income data records:
+ * <ul>
+ * <li>join data records</li>
+ * <li>reduce signal frequencies if it was specified</li>
+ * </ul>
  */
 public class EdfStream implements RecordStream {
     private static final Log log = LogFactory.getLog(EdfStream.class);
 
-    private int numberOfRecordsToJoin;
-    private EdfWriter edfWriter;
-    private String patientIdentification;
-    private String recordIdentification;
+    private final int numberOfRecordsToJoin;
+    private final String patientIdentification;
+    private final String recordIdentification;
     private final File file;
-    private RecordStream fileStream;
+    private final Map<Integer, Integer> extraDividers;
+
+    private volatile EdfWriter edfWriter;
+    private volatile RecordStream fileStream;
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
 
-    public EdfStream(File edfFile, int numberOfRecordsToJoin, String patientIdentification, String recordIdentification) {
+    public EdfStream(File edfFile, int numberOfRecordsToJoin, Map<Integer, Integer> extraDividers,  String patientIdentification, String recordIdentification) {
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
-        file = edfFile;
+        this.file = edfFile;
+        this.extraDividers = extraDividers;
         this.patientIdentification = patientIdentification;
         this.recordIdentification = recordIdentification;
     }
@@ -89,9 +99,19 @@ public class EdfStream implements RecordStream {
             }
         };
 
+        // join DataRecords
         if(numberOfRecordsToJoin > 1) {
-            // join DataRecords
             fileStream = new RecordsJoiner(fileStream, numberOfRecordsToJoin);
+        }
+
+        // reduce signals frequencies
+        if (!extraDividers.isEmpty()) {
+            SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(fileStream);
+            for (Integer signal : extraDividers.keySet()) {
+                edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
+            }
+
+            fileStream = edfFrequencyDivider;
         }
 
         fileStream.setRecordConfig(recordConfig);
