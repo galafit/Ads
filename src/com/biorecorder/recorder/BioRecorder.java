@@ -39,10 +39,11 @@ public class BioRecorder {
     private final LinkedBlockingQueue<NumberedDataRecord> dataQueue = new LinkedBlockingQueue<>();
     private final ExecutorService singleThreadExecutor;
     private volatile Future executorFuture;
-    private volatile int lastDataRecordNumber = -1;
     private volatile long firstRecordTime;
     private volatile long lastRecordTime;
-    private volatile double calculatedDurationOfDataRecord; // sec
+    private volatile double durationOfDataRecord;
+    private volatile long recordsCount;
+
     private volatile int batteryCurrentPct = 100; // 100%
 
 
@@ -77,7 +78,7 @@ public class BioRecorder {
     /**
      * Start BioRecorder measurements.
      *
-     * @param recorderConfig object with ads config info
+     * @param recorderConfig1 object with ads config info
      * @return Future: if starting was successful future.get() return null,
      * otherwise throw RuntimeException. Usually starting fails due to device is not connected
      * or wrong device type is specified in config (that does not coincide
@@ -86,37 +87,39 @@ public class BioRecorder {
      *                                  its work was finalised or if it is already recording and should be stopped first
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
-    public Future<Void> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
+    public Future<Void> startRecording(RecorderConfig recorderConfig1) throws IllegalStateException, IllegalArgumentException {
         // make copy to safely change in the case of "accelerometer only" mode
-        RecorderConfig recorderConfig1 = new RecorderConfig(recorderConfig);
+        RecorderConfig recorderConfig = new RecorderConfig(recorderConfig1);
 
         boolean isAllChannelsDisabled = true;
-        for (int i = 0; i < recorderConfig1.getChannelsCount(); i++) {
-            if (recorderConfig1.isChannelEnabled(i)) {
+        for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+            if (recorderConfig.isChannelEnabled(i)) {
                 isAllChannelsDisabled = false;
                 break;
             }
         }
         boolean isAccelerometerOnly = false;
         if (isAllChannelsDisabled) {
-            if (!recorderConfig1.isAccelerometerEnabled()) {
+            if (!recorderConfig.isAccelerometerEnabled()) {
                 throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
             } else { // enable one ads channel to make possible accelerometer measuring
                 isAccelerometerOnly = true;
-                recorderConfig1.setChannelEnabled(0, true);
-                recorderConfig1.setChannelDivider(0, RecorderDivider.D10);
-                recorderConfig1.setChannelLeadOffEnable(0, false);
-                recorderConfig1.setSampleRate(RecorderSampleRate.S500);
+                recorderConfig.setChannelEnabled(0, true);
+                recorderConfig.setChannelDivider(0, RecorderDivider.D10);
+                recorderConfig.setChannelLeadOffEnable(0, false);
+                recorderConfig.setSampleRate(RecorderSampleRate.S500);
             }
         }
 
-        RecordFilter dataFilter = createDataFilter(recorderConfig1, isAccelerometerOnly);
-        AdsConfig adsConfig = recorderConfig1.getAdsConfig();
+        RecordFilter dataFilter = createDataFilter(recorderConfig, isAccelerometerOnly);
+        AdsConfig adsConfig = recorderConfig.getAdsConfig();
         dataFilter.setRecordConfig(ads.getDataConfig(adsConfig));
 
         dataQueue.clear();
+        recordsCount = 0;
+        durationOfDataRecord = recorderConfig.getDurationOfDataRecord();
+
         ads.addDataListener(new AdsDataHandler(adsConfig));
-        calculatedDurationOfDataRecord = adsConfig.getDurationOfDataRecord();
         Future startFuture = ads.startRecording(adsConfig);
         executorFuture = singleThreadExecutor.submit(new StartFutureHandlingTask(startFuture, new DataHandlingTask(dataFilter)));
         return startFuture;
@@ -138,9 +141,7 @@ public class BioRecorder {
                 } else {
                     lastRecordTime = System.currentTimeMillis();
                 }
-                if (recordNumber > 0) {
-                    calculatedDurationOfDataRecord = (lastRecordTime - firstRecordTime) / (recordNumber * 1000.0);
-                }
+                recordsCount = recordNumber + 1;
 
                 dataQueue.put(new NumberedDataRecord(dataRecord, recordNumber));
             } catch (InterruptedException e) {
@@ -193,6 +194,7 @@ public class BioRecorder {
 
     class DataHandlingTask implements Callable<Void> {
         RecordStream dataStream;
+        private volatile int lastDataRecordNumber = -1;
 
         public DataHandlingTask(RecordStream dataStream) {
             this.dataStream = dataStream;
@@ -214,12 +216,22 @@ public class BioRecorder {
         }
     }
 
-
-    public boolean stop() throws IllegalStateException {
+    public RecordingInfo stop() throws IllegalStateException {
         if(executorFuture != null) {
             executorFuture.cancel(true);
         }
-        return ads.stop();
+        if(recordsCount > 1) {
+            durationOfDataRecord = (lastRecordTime - firstRecordTime) / ((recordsCount - 1) * 1000.0);
+        }
+
+        RecordingInfo recordingInfo = null;
+        if(recordsCount > 0) {
+            long startTime = firstRecordTime - (long) (durationOfDataRecord * 1000);
+            recordingInfo = new RecordingInfo(startTime, durationOfDataRecord);
+        }
+
+        ads.stop();
+        return recordingInfo;
     }
 
     public boolean disconnect() {
@@ -276,29 +288,6 @@ public class BioRecorder {
 
     public static String[] getAvailableComportNames() {
         return Ads.getAvailableComportNames();
-    }
-
-
-    /**
-     * Gets the start measuring time (time of starting measuring the fist data record) =
-     * time of the first received data record - duration of data record
-     *
-     * @return start measuring time
-     */
-    public long getStartMeasuringTime() {
-        if (firstRecordTime == 0) {
-            return 0;
-        }
-        return firstRecordTime - (long) (calculatedDurationOfDataRecord * 1000);
-    }
-
-    /**
-     * Gets the calculated duration of data records = (lastDataRecordTime - firstDataRecordTime) / number of received data records
-     *
-     * @return calculated duration of data records
-     */
-    public double getCalculatedDurationOfDataRecord() {
-        return calculatedDurationOfDataRecord;
     }
 
 

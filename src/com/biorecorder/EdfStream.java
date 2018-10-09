@@ -7,6 +7,8 @@ import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
 import com.biorecorder.filters.RecordsJoiner;
 import com.biorecorder.filters.SignalFrequencyReducer;
+import com.biorecorder.recorder.RecordingInfo;
+import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -30,25 +32,28 @@ public class EdfStream implements RecordStream {
     private final int numberOfRecordsToJoin;
     private final String patientIdentification;
     private final String recordIdentification;
+    private final boolean isDurationOfDataRecordComputable;
     private final File file;
     private final Map<Integer, Integer> extraDividers;
 
     private volatile EdfWriter edfWriter;
-    private volatile RecordStream fileStream;
+    private volatile RecordStream DataStream;
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
 
-    public EdfStream(File edfFile, int numberOfRecordsToJoin, Map<Integer, Integer> extraDividers,  String patientIdentification, String recordIdentification) {
+    public EdfStream(File edfFile, int numberOfRecordsToJoin, Map<Integer, Integer> extraDividers,  String patientIdentification, String recordIdentification, boolean isDurationOfDataRecordComputable) {
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
         this.file = edfFile;
         this.extraDividers = extraDividers;
         this.patientIdentification = patientIdentification;
         this.recordIdentification = recordIdentification;
+        this.isDurationOfDataRecordComputable = isDurationOfDataRecordComputable;
     }
+
 
     @Override
     public void setRecordConfig(RecordConfig recordConfig) throws FileNotFoundRuntimeException {
-        fileStream = new RecordStream() {
+        DataStream = new RecordStream() {
             @Override
             public void setRecordConfig(RecordConfig recordConfig) throws FileNotFoundRuntimeException {
                 // copy data from recordConfig to the EdfHeader
@@ -101,39 +106,41 @@ public class EdfStream implements RecordStream {
 
         // reduce signals frequencies
         if (!extraDividers.isEmpty()) {
-            SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(fileStream);
+            SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(DataStream);
             for (Integer signal : extraDividers.keySet()) {
                 edfFrequencyDivider.addDivider(signal, extraDividers.get(signal));
             }
 
-            fileStream = edfFrequencyDivider;
+            DataStream = edfFrequencyDivider;
         }
 
         // join DataRecords
         if(numberOfRecordsToJoin > 1) {
-            fileStream = new RecordsJoiner(fileStream, numberOfRecordsToJoin);
+            DataStream = new RecordsJoiner(DataStream, numberOfRecordsToJoin);
         }
 
 
-        fileStream.setRecordConfig(recordConfig);
+        DataStream.setRecordConfig(recordConfig);
     }
 
     @Override
     public void writeRecord(int[] dataRecord) throws IORuntimeException {
-        fileStream.writeRecord(dataRecord);
+        DataStream.writeRecord(dataRecord);
     }
 
     @Override
     public void close() throws IORuntimeException {
-        fileStream.close();
+        close(null);
     }
 
-    public void setStartRecordingTime(long time) {
-        edfWriter.setStartRecordingTime(time);
-    }
-
-    public void setDurationOfDataRecords(double durationOfDataRecord) {
-        edfWriter.setDurationOfDataRecords(durationOfDataRecord * numberOfRecordsToJoin);
+    public void close(@Nullable RecordingInfo recordingInfo) throws IORuntimeException {
+        if(recordingInfo != null) {
+            edfWriter.setStartRecordingTime(recordingInfo.getStartRecordingTime());
+            if(isDurationOfDataRecordComputable) {
+                edfWriter.setDurationOfDataRecords(recordingInfo.getDurationOfDataRecord() * numberOfRecordsToJoin);
+            }
+        }
+        DataStream.close();
     }
 
     public long getNumberOfWrittenRecords() {

@@ -615,6 +615,7 @@ public class RecorderView extends JPanel implements ProgressListener, StateChang
         recordingIdentificationField.setEnabled(isEnable);
         fileToSaveUI.setEnabled(isEnable);
         comportField.setEnabled(isEnable);
+        advanceButton.setEnabled(isEnable);
 
         accelerometer.setFullyEnabled(isEnable);
         for (int i = 0; i < channels.length; i++) {
@@ -631,6 +632,7 @@ public class RecorderView extends JPanel implements ProgressListener, StateChang
         recordingIdentificationField.setEnabled(isEnable);
         fileToSaveUI.setEnabled(isEnable);
         comportField.setEnabled(isEnable);
+        advanceButton.setEnabled(isEnable);
 
         accelerometer.setFullyEnabled(true);
         if(!accelerometer.isEnabled()) {

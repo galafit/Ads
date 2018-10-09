@@ -24,7 +24,7 @@ public class Message {
     public static final String TYPE_DIRECTORY_NOT_EXIST = "Directory not exist";
     public static final String TYPE_DIRECTORY_NAME_NULL = "Directory name null or empty";
 
-    public static final String TYPE_FAILED_WRITE_DATA = "Failed to write data to file";
+    public static final String TYPE_FAILED_WRITE_DATA = "Failed to write data to the file.\nCheck if there is enough disk space";
     public static final String TYPE_FILE_NOT_ACCESSIBLE = "File could not be created or accessed";
 
     public static final String TYPE_LAB_STREAMING_FAILED = "Lab Streaming failed to start";
