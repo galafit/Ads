@@ -66,7 +66,7 @@ public class Ads {
     private static final int ACTIVE_PERIOD_MS = 2000;
     private static final int SLEEP_TIME_MS = 1000;
 
-    private static final int MAX_STARTING_TIME_MS = 5 * 1000;
+    private static final int MAX_STARTING_TIME_MS = 30 * 1000;
 
     private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
     private static final String RECORDING_MSG = "Ads is recording. Stop it first";

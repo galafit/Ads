@@ -45,8 +45,8 @@ public class EdfBioRecorderApp {
     private volatile boolean isDurationOfDataRecordComputable = false;
     private volatile long lastNotificationTime;
 
-    private volatile RecordStream lslStream = new NullRecordStream();
-    private volatile RecordStream edfStream = new NullRecordStream();
+    private volatile LslStream lslStream;
+    private volatile EdfStream edfStream;
 
     public EdfBioRecorderApp() {
         restartAvailableComportsTask();
@@ -104,6 +104,14 @@ public class EdfBioRecorderApp {
                 stop1();
             }
         });
+
+        bioRecorder.addLeadOffListener(new LeadOffListener() {
+            public void onLeadOffMaskReceived(Boolean[] leadOffMask) {
+                leadOffBitMask = leadOffMask;
+                notifyProgressOnDataReceived();
+            }
+        });
+
         bioRecorder.addButteryLevelListener(new BatteryLevelListener() {
             public void onBatteryLevelReceived(int batteryLevel1) {
                batteryLevel = batteryLevel1;
@@ -172,13 +180,18 @@ public class EdfBioRecorderApp {
             return new OperationResult(false, errMSg);
         }
 
+        lslStream = null;
+        edfStream = null;
+        bioRecorder.removeDataListener();
         // remove all previously added filters
         bioRecorder.removeChannelsFilters();
-        edfStream = new NullRecordStream();
-        lslStream = new NullRecordStream();
+
+        List<RecordStream> streamList = new ArrayList<>(2);
+        File edfFile = null;
 
         if (isLoffDetection) { // lead off detection
             leadOffBitMask = null;
+
             recorderConfig.setSampleRate(RecorderSampleRate.S500);
             recorderConfig.setAccelerometerEnabled(false);
             recorderConfig.setBatteryVoltageChannelDeletingEnable(false);
@@ -188,14 +201,7 @@ public class EdfBioRecorderApp {
                 RecorderDivider maxDivider = dividers[dividers.length - 1];
                 recorderConfig.setChannelDivider(i, maxDivider);
             }
-            bioRecorder.addLeadOffListener(new LeadOffListener() {
-                public void onLeadOffMaskReceived(Boolean[] leadOffMask) {
-                    leadOffBitMask = leadOffMask;
-                    notifyProgressOnDataReceived();
-                }
-            });
         } else { // normal recording and writing to the file
-
             for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
                 // disable lead off detection
                 recorderConfig.setChannelLeadOffEnable(i, false);
@@ -219,6 +225,9 @@ public class EdfBioRecorderApp {
                 return new OperationResult(false, new Message(Message.TYPE_DIRECTORY_NOT_EXIST, dir.toString()));
             }
 
+            // create edf file stream
+            edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
+
             RecordConfig dataConfig = bioRecorder.getDataConfig(recorderConfig);
 
             // create lab stream
@@ -241,16 +250,14 @@ public class EdfBioRecorderApp {
                 try {
                     lslStream = new LslStream(numberOfAdsChannels, numberOfAccChannels);
                     lslStream.setRecordConfig(dataConfig);
+                    streamList.add(lslStream);
                 } catch (IllegalArgumentException ex) {
                     log.info("LabStreaming failed to start", ex);
                     return new OperationResult(false, new Message(Message.TYPE_LAB_STREAMING_FAILED));
                 }
             }
 
-            // create edf file stream
-            File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
-
-            // extra dividers
+           // extra dividers
             try {
                 Map<Integer, Integer> extraDividers = new HashMap<>();
                 int enableChannelsCount = 0;
@@ -279,39 +286,55 @@ public class EdfBioRecorderApp {
 
                 edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), extraDividers, appConfig.getPatientIdentification(), appConfig.getRecordingIdentification());
                 edfStream.setRecordConfig(dataConfig);
+                streamList.add(edfStream);
             } catch (FileNotFoundRuntimeException ex) {
                 log.error(ex);
                 return new OperationResult(false, new Message(Message.TYPE_FILE_NOT_ACCESSIBLE, edfFile.toString()));
             }
-
-            bioRecorder.addDataListener(new RecordListener() {
-                public void writeRecord(int[] dataRecord) {
-                    try {
-                        lslStream.writeRecord(dataRecord);
-                        edfStream.writeRecord(dataRecord);
-                        notifyProgressOnDataReceived();
-                    } catch (IORuntimeException ex) {
-                        stop();
-                        notifyStateChange(new Message(Message.TYPE_FAILED_WRITE_DATA, edfFile.toString()));
-                        log.error("Failed to write data record to the file", ex);
-                    } catch (Exception ex) {
-                        // after stopping BioRecorder and closing streams
-                        // some records still can be received and IllegalStateException
-                        // can be thrown.
-                        log.info(ex);
-                    }
-                }
-            });
         }
 
+        RecordStream[] streams = new RecordStream[streamList.size()];
+        streamList.toArray(streams);
+
+        bioRecorder.addDataListener(new BioRecorderDataHandler(edfFile,  streams));
         Future startFuture = bioRecorder.startRecording(recorderConfig);
-        RecordStream[] streams = {edfStream, lslStream};
         startFutureHandlingTask = new StartFutureHandlingTask(startFuture, recorderConfig.getDeviceType(), streams);
         timer.schedule(startFutureHandlingTask, FUTURE_CHECKING_PERIOD_MS, FUTURE_CHECKING_PERIOD_MS);
         notifyStateChange(null);
         return new OperationResult(true);
     }
 
+    class BioRecorderDataHandler implements RecordListener {
+        private final RecordStream[] streams;
+        private final String fileName;
+
+        public BioRecorderDataHandler(File file, RecordStream[] streams) {
+            if(file != null) {
+                fileName = file.toString();
+            } else {
+                fileName = null;
+            }
+            this.streams = streams;
+        }
+
+        public void writeRecord(int[] dataRecord) {
+            try {
+                for (RecordStream stream : streams) {
+                    stream.writeRecord(dataRecord);
+                }
+                notifyProgressOnDataReceived();
+            } catch (IORuntimeException ex) {
+                stop();
+                notifyStateChange(new Message(Message.TYPE_FAILED_WRITE_DATA, fileName));
+                log.error("Failed to write data record to the file", ex);
+            } catch (Exception ex) {
+                // after stopping BioRecorder and closing streams
+                // some records still can be received and IllegalStateException
+                // can be thrown.
+                log.info(ex);
+            }
+        }
+    }
 
     class StartFutureHandlingTask extends TimerTask {
         private Future future;
@@ -406,7 +429,6 @@ public class EdfBioRecorderApp {
     private synchronized void stop1() {
         if (bioRecorder != null) {
             bioRecorder.removeDataListener();
-            bioRecorder.removeLeadOffListener();
             bioRecorder.stop();
         }
         if (startFutureHandlingTask != null) {
@@ -415,36 +437,35 @@ public class EdfBioRecorderApp {
 
         restartAvailableComportsTask();
         restartNotificationTask();
-        try {
-            lslStream.close();
-        } catch (Exception ex) {
-            log.error(ex);
+        if(lslStream != null) {
+            try {
+                lslStream.close();
+                lslStream = null;
+            } catch (Exception ex) {
+                log.error(ex);
+            }
+
         }
-
-
         Message msg = null;
-        try {
-            if (edfStream instanceof EdfStream) {
-                EdfStream edfStream1 = (EdfStream) edfStream;
-                File edfFile = edfStream1.getFile();
-                edfStream1.setStartRecordingTime(bioRecorder.getStartMeasuringTime());
+        if (edfStream != null) {
+            try {
+                File edfFile = edfStream.getFile();
+                edfStream.setStartRecordingTime(bioRecorder.getStartMeasuringTime());
                 if (isDurationOfDataRecordComputable) {
-                    edfStream1.setDurationOfDataRecords(bioRecorder.getCalculatedDurationOfDataRecord());
+                    edfStream.setDurationOfDataRecords(bioRecorder.getCalculatedDurationOfDataRecord());
                 }
-                edfStream1.close();
-                if (edfStream1.getNumberOfWrittenRecords() > 0) {
+                edfStream.close();
+                if (edfStream.getNumberOfWrittenRecords() > 0) {
                     //msg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfFile + "\n\n" + edfStream1.getWritingInfo());
-                    String logMsg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfFile + "\n\n" + edfStream1.getWritingInfo()).getMessage();
+                    String logMsg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfFile + "\n\n" + edfStream.getWritingInfo()).getMessage();
                     log.info(logMsg);
                 }
-            } else {
-                edfStream.close();
+                edfStream = null;
+            } catch (Exception ex) {
+                log.error(ex);
+                msg = new Message(Message.TYPE_FAILED_CLOSE_FILE, ex.getMessage());
             }
-        } catch (Exception ex) {
-            log.error(ex);
-            msg = new Message(Message.TYPE_FAILED_CLOSE_FILE, ex.getMessage());
         }
-
         notifyStateChange(msg);
     }
 
@@ -655,23 +676,6 @@ public class EdfBioRecorderApp {
         System.out.println("Running threads:");
         for (Thread thread : threads) {
             System.out.println(thread.getName());
-        }
-    }
-
-    class NullRecordStream implements RecordStream {
-        @Override
-        public void writeRecord(int[] dataRecord) {
-            // do nothing
-        }
-
-        @Override
-        public void close() {
-            // do nothing
-        }
-
-        @Override
-        public void setRecordConfig(RecordConfig recordConfig) {
-            // do nothing
         }
     }
 }
