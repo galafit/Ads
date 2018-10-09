@@ -99,11 +99,6 @@ public class EdfStream implements RecordStream {
             }
         };
 
-        // join DataRecords
-        if(numberOfRecordsToJoin > 1) {
-            fileStream = new RecordsJoiner(fileStream, numberOfRecordsToJoin);
-        }
-
         // reduce signals frequencies
         if (!extraDividers.isEmpty()) {
             SignalFrequencyReducer edfFrequencyDivider = new SignalFrequencyReducer(fileStream);
@@ -113,6 +108,12 @@ public class EdfStream implements RecordStream {
 
             fileStream = edfFrequencyDivider;
         }
+
+        // join DataRecords
+        if(numberOfRecordsToJoin > 1) {
+            fileStream = new RecordsJoiner(fileStream, numberOfRecordsToJoin);
+        }
+
 
         fileStream.setRecordConfig(recordConfig);
     }

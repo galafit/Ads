@@ -24,7 +24,7 @@ import java.util.concurrent.*;
  */
 public class BioRecorder {
     private static final String ALL_CHANNELS_DISABLED_MSG = "All channels and accelerometer are disabled. Recording Impossible";
-    public static final int START_CHECKING_PERIOD_MS = 10;
+    public static final int START_CHECKING_PERIOD_MS = 500;
 
     private final Ads ads;
     private volatile Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
@@ -85,7 +85,7 @@ public class BioRecorder {
      *                                  its work was finalised or if it is already recording and should be stopped first
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
-    public Future<Boolean> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
+    public Future<Void> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
         // make copy to safely change in the case of accelerometer only mode
         RecorderConfig recorderConfig1 = new RecorderConfig(recorderConfig);
 
@@ -115,8 +115,8 @@ public class BioRecorder {
 
         dataQueue.clear();
         ads.addDataListener(new AdsDataHandler(adsConfig));
-
-        Future<Boolean> startFuture = ads.startRecording(adsConfig);
+        calculatedDurationOfDataRecord = adsConfig.getDurationOfDataRecord();
+        Future startFuture = ads.startRecording(adsConfig);
         executorFuture = singleThreadExecutor.submit(new StartFutureHandlingTask(startFuture, new DataHandlingTask(dataFilter)));
         return startFuture;
     }
@@ -169,43 +169,28 @@ public class BioRecorder {
         }
     }
 
-    class StartFutureHandlingTask implements Runnable {
-        private volatile Future<Boolean> startFuture;
-        private Runnable dataHandlingTask;
+    class StartFutureHandlingTask implements Callable<Void> {
+        private volatile Future startFuture;
+        private Callable dataHandlingTask;
 
-        public StartFutureHandlingTask(Future<Boolean> startFuture, Runnable dataHandlingTask) {
+        public StartFutureHandlingTask(Future startFuture, Callable dataHandlingTask) {
             this.startFuture = startFuture;
             this.dataHandlingTask = dataHandlingTask;
         }
 
         @Override
-        public void run() {
-            while (!Thread.currentThread().isInterrupted()) {
-                if (startFuture.isDone()) {
-                    try {
-                        if (startFuture.get()) { // if start successful
-                            executorFuture = singleThreadExecutor.submit(dataHandlingTask);
-                        } else { // // if start failed
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    } catch (Throwable tr) { // some unknown execution error (never should occur)
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                }
-                try {
-                    Thread.sleep(START_CHECKING_PERIOD_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+        public Void call() throws Exception {
+            while(!startFuture.isDone()) {
+                Thread.sleep(START_CHECKING_PERIOD_MS);
             }
+            startFuture.get();
+            executorFuture = singleThreadExecutor.submit(dataHandlingTask);
+            return null;
         }
     }
 
 
-    class DataHandlingTask implements Runnable {
+    class DataHandlingTask implements Callable<Void> {
         RecordStream dataStream;
 
         public DataHandlingTask(RecordStream dataStream) {
@@ -213,22 +198,17 @@ public class BioRecorder {
         }
 
         @Override
-        public void run() {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    // block until a request arrives
-                    NumberedDataRecord numberedDataRecord = dataQueue.take();
-                    // send to listener
+        public Void call() throws Exception {
+            while (true) {
+                // block until a request arrives
+                NumberedDataRecord numberedDataRecord = dataQueue.take();
+                // send to listener
+                dataStream.writeRecord(numberedDataRecord.getRecord());
+                int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
+                for (int i = 0; i < numberOfLostFrames; i++) {
                     dataStream.writeRecord(numberedDataRecord.getRecord());
-                    int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
-                    for (int i = 0; i < numberOfLostFrames; i++) {
-                        dataStream.writeRecord(numberedDataRecord.getRecord());
-                    }
-                    lastDataRecordNumber = numberedDataRecord.getRecordNumber();
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
                 }
+                lastDataRecordNumber = numberedDataRecord.getRecordNumber();
             }
         }
     }

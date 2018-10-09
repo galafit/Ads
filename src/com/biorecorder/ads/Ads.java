@@ -66,7 +66,7 @@ public class Ads {
     private static final int ACTIVE_PERIOD_MS = 2000;
     private static final int SLEEP_TIME_MS = 1000;
 
-    private static final int MAX_STARTING_TIME_MS = 30 * 1000;
+    private static final int MAX_STARTING_TIME_MS = 5 * 1000;
 
     private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
     private static final String RECORDING_MSG = "Ads is recording. Stop it first";
@@ -136,8 +136,8 @@ public class Ads {
      * Start Ads measurements. Stop monitoring if it was activated before
      *
      * @param config object with ads config info
-     * @return Future<Boolean> that get true if starting  was successful
-     * and false otherwise. Usually starting fails due to device is not connected
+     * @return Future: if starting was successful future.get() return null,
+     * otherwise throw RuntimeException. Usually starting fails due to device is not connected
      * or wrong device type is specified in config (that does not coincide
      * with the really connected device type)
      * @throws IllegalStateException if Ads was disconnected and its work was finalised
@@ -146,7 +146,7 @@ public class Ads {
      *
      */
 
-    public Future<Boolean> startRecording(AdsConfig config) throws IllegalStateException, IllegalArgumentException {
+    public Future<Void> startRecording(AdsConfig config) throws IllegalStateException, IllegalArgumentException {
         if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
@@ -187,9 +187,11 @@ public class Ads {
     }
 
 
-    class StartingTask implements Callable<Boolean> {
+    class StartingTask implements Callable<Void> {
+        private final String TIME_OUT_ERR_MSG = "Starting time exceeds allowed limits: " + MAX_STARTING_TIME_MS + " ms";
         private AdsConfig config;
         private AdsState stateBeforeStart;
+
 
         public StartingTask(AdsConfig config, AdsState stateBeforeStart) {
             this.config = config;
@@ -197,86 +199,75 @@ public class Ads {
         }
 
         @Override
-        public Boolean call() throws Exception {
-            try {
-                boolean isStartOk = start();
-                if (isStartOk) {
-                    // 4) startRecording ping timer
-                    // ping timer permits Ads to detect bluetooth connection problems
-                    // and restart connection when it is necessary
-                    executorFuture = singleThreadExecutor.submit(new PingTask(), PING_PERIOD_MS);
-                } else {
-                    cancel();
-                }
-                return isStartOk;
-            } catch (Exception ex) {
-                cancel();
-                throw ex;
-            }
-        }
-
-        private boolean start() {
+        public Void call() throws Exception {
             long startTime = System.currentTimeMillis();
             // 1) to correctly startRecording we need to be sure that the specified in config adsType is ok
-            while (!Thread.currentThread().isInterrupted() && adsType == null && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_MS) {
+            while (adsType == null) {
                 comport.writeByte(HARDWARE_REQUEST);
-                try {
+                Thread.sleep(SLEEP_TIME_MS);
+
+                // if message with device type info do not come during too long time
+                if((System.currentTimeMillis() - startTime) > MAX_STARTING_TIME_MS) {
+                    throwException(TIME_OUT_ERR_MSG);
+                }
+            }
+            // if adsType is wrong
+            if (adsType != null && adsType != config.getAdsType()) {
+                String errMsg = "Wrong device type: "+ config.getAdsType() + " Connected: "+adsType;
+                throwException(errMsg);
+            }
+
+            // 2) if adsType is ok try to stop ads first if it was not stopped before
+            if (stateBeforeStart == AdsState.UNDEFINED) {
+                if (comport.writeByte(STOP_REQUEST)) {
+                    // give the ads time to stop
                     Thread.sleep(SLEEP_TIME_MS);
-                } catch (InterruptedException e) {
-                    return false;
                 }
             }
-            // if adsType is ok
-            if (!Thread.currentThread().isInterrupted() && adsType != null && adsType == config.getAdsType()) {
-                // 2) try to stop ads first if it was not stopped before
-                if (stateBeforeStart == AdsState.UNDEFINED) {
-                    if (comport.writeByte(STOP_REQUEST)) {
-                        // give the ads time to stop
-                        try {
-                            Thread.sleep(SLEEP_TIME_MS);
-                        } catch (InterruptedException e) {
-                            return false;
-                        }
-                    }
-                }
 
-                if (!Thread.currentThread().isInterrupted()) {
-                    // 3) send "startRecording" command
-                    byte[] adsConfigCommand = config.getAdsConfigurationCommand();
-                    boolean startOk = comport.writeBytes(adsConfigCommand);
-                    // write adsConfigCommand bytes to log
-                    StringBuilder sb = new StringBuilder("Ads configuration command:");
-                    for (int i = 0; i < adsConfigCommand.length; i++) {
-                        sb.append("\nbyte_"+(i + 1) + ":  "+String.format("%02X ", adsConfigCommand[i]));
-                    }
-                    log.info(sb.toString());
+            // 3) write "start" command with config info to comport
+            byte[] adsConfigCommand = config.getAdsConfigurationCommand();
+            // write adsConfigCommand bytes to log
+            StringBuilder sb = new StringBuilder("Ads configuration command:");
+            for (int i = 0; i < adsConfigCommand.length; i++) {
+                sb.append("\nbyte_"+(i + 1) + ":  "+String.format("%02X ", adsConfigCommand[i]));
+            }
+            log.info(sb.toString());
 
-                    if (startOk) {
-                        // 4) waiting for data
+            if(!comport.writeBytes(adsConfigCommand)) {
+                // if writing start command to comport was failed
+                String errMsg = "Failed to write start command to comport";
+                throwException(errMsg);
+            }
 
-                        while (!Thread.currentThread().isInterrupted() && !isDataReceived && (System.currentTimeMillis() - startTime) < MAX_STARTING_TIME_MS) {
-                            try {
-                                Thread.sleep(SLEEP_TIME_MS);
-                            } catch (InterruptedException e) {
-                                return false;
-                            }
-                        }
-                        if (isDataReceived) {
-                            return true;
-                        }
-                    }
+
+            // 4) waiting for data
+            while (!isDataReceived) {
+                Thread.sleep(SLEEP_TIME_MS);
+
+                // if data do note come during too long time
+                if((System.currentTimeMillis() - startTime) > MAX_STARTING_TIME_MS) {
+                    throwException(TIME_OUT_ERR_MSG);
                 }
             }
-            return false;
+
+            // 5) startRecording ping timer
+            // ping timer permits Ads to detect bluetooth connection problems
+            // and restart connection when it is necessary
+            executorFuture = singleThreadExecutor.submit(new PingTask(), PING_PERIOD_MS);
+
+            return null;
         }
 
-        private void cancel() {
+
+        private void throwException(String errMsg) {
             try {
                 comport.writeByte(STOP_REQUEST);
             } catch (Exception ex) {
                 // do nothing;
             }
             adsStateAtomicReference.set(AdsState.UNDEFINED);
+            throw new RuntimeException(errMsg);
         }
     }
 

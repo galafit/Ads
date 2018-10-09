@@ -3,21 +3,15 @@ package com.biorecorder;
 import com.biorecorder.dataformat.RecordStream;
 import com.biorecorder.filters.*;
 import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.edflib.DataFormat;
-import com.biorecorder.edflib.EdfHeader;
-import com.biorecorder.edflib.EdfWriter;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by galafit on 2/6/17.
@@ -307,21 +301,21 @@ public class EdfBioRecorderApp {
             });
         }
 
-        Future<Boolean> startFuture = bioRecorder.startRecording(recorderConfig);
+        Future startFuture = bioRecorder.startRecording(recorderConfig);
         RecordStream[] streams = {edfStream, lslStream};
-        startFutureHandlingTask = new StartFutureHandlerTask(startFuture, recorderConfig.getDeviceType(), streams);
+        startFutureHandlingTask = new StartFutureHandlingTask(startFuture, recorderConfig.getDeviceType(), streams);
         timer.schedule(startFutureHandlingTask, FUTURE_CHECKING_PERIOD_MS, FUTURE_CHECKING_PERIOD_MS);
         notifyStateChange(null);
         return new OperationResult(true);
     }
 
 
-    class StartFutureHandlerTask extends TimerTask {
-        private Future<Boolean> future;
+    class StartFutureHandlingTask extends TimerTask {
+        private Future future;
         private RecordStream[] streams;
         private RecorderType recorderType;
 
-        public StartFutureHandlerTask(Future future, RecorderType recorderType, RecordStream[] streams) {
+        public StartFutureHandlingTask(Future future, RecorderType recorderType, RecordStream[] streams) {
             this.future = future;
             this.streams = streams;
             this.recorderType = recorderType;
@@ -330,24 +324,23 @@ public class EdfBioRecorderApp {
         public void run() {
             if (future.isDone()) {
                 try {
-                    if (future.get()) { // if start successful
-                        availableComportsTask.cancel();
-                        notificationTask.cancel();
-                    } else { // // if start failed
-                        closeStreamsAndStartMonitoring();
-                        RecorderType connectedRecorder = getConnectedRecorder();
-                        if (connectedRecorder != null && recorderType != connectedRecorder) {
-                            notifyStateChange(new Message(Message.TYPE_WRONG_DEVICE));
-
-                        } else {
-                            notifyStateChange(new Message(Message.TYPE_START_FAILED));
-                        }
-                    }
-                } catch (ExecutionException e) { // some unknown execution error (never should occur)
+                    // if start successful
+                    future.get();
+                    availableComportsTask.cancel();
+                    notificationTask.cancel();
+                } catch (ExecutionException e) {
                     closeStreamsAndStartMonitoring();
-                    notifyStateChange(new Message(Message.TYPE_UNKNOWN_ERROR, e.getMessage()));
-                    log.error(e.getMessage());
-                } catch (Exception e) { // stop or canceling start
+                    RecorderType connectedRecorder = getConnectedRecorder();
+                    if (connectedRecorder != null && recorderType != connectedRecorder) {
+                        notifyStateChange(new Message(Message.TYPE_WRONG_DEVICE));
+
+                    } else {
+                        notifyStateChange(new Message(Message.TYPE_START_FAILED));
+                    }
+                } catch (CancellationException e) {
+                    closeStreamsAndStartMonitoring();
+                    notifyStateChange(null);
+                } catch (InterruptedException e) {
                     closeStreamsAndStartMonitoring();
                     notifyStateChange(null);
                 } finally {
