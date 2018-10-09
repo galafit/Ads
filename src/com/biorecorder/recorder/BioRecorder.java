@@ -2,8 +2,6 @@ package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.dataformat.*;
-import com.biorecorder.filters.RecordListener;
-import com.biorecorder.filters.NullRecordListener;
 import com.biorecorder.filters.*;
 
 import java.util.ArrayList;
@@ -13,10 +11,12 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 /**
- * Wrapper class that does some transformations with Ads data-frames:
+ * Wrapper class that does some transformations with Ads data-frames
+ * in separated thread (before to send them to the listener):
  * <ul>
- * <li>"restore" lost frames</li>
- * <li>removes  helper technical info about lead-off status and battery charge</li>
+ * <li>convert numbered data records to simple data records ("restoring"/supplementing the lost frames)</li>
+ * <li>extract lead off info and battery charge info and send it to the appropriate listeners</li>
+ * <li>remove  helper technical info about lead-off status and battery charge</li>
  * <li>permits to add to ads channels some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
  * </ul>
  * <p>
@@ -532,15 +532,11 @@ public class BioRecorder {
         }
     }
 
-    /**
-     * This class:
-     * <br>1) convert numbered data records to simple data records (supplementing the lost ones) and
-     * send them to the listener in separated thread
-     * <br>2) extract lead off in
-     * <br>3) apply specified digital filters to data records
-     * <br>4) delete lead off detection info and battery charge info
-     * (if flag deleteBatteryVoltageChannel = true) from data records
-     * <br> and send resultant filtered and clean data records to the dataListener
-     */
+    class NullRecordListener implements  RecordListener{
+        @Override
+        public void writeRecord(int[] dataRecord) {
+            // do nothing
+        }
+    }
 
 }

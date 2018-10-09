@@ -1,7 +1,6 @@
 package com.biorecorder;
 
 import com.biorecorder.dataformat.RecordStream;
-import com.biorecorder.filters.*;
 import com.biorecorder.dataformat.RecordConfig;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
@@ -578,8 +577,8 @@ public class EdfBioRecorderApp {
     }
 
     public synchronized long getNumberOfWrittenDataRecords() {
-        if(edfStream instanceof EdfStream) {
-            return ((EdfStream)edfStream).getNumberOfWrittenDataRecords();
+        if(edfStream != null) {
+            return edfStream.getNumberOfWrittenDataRecords();
         }
         return 0;
     }

@@ -1,4 +1,4 @@
-package com.biorecorder.filters;
+package com.biorecorder.recorder;
 
 /**
  * The listener interface for receiving data records.
