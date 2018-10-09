@@ -257,7 +257,7 @@ public class RecorderSettingsImpl implements RecorderSettings {
 
     @Override
     public double getDataRecordDuration() {
-        return appConfig.getRecorderConfig().getDurationOfDataRecord();
+        return appConfig.getDurationOfDataRecord();
     }
 
     @Override
