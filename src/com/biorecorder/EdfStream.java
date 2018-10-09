@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * This class write data records to the edf/bdf file. But before do
+ * This class writes data records to the edf/bdf file. But before do
  * some transformation with income data records:
  * <ul>
  * <li>join data records</li>

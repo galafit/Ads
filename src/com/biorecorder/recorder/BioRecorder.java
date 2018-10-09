@@ -15,8 +15,9 @@ import java.util.concurrent.*;
 /**
  * Wrapper class that does some transformations with Ads data-frames:
  * <ul>
+ * <li>"restore" lost frames</li>
  * <li>removes  helper technical info about lead-off status and battery charge</li>
- * <li>permits to add to ads channels data some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
+ * <li>permits to add to ads channels some filters. At the moment - filter removing "50Hz noise" (Moving average filter)</li>
  * </ul>
  * <p>
  * Thus resultant DataFrames (that BioRecorder sends to its listeners) have standard edf/bdf structure and could be
@@ -53,7 +54,7 @@ public class BioRecorder {
         }
         ThreadFactory namedThreadFactory = new ThreadFactory() {
             public Thread newThread(Runnable r) {
-                return new Thread(r, "«Ads» thread");
+                return new Thread(r, "«Ads» data handling thread");
             }
         };
         singleThreadExecutor = Executors.newSingleThreadExecutor(namedThreadFactory);
@@ -77,16 +78,16 @@ public class BioRecorder {
      * Start BioRecorder measurements.
      *
      * @param recorderConfig object with ads config info
-     * @return Future<Boolean> that get true if starting  was successful
-     * and false otherwise. Usually starting fails due to device is not connected
-     * or wrong device type is specified in config (which does not coincide
+     * @return Future: if starting was successful future.get() return null,
+     * otherwise throw RuntimeException. Usually starting fails due to device is not connected
+     * or wrong device type is specified in config (that does not coincide
      * with the really connected device type)
      * @throws IllegalStateException    if BioRecorder was disconnected and
      *                                  its work was finalised or if it is already recording and should be stopped first
      * @throws IllegalArgumentException if all channels and accelerometer are disabled
      */
     public Future<Void> startRecording(RecorderConfig recorderConfig) throws IllegalStateException, IllegalArgumentException {
-        // make copy to safely change in the case of accelerometer only mode
+        // make copy to safely change in the case of "accelerometer only" mode
         RecorderConfig recorderConfig1 = new RecorderConfig(recorderConfig);
 
         boolean isAllChannelsDisabled = true;
@@ -100,7 +101,7 @@ public class BioRecorder {
         if (isAllChannelsDisabled) {
             if (!recorderConfig1.isAccelerometerEnabled()) {
                 throw new IllegalArgumentException(ALL_CHANNELS_DISABLED_MSG);
-            } else { // we enable some ads channel to make possible accelerometer measuring
+            } else { // enable one ads channel to make possible accelerometer measuring
                 isAccelerometerOnly = true;
                 recorderConfig1.setChannelEnabled(0, true);
                 recorderConfig1.setChannelDivider(0, RecorderDivider.D10);

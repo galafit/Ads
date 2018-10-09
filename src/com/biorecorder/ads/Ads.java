@@ -310,12 +310,13 @@ public class Ads {
 
     public boolean disconnect() {
         singleThreadExecutor.shutdownNow();
+        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
+            stop1();
+        }
         if (!comport.isOpened()) {
             return true;
         }
-        if(adsStateAtomicReference.get() == AdsState.RECORDING) {
-           stop1();
-        }
+
         if (comport.close()) {
             removeDataListener();
             removeMessageListener();
