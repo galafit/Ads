@@ -1,12 +1,13 @@
 package com.biorecorder.dataformat;
 
 /**
- * This interface describes data format similar to the European Data Format (EDF)
+ * This interface describes data record format similar
+ * to the European Data Format (EDF)
  * which is a standard for exchange and storage of multichannel biological
  * and physical signals.
  * <p>
- * Tha base idea is that all samples received from multiple measuring channels (signals)
- * within the specified time interval
+ * Tha base idea is that all samples received from multiple
+ * measuring channels (signals) within the specified time interval
  * are placed in one data record (or package) as follows:
  * <br>n_0 samples belonging to signal 0,
  * <br>n_1 samples belonging to signal 1,

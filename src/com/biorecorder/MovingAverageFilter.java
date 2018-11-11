@@ -6,26 +6,23 @@ import com.biorecorder.filters.DigitalFilter;
  * Created by galafit on 30/3/18.
  */
 public class MovingAverageFilter implements DigitalFilter {
-    private final CircularFifoBuffer buffer;
+    private final CircularFifoBuffer fifoBuffer;
     private final int bufferSize;
     private double sum;
 
     public MovingAverageFilter(int numberOfAveragingPoints) {
-        buffer = new CircularFifoBuffer(numberOfAveragingPoints);
+        fifoBuffer = new CircularFifoBuffer(numberOfAveragingPoints);
         bufferSize = numberOfAveragingPoints;
     }
 
     public double filteredValue(double value) {
-        buffer.add(value);
+        fifoBuffer.add(value);
         sum += value;
-
-        if(buffer.size() < bufferSize) {
-            return value;
-        } else {
-            double avg = sum / bufferSize;
-            sum -= buffer.get();
-            return avg;
+        double avg = sum / fifoBuffer.size();
+        if(fifoBuffer.size() == bufferSize) {
+            sum -= fifoBuffer.get();
         }
+        return avg;
     }
 
     /**
@@ -38,19 +35,15 @@ public class MovingAverageFilter implements DigitalFilter {
         boolean isTestOk = true;
         for (int i = 0; i < arr.length; i++) {
             double filteredValue = filter.filteredValue(arr[i]);
-            double expectedValue;
-            if(i < numberOfAveragingPoints - 1) {
-                expectedValue = arr[i];
-            } else {
-                expectedValue = 0;
-                for (int j = 0; j < numberOfAveragingPoints; j++) {
-                    expectedValue += arr[i - j];
-                }
-                expectedValue = expectedValue / numberOfAveragingPoints;
+            double expectedValue = 0;
+            int n = Math.min(i, numberOfAveragingPoints - 1) + 1;
+            for (int j = 0; j < n; j++) {
+                expectedValue += arr[i - j];
             }
+            expectedValue = expectedValue / n;
 
             if(filteredValue != expectedValue) {
-                System.out.println(i + "Error! filtered value: " + filteredValue + " Expected value " + expectedValue);
+                System.out.println(i + " Error! filtered value: " + filteredValue + " Expected value " + expectedValue);
                 isTestOk = false;
                 break;
             }
