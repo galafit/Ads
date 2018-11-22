@@ -68,6 +68,26 @@ public class EdfHeader {
         }
     }
 
+
+    /**
+     * Constructor to make a copy of the given header
+     *
+     * @param header EdfHeader instance that will be copied
+     */
+    public EdfHeader(EdfHeader header) {
+        this(header.getDataFormat(), header.signalsCount());
+        durationOfDataRecord = header.durationOfDataRecord;
+        patientIdentification = header.patientIdentification;
+        recordingIdentification = header.recordingIdentification;
+        numberOfDataRecords = header.numberOfDataRecords;
+        recordingStartTime = header.recordingStartTime;
+        for (int i = 0; i < header.signalsCount(); i++) {
+            signals.add(new Signal(header.signals.get(i)));
+         }
+    }
+
+
+
     /**
      * Gets the patient identification string (name, surname, etc).
      *
@@ -604,6 +624,22 @@ public class EdfHeader {
         private double gain;
         private double offset;
 
+        Signal(Signal signal) {
+            numberOfSamplesInEachDataRecord = signal.numberOfSamplesInEachDataRecord;
+            prefiltering = signal.prefiltering;
+            transducerType = signal.transducerType;
+            label = signal.label;
+            digitalMin = signal.digitalMin;
+            digitalMax = signal.digitalMax;
+            physicalMin = signal.physicalMin;
+            physicalMax = signal.physicalMax;
+            physicalDimension = signal.physicalDimension;
+            gain = signal.gain;
+            offset = signal.offset;
+        }
+
+        public Signal() {
+        }
 
         public int getDigitalMin() {
             return digitalMin;
@@ -729,7 +765,7 @@ public class EdfHeader {
         sb.append("\nDuration of DataRecords = " + getDurationOfDataRecord());
         sb.append("\nNumber of signals = " + signalsCount());
         for (int i = 0; i < signalsCount(); i++) {
-            sb.append("\n  " + i + " getLabel: " + getLabel(i)
+            sb.append("\n  " + i + " label: " + getLabel(i)
                     + "; number of samples: " + getNumberOfSamplesInEachDataRecord(i)
                     + "; frequency: " + Math.round(getSampleFrequency(i))
                     + "; dig min: " + getDigitalMin(i) + "; dig max: " + getDigitalMax(i)

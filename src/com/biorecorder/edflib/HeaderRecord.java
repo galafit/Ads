@@ -104,7 +104,8 @@ public class HeaderRecord {
         return headerBuffer;
     }
 
-    private byte[] readHeader(InputStream inputStream, int numberOfSignals) throws  IOException, HeaderException {
+    private byte[] readHeader(FileInputStream inputStream, int numberOfSignals) throws  IOException, HeaderException {
+        inputStream.getChannel().position(0);
         byte[] buffer = new byte [numberOfBytesInHeader(numberOfSignals)];
         if(inputStream.read(buffer) < buffer.length) {
             throw new HeaderException(HeaderException.TYPE_HEADER_NOT_COMPLETE);
@@ -199,6 +200,7 @@ public class HeaderRecord {
             if(versionString.equals(expectedVersion)) {
                 dataFormat = DataFormat.EDF_16BIT;
             } else {
+                System.out.println(versionString + "   "+expectedVersion);
                 throw new HeaderException(HeaderException.TYPE_VERSION_FORMAT_INVALID, versionString);
             }
         }
@@ -490,8 +492,5 @@ public class HeaderRecord {
     private static String bytesToStringASCII(byte[] b, int offset, int length) {
         return new String(b, offset, length, ASCII);
     }
-
-
-
 
 }
