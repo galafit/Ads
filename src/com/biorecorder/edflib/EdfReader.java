@@ -149,7 +149,7 @@ public class EdfReader {
     }
 
 
-    public int readSamples(int signal, int n, int[] digBuffer, double[] physBuffer) throws IOException {
+    private int readSamples(int signal, int n, int[] digBuffer, double[] physBuffer) throws IOException {
         int bytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
         int samplesPerRecord = header.getNumberOfSamplesInEachDataRecord(signal);
 
