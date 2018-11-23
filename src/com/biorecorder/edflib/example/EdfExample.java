@@ -11,7 +11,7 @@ import java.util.Arrays;
 /**
  * This example program opens the EDF-file records/ekg.edf
  * (that contains data from two measuring channels - cardiogram and accelerometer) and
- * copy its data to new files as it is or with some transformations
+ * copy its data to new file
  */
 public class EdfExample {
     public static void main(String[] args) {
@@ -64,12 +64,11 @@ public class EdfExample {
 
 /*****************************************************************************************
  *     Read data by samples (from both channels) and
- *     write them to the new file ekgcopy3.bdf
+ *     write them to the new file ekgcopy2.bdf
  *****************************************************************************************/
         File resultantFile2 = new File(recordsDir, "ekgcopy2.bdf");
-        EdfWriter fileWriter2 = null;
         try {
-            fileWriter2 = new EdfWriter(resultantFile2, header);
+            EdfWriter fileWriter2 = new EdfWriter(resultantFile2, header);
             // set DataRecord and signals positions to 0;
             originalFileReader.reset();
             int samples0 = header.getNumberOfSamplesInEachDataRecord(0);
