@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.dataformat.RecordStream;
+import com.biorecorder.recordformat.RecordConfig;
+import com.biorecorder.recordformat.RecordStream;
 import com.biorecorder.edflib.DataVersion;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
