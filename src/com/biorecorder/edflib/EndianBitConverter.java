@@ -102,6 +102,31 @@ class EndianBitConverter {
     }
 
     /**
+     * Convert given LITTLE_ENDIAN ordered bytes to BIG_ENDIAN 32-bit UNSIGNED int.
+     * Available number of input bytes: 4, 3, 2 or 1.
+     *
+     * @param bytes 4, 3, 2 or 1 bytes (LITTLE_ENDIAN ordered) to be converted to int
+     * @return 32-bit UNSIGNED int (BIG_ENDIAN)
+     */
+
+    public static int littleEndianBytesToUnsignedInt(byte... bytes) {
+        switch (bytes.length) {
+            case 1:
+                return (bytes[0] & 0xFF);
+            case 2:
+                return (bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF);
+            case 3:
+                return (bytes[2] & 0xFF) << 16 | (bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF);
+            case 4:
+                return (bytes[3] & 0xFF) << 24 | (bytes[2] & 0xFF) << 16 | (bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF);
+            default:
+                String errMsg = "Wrong «number of bytes» = " + bytes.length +
+                        "! Available «number of bytes per int»: 4, 3, 2 or 1.";
+                throw new IllegalArgumentException(errMsg);
+        }
+    }
+
+    /**
      * Convert specified number of bytes (4, 3, 2 or 1) of the LITTLE_ENDIAN ordered byte array
      * to BIG_ENDIAN java integer.
      * Сonversion begins from the specified calculateOffset position.
@@ -129,27 +154,6 @@ class EndianBitConverter {
         }
     }
 
-
-    /**
-     * Convert specified number of elements from LITTLE_ENDIAN ordered byte array
-     * (starting from byteArrayOffset position) to ints and
-     * write resultant ints to the given int array (starting from intArrayOffset position)
-     *
-     * @param byteArray           byte array (LITTLE_ENDIAN ordered) to be converted to int array
-     * @param byteArrayOffset     the calculateOffset within the byte array of the first byte to be converted
-     * @param intArray            int array to write resultant ints
-     * @param intArrayOffset      the calculateOffset within the int array of the first int to be written
-     * @param lengthInInts        number of resultant ints.
-     *                            Number of bytes that will be converted to ints = lengthInInts * numberOfBytesPerInt
-     * @param numberOfBytesPerInt number of bytes converted to ONE int. Can be: 4, 3, 2 or 1.
-     */
-    public static void littleEndianByteArrayToIntArray(byte[] byteArray, int byteArrayOffset, int[] intArray, int intArrayOffset, int lengthInInts, int numberOfBytesPerInt) {
-        for (int index = 0; index < lengthInInts; index++) {
-            intArray[index + intArrayOffset] = littleEndianBytesToInt(byteArray, index * numberOfBytesPerInt + byteArrayOffset, numberOfBytesPerInt);
-        }
-    }
-
-
     /**
      * Convert specified number of elements from int array (starting from intArrayOffset position)
      * to LITTLE_ENDIAN bytes and write resultant bytes to the given byte array
@@ -171,19 +175,6 @@ class EndianBitConverter {
 
 
     /**
-     * Convert LITTLE_ENDIAN ordered byte array to int array.
-     *
-     * @param byteArray           byte array (LITTLE_ENDIAN ordered) to be converted to int array
-     * @param numberOfBytesPerInt number of bytes converted to ONE int. Can be: 4, 3, 2 or 1.
-     * @return resultant array of int
-     */
-    public static int[] littleEndianByteArrayToIntArray(byte[] byteArray, int numberOfBytesPerInt) {
-        int[] result = new int[byteArray.length / numberOfBytesPerInt];
-        littleEndianByteArrayToIntArray(byteArray, 0, result, 0, result.length, numberOfBytesPerInt);
-        return result;
-    }
-
-    /**
      * Convert specified number of elements from int array to LITTLE_ENDIAN ordered byte array.
      * Сonversion begins from the specified calculateOffset position.
      *
@@ -196,32 +187,5 @@ class EndianBitConverter {
         byte[] result = new byte[intArray.length * numberOfBytesPerInt];
         intArrayToLittleEndianByteArray(intArray, 0, result, 0, intArray.length, numberOfBytesPerInt);
         return result;
-    }
-
-
-
-    /**
-     * Convert given LITTLE_ENDIAN ordered bytes to BIG_ENDIAN 32-bit UNSIGNED int.
-     * Available number of input bytes: 4, 3, 2 or 1.
-     *
-     * @param bytes 4, 3, 2 or 1 bytes (LITTLE_ENDIAN ordered) to be converted to int
-     * @return 32-bit UNSIGNED int (BIG_ENDIAN)
-     */
-
-    public static int littleEndianBytesToUnsignedInt(byte... bytes) {
-        switch (bytes.length) {
-            case 1:
-                return (bytes[0] & 0xFF);
-            case 2:
-                return (bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF);
-            case 3:
-                return (bytes[2] & 0xFF) << 16 | (bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF);
-            case 4:
-                return (bytes[3] & 0xFF) << 24 | (bytes[2] & 0xFF) << 16 | (bytes[1] & 0xFF) << 8 | (bytes[0] & 0xFF);
-            default:
-                String errMsg = "Wrong «number of bytes» = " + bytes.length +
-                        "! Available «number of bytes per int»: 4, 3, 2 or 1.";
-                throw new IllegalArgumentException(errMsg);
-        }
     }
 }

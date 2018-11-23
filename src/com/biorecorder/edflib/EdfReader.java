@@ -1,7 +1,8 @@
 package com.biorecorder.edflib;
 
 import java.io.*;
-import java.util.Arrays;
+
+// TODO make it  partially thread safe like EdfWriter!!!
 
 /**
  * Permits to read data samples from EDF or BDF file. Also it
@@ -15,7 +16,7 @@ import java.util.Arrays;
  * real physical floating point data on the base of header information (physical maximum and minimum
  * and digital maximum and minimum specified for every channel (signal)).
  * So we can "read" both digital or physical values.
-  */
+ */
 public class EdfReader {
     private EdfHeader header;
     private FileInputStream fileInputStream;
@@ -32,9 +33,9 @@ public class EdfReader {
      * @throws FileNotFoundException if the file does not exist,
      *                               is a directory rather than a regular file,
      *                               or for some other reason cannot be opened for reading.
-     * @throws HeaderException if the the file is not valid EDF/BDF file
+     * @throws HeaderException       if the the file is not valid EDF/BDF file
      *                               due to some errors in its header record
-     * @throws IOException if an I/O error occurs
+     * @throws IOException           if an I/O error occurs
      */
     public EdfReader(File file) throws FileNotFoundException, HeaderException, IOException {
         this.file = file;
@@ -119,46 +120,14 @@ public class EdfReader {
      * <p>
      * The sample position indicator of that channel will be increased
      * with the amount of samples read (this can be less than n or zero!)
+     *
      * @param signal channel (signal) number whose samples must be read. Numbering starts from 0!
-     * @param n       number of samples to read
+     * @param n      number of samples to read
      * @return the amount of really read samples that can be less than n or zero
-     * @throws IOException  if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
     public int readDigitalSamples(int signal, int n, int[] buffer) throws IOException {
-        int bytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
-        int samplesPerRecord = header.getNumberOfSamplesInEachDataRecord(signal);
-
-        long recordNumber = samplesPositionList[signal] / samplesPerRecord;
-        int signalStartPositionInRecord = 0;
-        for (int i = 0; i < signal; i++) {
-            signalStartPositionInRecord += header.getNumberOfSamplesInEachDataRecord(i);
-        }
-        int sampleStartOffset = (int)(samplesPositionList[signal] % samplesPerRecord);
-        long fileReadPosition = header.getNumberOfBytesInHeaderRecord() + (recordNumber * recordSize + signalStartPositionInRecord + sampleStartOffset) * bytesPerSample;
-
-        // set file start reading position and read
-        fileInputStream.getChannel().position(fileReadPosition);
-        byte[] byteData = new byte[samplesPerRecord * bytesPerSample];
-        int totalReadBytes = 0;
-        int bytesToRead = Math.min((samplesPerRecord - sampleStartOffset) * bytesPerSample, n * bytesPerSample - totalReadBytes) ;
-        int sampleCount = 0;
-        while (totalReadBytes < n * bytesPerSample) {
-            int readBytes = fileInputStream.read(byteData, 0, bytesToRead);
-            int maxOffset = readBytes - bytesPerSample;
-            for (int offset = 0; offset < maxOffset  ; offset += bytesPerSample) {
-                buffer[sampleCount++] = EndianBitConverter.littleEndianBytesToInt(byteData, offset, bytesPerSample);
-            }
-
-            totalReadBytes += readBytes;
-            if(readBytes < bytesToRead) { // end of file
-                break;
-            }
-            fileInputStream.skip((recordSize - samplesPerRecord) * bytesPerSample);
-            bytesToRead = Math.min(samplesPerRecord * bytesPerSample, n * bytesPerSample - totalReadBytes) ;
-        }
-        int readSamples = totalReadBytes/bytesPerSample;
-        samplesPositionList[signal] += readSamples;
-        return readSamples;
+        return readSamples(signal, n, buffer, null);
     }
 
     /**
@@ -169,12 +138,18 @@ public class EdfReader {
      * <p>
      * The sample position indicator of that channel will be increased
      * with the amount of samples read (this can be less than n or zero!)
+     *
      * @param signal channel (signal) number whose samples must be read. Numbering starts from 0!
-     * @param n       number of samples to read
+     * @param n      number of samples to read
      * @return the amount of really read samples that can be less than n or zero
-     * @throws IOException  if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
     public int readPhysicalSamples(int signal, int n, double[] buffer) throws IOException {
+        return readSamples(signal, n, null, buffer);
+    }
+
+
+    public int readSamples(int signal, int n, int[] digBuffer, double[] physBuffer) throws IOException {
         int bytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
         int samplesPerRecord = header.getNumberOfSamplesInEachDataRecord(signal);
 
@@ -183,30 +158,36 @@ public class EdfReader {
         for (int i = 0; i < signal; i++) {
             signalStartPositionInRecord += header.getNumberOfSamplesInEachDataRecord(i);
         }
-        int sampleStartOffset = (int)(samplesPositionList[signal] % samplesPerRecord);
+        int sampleStartOffset = (int) (samplesPositionList[signal] % samplesPerRecord);
         long fileReadPosition = header.getNumberOfBytesInHeaderRecord() + (recordNumber * recordSize + signalStartPositionInRecord + sampleStartOffset) * bytesPerSample;
 
         // set file start reading position and read
         fileInputStream.getChannel().position(fileReadPosition);
         byte[] byteData = new byte[samplesPerRecord * bytesPerSample];
         int totalReadBytes = 0;
-        int bytesToRead = Math.min((samplesPerRecord - sampleStartOffset) * bytesPerSample, n * bytesPerSample - totalReadBytes) ;
+        int bytesToRead = Math.min((samplesPerRecord - sampleStartOffset) * bytesPerSample, n * bytesPerSample - totalReadBytes);
         int sampleCount = 0;
         while (totalReadBytes < n * bytesPerSample) {
             int readBytes = fileInputStream.read(byteData, 0, bytesToRead);
             int maxOffset = readBytes - bytesPerSample;
-            for (int offset = 0; offset < maxOffset  ; offset += bytesPerSample) {
-                buffer[sampleCount++] = header.digitalValueToPhysical(signal, EndianBitConverter.littleEndianBytesToInt(byteData, offset, bytesPerSample));
+            for (int offset = 0; offset < maxOffset; offset += bytesPerSample) {
+                if (physBuffer != null) {
+                    physBuffer[sampleCount] = header.digitalValueToPhysical(signal, EndianBitConverter.littleEndianBytesToInt(byteData, offset, bytesPerSample));
+                }
+                if (digBuffer != null) {
+                    digBuffer[sampleCount] = EndianBitConverter.littleEndianBytesToInt(byteData, offset, bytesPerSample);
+                }
+                sampleCount++;
             }
 
             totalReadBytes += readBytes;
-            if(readBytes < bytesToRead) { // end of file
+            if (readBytes < bytesToRead) { // end of file
                 break;
             }
             fileInputStream.skip((recordSize - samplesPerRecord) * bytesPerSample);
-            bytesToRead = Math.min(samplesPerRecord * bytesPerSample, n * bytesPerSample - totalReadBytes) ;
+            bytesToRead = Math.min(samplesPerRecord * bytesPerSample, n * bytesPerSample - totalReadBytes);
         }
-        int readSamples = totalReadBytes/bytesPerSample;
+        int readSamples = totalReadBytes / bytesPerSample;
         samplesPositionList[signal] += readSamples;
         return readSamples;
     }
@@ -219,11 +200,12 @@ public class EdfReader {
      * <p>
      * The record position indicator will be increased with the amount of data records
      * read (this can be less than n or zero!)
+     *
      * @param buffer array where read samples will be stored
-     * @param n       number of data records to read
+     * @param n      number of data records to read
      * @return the total number of dataRecords read into the buffer,
      * or -1 if there is no more data because the end of the stream has been reached
-     * @throws IOException  if an I/O error occurs
+     * @throws IOException if an I/O error occurs
      */
     public int readDigitalRecords(int n, int[] buffer) throws IOException {
         int bytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
@@ -234,12 +216,17 @@ public class EdfReader {
 
         byte[] byteData = new byte[recordSize * n * bytesPerSample];
         int readBytes = fileInputStream.read(byteData, 0, byteData.length);
-        if(readBytes < 0) { // end of file
+        if (readBytes < 0) { // end of file
             return -1;
         }
         int readRecords = readBytes / (recordSize * bytesPerSample);
         recordPosition += readRecords;
-        EndianBitConverter.littleEndianByteArrayToIntArray(byteData, 0, buffer, 0, readRecords * recordSize, bytesPerSample);
+        int maxOffset = readBytes - bytesPerSample;
+        int sampleCount = 0;
+        for (int offset = 0; offset < maxOffset; offset += bytesPerSample) {
+            buffer[sampleCount] = EndianBitConverter.littleEndianBytesToInt(byteData, offset, bytesPerSample);
+            sampleCount++;
+        }
         return readRecords;
     }
 
@@ -261,7 +248,7 @@ public class EdfReader {
      * @return number of available for reading data records
      */
     public long availableRecords() {
-         return numberOfRecords() - recordPosition;
+        return numberOfRecords() - recordPosition;
     }
 
     /**
@@ -282,7 +269,7 @@ public class EdfReader {
      * @return total number of DataRecords in the file
      */
     public long numberOfRecords() {
-        return  (file.length() - header.getNumberOfBytesInHeaderRecord()) / (recordSize * header.getDataFormat().getNumberOfBytesPerSample());
+        return (file.length() - header.getNumberOfBytesInHeaderRecord()) / (recordSize * header.getDataFormat().getNumberOfBytesPerSample());
     }
 
     /**
@@ -293,7 +280,7 @@ public class EdfReader {
      * @return total number of samples of the given signal in the file
      */
     public long numberOfSamples(int signalNumber) {
-        return  numberOfRecords() *  header.getNumberOfSamplesInEachDataRecord(signalNumber);
+        return numberOfRecords() * header.getNumberOfSamplesInEachDataRecord(signalNumber);
     }
 
 

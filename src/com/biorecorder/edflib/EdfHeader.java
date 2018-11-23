@@ -87,7 +87,6 @@ public class EdfHeader {
     }
 
 
-
     /**
      * Gets the patient identification string (name, surname, etc).
      *
