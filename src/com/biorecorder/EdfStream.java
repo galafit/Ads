@@ -2,7 +2,7 @@ package com.biorecorder;
 
 import com.biorecorder.dataformat.RecordConfig;
 import com.biorecorder.dataformat.RecordStream;
-import com.biorecorder.edflib.DataFormat;
+import com.biorecorder.edflib.DataVersion;
 import com.biorecorder.edflib.EdfHeader;
 import com.biorecorder.edflib.EdfWriter;
 import com.biorecorder.filters.RecordsJoiner;
@@ -57,7 +57,7 @@ public class EdfStream implements RecordStream {
             @Override
             public void setRecordConfig(RecordConfig recordConfig) throws FileNotFoundRuntimeException {
                 // copy data from recordConfig to the EdfHeader
-                EdfHeader edfHeader = new EdfHeader(DataFormat.BDF_24BIT, recordConfig.signalsCount());
+                EdfHeader edfHeader = new EdfHeader(DataVersion.BDF_24BIT, recordConfig.signalsCount());
                 edfHeader.setPatientIdentification(patientIdentification);
                 edfHeader.setRecordingIdentification(recordIdentification);
                 edfHeader.setDurationOfDataRecord(recordConfig.getDurationOfDataRecord());

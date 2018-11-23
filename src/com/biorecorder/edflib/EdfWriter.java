@@ -284,7 +284,7 @@ public class EdfWriter {
             if(sampleCount > recordSize && sampleCount % recordSize == 0) {
                 lastRecordTime = System.currentTimeMillis();
             }
-            int numberOfBytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
+            int numberOfBytesPerSample = header.getDataVersion().getNumberOfBytesPerSample();
             byte[] byteArray = new byte[numberOfBytesPerSample * length];
             EndianBitConverter.intArrayToLittleEndianByteArray(samples, 0, byteArray, 0, length, numberOfBytesPerSample);
             fileOutputStream.write(byteArray);
@@ -346,7 +346,7 @@ public class EdfWriter {
         int channel1Frequency = 5; // Hz
 
         // create header info for the file describing data records structure
-        EdfHeader header = new EdfHeader(DataFormat.EDF_16BIT, 2);
+        EdfHeader header = new EdfHeader(DataVersion.EDF_16BIT, 2);
         // Signal numbering starts from 0!
         // configure signal (channel) number 0
         header.setSampleFrequency(0, channel0Frequency);

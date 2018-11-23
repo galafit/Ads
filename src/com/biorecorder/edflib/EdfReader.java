@@ -150,7 +150,7 @@ public class EdfReader {
 
 
     private int readSamples(int signal, int n, int[] digBuffer, double[] physBuffer) throws IOException {
-        int bytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
+        int bytesPerSample = header.getDataVersion().getNumberOfBytesPerSample();
         int samplesPerRecord = header.getNumberOfSamplesInEachDataRecord(signal);
 
         long recordNumber = samplesPositionList[signal] / samplesPerRecord;
@@ -208,7 +208,7 @@ public class EdfReader {
      * @throws IOException if an I/O error occurs
      */
     public int readDigitalRecords(int n, int[] buffer) throws IOException {
-        int bytesPerSample = header.getDataFormat().getNumberOfBytesPerSample();
+        int bytesPerSample = header.getDataVersion().getNumberOfBytesPerSample();
         long fileReadPosition = header.getNumberOfBytesInHeaderRecord() +
                 recordSize * recordPosition * bytesPerSample;
         fileInputStream.getChannel().position(fileReadPosition);
@@ -269,7 +269,7 @@ public class EdfReader {
      * @return total number of DataRecords in the file
      */
     public long numberOfRecords() {
-        return (file.length() - header.getNumberOfBytesInHeaderRecord()) / (recordSize * header.getDataFormat().getNumberOfBytesPerSample());
+        return (file.length() - header.getNumberOfBytesInHeaderRecord()) / (recordSize * header.getDataVersion().getNumberOfBytesPerSample());
     }
 
     /**

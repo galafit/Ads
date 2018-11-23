@@ -44,7 +44,7 @@ public class EdfHeader {
     private String recordingIdentification = "Default record";
     private long recordingStartTime = 0;
     private int numberOfDataRecords = -1;
-    private DataFormat dataFormat = DataFormat.EDF_16BIT;
+    private DataVersion dataVersion = DataVersion.EDF_16BIT;
     private double durationOfDataRecord = 1; // sec
     private ArrayList<Signal> signals = new ArrayList<Signal>();
 
@@ -53,18 +53,18 @@ public class EdfHeader {
      * the type of the of the file where data records will be written: EDF_16BIT or BDF_24BIT
      * and the number of measuring channels (signals)
      *
-     * @param dataFormat      EDF_16BIT or BDF_24BIT
+     * @param dataVersion      EDF_16BIT or BDF_24BIT
      * @param numberOfSignals number of signals in data records
      * @throws IllegalArgumentException if numberOfSignals < 0
      */
-    public EdfHeader(DataFormat dataFormat, int numberOfSignals) throws IllegalArgumentException {
-        this.dataFormat = dataFormat;
+    public EdfHeader(DataVersion dataVersion, int numberOfSignals) throws IllegalArgumentException {
+        this.dataVersion = dataVersion;
         if (numberOfSignals < 0) {
             String errMsg = MessageFormat.format("Number of signals is invalid: {0}. Expected {1}", numberOfSignals, ">= 0");
             throw new IllegalArgumentException(errMsg);
         }
         for (int i = 0; i < numberOfSignals; i++) {
-            addSignal(dataFormat);
+            addSignal(dataVersion);
         }
     }
 
@@ -75,7 +75,7 @@ public class EdfHeader {
      * @param header EdfHeader instance that will be copied
      */
     public EdfHeader(EdfHeader header) {
-        this(header.getDataFormat(), header.signalsCount());
+        this(header.getDataVersion(), header.signalsCount());
         durationOfDataRecord = header.durationOfDataRecord;
         patientIdentification = header.patientIdentification;
         recordingIdentification = header.recordingIdentification;
@@ -216,8 +216,8 @@ public class EdfHeader {
      *
      * @return type of the file: EDF_16BIT or BDF_24BIT
      */
-    public DataFormat getDataFormat() {
-        return dataFormat;
+    public DataVersion getDataVersion() {
+        return dataVersion;
     }
 
     /**
@@ -379,20 +379,20 @@ public class EdfHeader {
      *                                  <br>digitalMin >= digitalMax
      */
     public void setDigitalRange(int signalNumber, int digitalMin, int digitalMax) throws IllegalArgumentException {
-        if (dataFormat == DataFormat.EDF_16BIT && digitalMin < -32768) {
+        if (dataVersion == DataVersion.EDF_16BIT && digitalMin < -32768) {
             String errMsg = MessageFormat.format("Signal {0}. Invalid digital min: {1}.  Expected: {2}", signalNumber, digitalMin, ">= -32768");
             throw new IllegalArgumentException(errMsg);
         }
-        if (dataFormat == DataFormat.BDF_24BIT && digitalMin < -8388608) {
+        if (dataVersion == DataVersion.BDF_24BIT && digitalMin < -8388608) {
             String errMsg = MessageFormat.format("Signal {0}. Invalid digital min: {1}.  Expected: {2}", signalNumber, digitalMin, ">= -8388608");
             throw new IllegalArgumentException(errMsg);
         }
 
-        if (dataFormat == DataFormat.EDF_16BIT && digitalMax > 32767) {
+        if (dataVersion == DataVersion.EDF_16BIT && digitalMax > 32767) {
             String errMsg = MessageFormat.format("Signal {0}. Invalid digital max: {1}.  Expected: {2}", signalNumber, digitalMax, "<= 32767");
             throw new IllegalArgumentException(errMsg);
         }
-        if (dataFormat == DataFormat.BDF_24BIT && digitalMax > 8388607) {
+        if (dataVersion == DataVersion.BDF_24BIT && digitalMax > 8388607) {
             String errMsg = MessageFormat.format("Signal {0}. Invalid digital max: {1}.  Expected: {2}", signalNumber, digitalMax, "<= 8388607");
             throw new IllegalArgumentException(errMsg);
         }
@@ -597,10 +597,10 @@ public class EdfHeader {
         return signals.get(signalNumber).getOffset();
     }
 
-    private void addSignal(DataFormat dataFormat) {
+    private void addSignal(DataVersion dataFormat) {
         Signal signal = new Signal();
         signal.setLabel("Channel_" + signals.size());
-        if (dataFormat == DataFormat.EDF_16BIT) {
+        if (dataFormat == DataVersion.EDF_16BIT) {
             signal.setDigitalRange(-32768, 32767);
             signal.setPhysicalRange(-32768, 32767);
         } else {
@@ -754,7 +754,7 @@ public class EdfHeader {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         //  sb.append(super.toString());
-        sb.append("file type = " + getDataFormat());
+        sb.append("file type = " + getDataVersion());
         sb.append("\nNumber of DataRecords = " + getNumberOfDataRecords());
         DateFormat dateFormat = new SimpleDateFormat("dd:MM:yyyy HH:mm:ss");
         String timeStamp = dateFormat.format(new Date(getRecordingStartTimeMs()));
@@ -786,8 +786,8 @@ public class EdfHeader {
      */
     public static void main(String[] args) {
         int numberOfSignals = 3;
-        EdfHeader headerConfigEdf = new EdfHeader(DataFormat.EDF_16BIT, numberOfSignals);
-        EdfHeader headerConfigBdf = new EdfHeader(DataFormat.BDF_24BIT, numberOfSignals);
+        EdfHeader headerConfigEdf = new EdfHeader(DataVersion.EDF_16BIT, numberOfSignals);
+        EdfHeader headerConfigBdf = new EdfHeader(DataVersion.BDF_24BIT, numberOfSignals);
 
         // set startRecording date and time for Bdf HeaderConfig
         headerConfigBdf.setRecordingStartDateTime(1972, 6, 23, 23, 23, 50);
