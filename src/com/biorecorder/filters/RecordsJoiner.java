@@ -1,6 +1,6 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.*;
+import com.biorecorder.recordformat.*;
 
 /**
  * Permits to join (piece together) given number of incoming DataRecords.

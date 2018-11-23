@@ -1,4 +1,4 @@
-package com.biorecorder.dataformat;
+package com.biorecorder.recordformat;
 
 /**
  * Created by galafit on 28/7/18.

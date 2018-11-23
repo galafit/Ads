@@ -1,6 +1,6 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.*;
+import com.biorecorder.recordformat.*;
 
 import java.util.HashMap;
 import java.util.Map;

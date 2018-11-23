@@ -3,8 +3,8 @@ package com.biorecorder.ads;
 
 import com.biorecorder.comport.Comport;
 import com.biorecorder.comport.ComportFactory;
-import com.biorecorder.dataformat.DefaultRecordConfig;
-import com.biorecorder.dataformat.RecordConfig;
+import com.biorecorder.recordformat.DefaultRecordConfig;
+import com.biorecorder.recordformat.RecordConfig;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

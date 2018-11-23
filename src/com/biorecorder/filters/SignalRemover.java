@@ -1,6 +1,6 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.*;
+import com.biorecorder.recordformat.*;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,7 @@
 package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.dataformat.*;
+import com.biorecorder.recordformat.*;
 import com.biorecorder.filters.*;
 
 import java.util.ArrayList;

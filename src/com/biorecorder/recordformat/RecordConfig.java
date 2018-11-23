@@ -1,4 +1,4 @@
-package com.biorecorder.dataformat;
+package com.biorecorder.recordformat;
 
 /**
  * This interface describes data record format similar

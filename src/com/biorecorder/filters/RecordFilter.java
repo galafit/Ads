@@ -1,7 +1,7 @@
 package com.biorecorder.filters;
 
-import com.biorecorder.dataformat.RecordConfig;
-import com.biorecorder.dataformat.RecordStream;
+import com.biorecorder.recordformat.RecordConfig;
+import com.biorecorder.recordformat.RecordStream;
 
 /**
  * A RecordsFilter listen (wrap) some other RecordSender and transforms
