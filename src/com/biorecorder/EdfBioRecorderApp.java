@@ -1,7 +1,8 @@
 package com.biorecorder;
 
-import com.biorecorder.recordformat.RecordStream;
-import com.biorecorder.recordformat.RecordConfig;
+import com.biorecorder.digitalfilter.MovingAverageFilter;
+import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordConfig;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;

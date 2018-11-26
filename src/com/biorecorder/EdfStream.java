@@ -1,12 +1,12 @@
 package com.biorecorder;
 
-import com.biorecorder.recordformat.RecordConfig;
-import com.biorecorder.recordformat.RecordStream;
-import com.biorecorder.edflib.DataVersion;
-import com.biorecorder.edflib.EdfHeader;
-import com.biorecorder.edflib.EdfWriter;
-import com.biorecorder.filters.RecordsJoiner;
-import com.biorecorder.filters.SignalFrequencyReducer;
+import com.biorecorder.multisignal.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.FormatVersion;
+import com.biorecorder.multisignal.edflib.EdfHeader;
+import com.biorecorder.multisignal.edflib.EdfWriter;
+import com.biorecorder.multisignal.recordfilter.RecordsJoiner;
+import com.biorecorder.multisignal.recordfilter.SignalFrequencyReducer;
 import com.biorecorder.recorder.RecordingInfo;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -14,7 +14,6 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -41,7 +40,7 @@ public class EdfStream implements RecordStream {
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
 
-    public EdfStream(File edfFile, int numberOfRecordsToJoin, Map<Integer, Integer> extraDividers,  String patientIdentification, String recordIdentification, boolean isDurationOfDataRecordComputable) {
+    public EdfStream(File edfFile, int numberOfRecordsToJoin, Map<Integer, Integer> extraDividers, String patientIdentification, String recordIdentification, boolean isDurationOfDataRecordComputable) {
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
         this.file = edfFile;
         this.extraDividers = extraDividers;
@@ -57,7 +56,7 @@ public class EdfStream implements RecordStream {
             @Override
             public void setRecordConfig(RecordConfig recordConfig) throws FileNotFoundRuntimeException {
                 // copy data from recordConfig to the EdfHeader
-                EdfHeader edfHeader = new EdfHeader(DataVersion.BDF_24BIT, recordConfig.signalsCount());
+                EdfHeader edfHeader = new EdfHeader(FormatVersion.BDF_24BIT, recordConfig.signalsCount());
                 edfHeader.setPatientIdentification(patientIdentification);
                 edfHeader.setRecordingIdentification(recordIdentification);
                 edfHeader.setDurationOfDataRecord(recordConfig.getDurationOfDataRecord());
@@ -80,12 +79,8 @@ public class EdfStream implements RecordStream {
 
             @Override
             public void writeRecord(int[] dataRecord) {
-               try {
-                    edfWriter.writeDigitalRecord(dataRecord);
-                    numberOfWrittenDataRecords.incrementAndGet();
-                } catch (IOException e) {
-                    throw new IORuntimeException(e);
-                }
+                edfWriter.writeRecord(dataRecord);
+                numberOfWrittenDataRecords.incrementAndGet();
 
             }
 
@@ -96,8 +91,6 @@ public class EdfStream implements RecordStream {
                     if (edfWriter.getNumberOfReceivedDataRecords() == 0) {
                         edfWriter.getFile().delete();
                     }
-                } catch (IOException e) {
-                    throw new IORuntimeException(e);
                 } catch (Exception e) {
                     log.error(e);
                 }

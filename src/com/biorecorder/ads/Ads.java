@@ -3,8 +3,8 @@ package com.biorecorder.ads;
 
 import com.biorecorder.comport.Comport;
 import com.biorecorder.comport.ComportFactory;
-import com.biorecorder.recordformat.DefaultRecordConfig;
-import com.biorecorder.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.FormatVersion;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -434,7 +434,7 @@ public class Ads {
     }
 
     public RecordConfig getDataConfig(AdsConfig adsConfig) {
-        DefaultRecordConfig edfConfig = new DefaultRecordConfig(0);
+        RecordConfig edfConfig = new RecordConfig(FormatVersion.BDF_24BIT, 0);
         edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {

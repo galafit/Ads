@@ -1,8 +1,10 @@
 package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
-import com.biorecorder.recordformat.*;
-import com.biorecorder.filters.*;
+import com.biorecorder.digitalfilter.DigitalFilter;
+import com.biorecorder.multisignal.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordfilter.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -111,7 +113,7 @@ public class BioRecorder {
             }
         }
 
-        RecordFilter dataFilter = createDataFilter(recorderConfig, isAccelerometerOnly);
+        FilterRecordStream dataFilter = createDataFilter(recorderConfig, isAccelerometerOnly);
         AdsConfig adsConfig = recorderConfig.getAdsConfig();
         dataFilter.setRecordConfig(ads.getDataConfig(adsConfig));
 
@@ -272,7 +274,7 @@ public class BioRecorder {
      */
     public RecordConfig getDataConfig(RecorderConfig recorderConfig) {
         RecordConfig adsDataConfig = ads.getDataConfig(recorderConfig.getAdsConfig());
-        RecordFilter dataFilter =  createDataFilter(recorderConfig, false);
+        FilterRecordStream dataFilter =  createDataFilter(recorderConfig, false);
         dataFilter.setRecordConfig(adsDataConfig);
         RecordConfig config = dataFilter.getResultantConfig();
         return config;
@@ -373,7 +375,7 @@ public class BioRecorder {
     }
 
 
-    private RecordFilter createDataFilter(RecorderConfig recorderConfig, boolean isZeroChannelShouldBeRemoved) {
+    private FilterRecordStream createDataFilter(RecorderConfig recorderConfig, boolean isZeroChannelShouldBeRemoved) {
         Map<Integer, List<NamedDigitalFilter>> enableChannelsFilters = new HashMap<>();
         int enableChannelsCount = 0;
         for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
@@ -424,7 +426,7 @@ public class BioRecorder {
             }
         };
 
-        RecordFilter dataFilter = new RecordFilter(recordStream);
+        FilterRecordStream dataFilter = new FilterRecordStream(recordStream);
 
         // delete helper channels
         if (isZeroChannelShouldBeRemoved || recorderConfig.isLeadOffEnabled() || (recorderConfig.isBatteryVoltageMeasureEnabled() && recorderConfig.isBatteryVoltageChannelDeletingEnable())) {
@@ -448,7 +450,7 @@ public class BioRecorder {
 
         // Add digital filters to ads channels
         if (!enableChannelsFilters.isEmpty()) {
-            SignalDigitalFilter edfSignalsFilter = new SignalDigitalFilter(dataFilter);
+            SignalFilter edfSignalsFilter = new SignalFilter(dataFilter);
             for (Integer signal : enableChannelsFilters.keySet()) {
                 List<NamedDigitalFilter> channelFilters = enableChannelsFilters.get(signal);
                 for (NamedDigitalFilter filter : channelFilters) {

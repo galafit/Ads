@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.recordformat.RecordConfig;
-import com.biorecorder.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.RecordStream;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -112,14 +112,14 @@ public class LslStream implements RecordStream {
             if (channelCount < adsChannelsCount) {
                 for (int j = 0; j < adsChannelFactor; j++) {
                     lslRecordCount = sampleCount * adsChannelFactor + j;
-                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(recordConfig, channelCount, dataRecord[i]);
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) recordConfig.digitalValueToPhysical(channelCount, dataRecord[i]);
                 }
                 lslRecordCount = sampleCount;
-                lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(recordConfig, channelCount, dataRecord[i]);
+                lslRecords.get(lslRecordCount)[channelCount] = (float) recordConfig.digitalValueToPhysical(channelCount, dataRecord[i]);
             } else {
                 for (int j = 0; j < accFactor; j++) {
                     lslRecordCount = sampleCount * accFactor + j;
-                    lslRecords.get(lslRecordCount)[channelCount] = (float) RecordConfig.digitalToPhysical(recordConfig, channelCount, dataRecord[i]);
+                    lslRecords.get(lslRecordCount)[channelCount] = (float) recordConfig.digitalValueToPhysical(channelCount, dataRecord[i]);
                 }
             }
 
