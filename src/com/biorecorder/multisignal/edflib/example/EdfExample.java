@@ -1,13 +1,12 @@
 package com.biorecorder.multisignal.edflib.example;
 
-import com.biorecorder.multisignal.edflib.EdfHeader;
 import com.biorecorder.multisignal.edflib.EdfReader;
 import com.biorecorder.multisignal.edflib.EdfWriter;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -17,7 +16,7 @@ import java.util.List;
  */
 public class EdfExample {
     public static void main(String[] args) {
-        String originalFilename = "sleep.edf";
+        String originalFilename = "ekg.bdf";
         File recordsDir = new File(System.getProperty("user.dir"), "records");
         File originalFile = new File(recordsDir, originalFilename);
 
@@ -27,7 +26,7 @@ public class EdfExample {
         } catch (Throwable e) {
             e.printStackTrace();
         }
-        EdfHeader header = originalFileReader.getHeader();
+        RecordsHeader header = originalFileReader.getHeader();
         // Print some header info from original file
         System.out.println(header);
 
@@ -78,7 +77,7 @@ public class EdfExample {
             EdfWriter fileWriter2 = new EdfWriter(resultantFile2, header);
             // set DataRecord and signals positions to 0;
             originalFileReader.reset();
-            int signals = header.signalsCount();
+            int signals = header.numberOfSignals();
             List<double[]> buffers = new ArrayList<>(signals);
 
 

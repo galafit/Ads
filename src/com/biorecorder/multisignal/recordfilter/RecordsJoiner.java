@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 /**
@@ -22,24 +22,24 @@ public class RecordsJoiner extends FilterRecordStream {
     private int joinedRecordsCounter;
     private int outRecordSize;
 
-    public RecordsJoiner(RecordStream outStream, int numberOfRecordsToJoin) {
+    public RecordsJoiner(RecordsStream outStream, int numberOfRecordsToJoin) {
         super(outStream);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
     }
 
 
     @Override
-    public void setRecordConfig(RecordConfig inConfig) {
-        super.setRecordConfig(inConfig);
+    public void setHeader(RecordsHeader header) {
+        super.setHeader(header);
         outRecordSize = inRecordSize * numberOfRecordsToJoin;
         outDataRecord = new int[outRecordSize];
     }
 
     @Override
-    public RecordConfig getOutConfig() {
-        RecordConfig outConfig = new RecordConfig(inConfig);
+    public RecordsHeader getOutConfig() {
+        RecordsHeader outConfig = new RecordsHeader(inConfig);
         outConfig.setDurationOfDataRecord(inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin);
-        for (int i = 0; i < outConfig.signalsCount(); i++) {
+        for (int i = 0; i < outConfig.numberOfSignals(); i++) {
             outConfig.setNumberOfSamplesInEachDataRecord(i, inConfig.getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
         }
         return outConfig;
@@ -87,7 +87,7 @@ public class RecordsJoiner extends FilterRecordStream {
         // 0 channel 3 samples, 1 channel 2 samples, 3 channel 4 samples
         int[] dataRecord = {1,3,8,  2,4,  7,6,8,6};
 
-        RecordConfig dataConfig = new RecordConfig(FormatVersion.BDF_24BIT, 3);
+        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 4);
@@ -99,7 +99,7 @@ public class RecordsJoiner extends FilterRecordStream {
 
         RecordsJoiner recordFilter = new RecordsJoiner(new TestStream(expectedDataRecord), numberOfRecordsToJoin);
 
-        recordFilter.setRecordConfig(dataConfig);
+        recordFilter.setHeader(dataConfig);
 
         // send 4 records and get as result 2 joined records
         recordFilter.writeRecord(dataRecord);

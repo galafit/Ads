@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 import java.util.ArrayList;
@@ -14,13 +14,13 @@ public class SignalRemover extends FilterRecordStream {
     private List<Integer> signalsToRemove = new ArrayList<Integer>();
     private int outRecordSize;
 
-    public SignalRemover(RecordStream outStream) {
+    public SignalRemover(RecordsStream outStream) {
         super(outStream);
     }
 
     @Override
-    public void setRecordConfig(RecordConfig inConfig) {
-        super.setRecordConfig(inConfig);
+    public void setHeader(RecordsHeader header) {
+        super.setHeader(header);
         outRecordSize = calculateOutRecordSize();
     }
 
@@ -36,15 +36,15 @@ public class SignalRemover extends FilterRecordStream {
         signalsToRemove.add(signalNumber);
         if(inConfig != null) {
             outRecordSize = calculateOutRecordSize();
-            outStream.setRecordConfig(getOutConfig());
+            outStream.setHeader(getOutConfig());
         }
     }
 
     @Override
-    public RecordConfig getOutConfig() {
-        RecordConfig outConfig = new RecordConfig(inConfig);
+    public RecordsHeader getOutConfig() {
+        RecordsHeader outConfig = new RecordsHeader(inConfig);
 
-        for (int i = inConfig.signalsCount() - 1; i >= 0 ; i--) {
+        for (int i = inConfig.numberOfSignals() - 1; i >= 0 ; i--) {
             if(signalsToRemove.contains(i)) {
                 outConfig.removeSignal(i);
             }
@@ -93,7 +93,7 @@ public class SignalRemover extends FilterRecordStream {
         // 0 channel 1 sample, 1 channel 2 samples, 2 channel 3 samples, 3 channel 4 samples
         int[] dataRecord = {1,  2,3,  4,5,6,  7,8,9,0};
 
-        RecordConfig dataConfig = new RecordConfig(FormatVersion.BDF_24BIT, 4);
+        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 4);
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 1);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 3);
@@ -107,7 +107,7 @@ public class SignalRemover extends FilterRecordStream {
         SignalRemover recordFilter = new SignalRemover(new TestStream(expectedDataRecord));
         recordFilter.removeSignal(0);
         recordFilter.removeSignal(2);
-        recordFilter.setRecordConfig(dataConfig);
+        recordFilter.setHeader(dataConfig);
 
         recordFilter.writeRecord(dataRecord);
     }

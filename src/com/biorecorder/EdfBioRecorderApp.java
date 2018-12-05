@@ -1,8 +1,8 @@
 package com.biorecorder;
 
 import com.biorecorder.digitalfilter.MovingAverageFilter;
-import com.biorecorder.multisignal.recordformat.RecordStream;
-import com.biorecorder.multisignal.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -183,7 +183,7 @@ public class EdfBioRecorderApp {
         // remove all previously added filters
         bioRecorder.removeChannelsFilters();
 
-        List<RecordStream> streams = new ArrayList<>(2);
+        List<RecordsStream> streams = new ArrayList<>(2);
 
         if (isLoffDetection) { // lead off detection
             leadOffBitMask = null;
@@ -224,7 +224,7 @@ public class EdfBioRecorderApp {
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
 
-            RecordConfig dataConfig = bioRecorder.getDataConfig(recorderConfig);
+            RecordsHeader dataConfig = bioRecorder.getDataConfig(recorderConfig);
 
             // create lab stream
             if (appConfig.isLabStreamingEnabled()) {
@@ -245,7 +245,7 @@ public class EdfBioRecorderApp {
                 }
                 try {
                     lslStream = new LslStream(numberOfAdsChannels, numberOfAccChannels);
-                    lslStream.setRecordConfig(dataConfig);
+                    lslStream.setHeader(dataConfig);
                     streams.add(lslStream);
                 } catch (IllegalArgumentException ex) {
                     log.info("LabStreaming failed to start", ex);
@@ -281,7 +281,7 @@ public class EdfBioRecorderApp {
                 }
 
                 edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), extraDividers, appConfig.getPatientIdentification(), appConfig.getRecordingIdentification(), appConfig.isDurationOfDataRecordAdjustable());
-                edfStream.setRecordConfig(dataConfig);
+                edfStream.setHeader(dataConfig);
                 streams.add(edfStream);
             } catch (FileNotFoundRuntimeException ex) {
                 log.error(ex);
@@ -299,15 +299,15 @@ public class EdfBioRecorderApp {
     }
 
     class BioRecorderDataHandler implements RecordListener {
-        private final List<RecordStream> streams;
+        private final List<RecordsStream> streams;
 
-        public BioRecorderDataHandler(List<RecordStream> streams) {
+        public BioRecorderDataHandler(List<RecordsStream> streams) {
             this.streams = streams;
         }
 
         public void writeRecord(int[] dataRecord) {
             try {
-                for (RecordStream stream : streams) {
+                for (RecordsStream stream : streams) {
                     stream.writeRecord(dataRecord);
                 }
                 notifyProgressOnDataReceived();
@@ -326,10 +326,10 @@ public class EdfBioRecorderApp {
 
     class StartFutureHandlingTask extends TimerTask {
         private Future future;
-        private final List<RecordStream> streams;
+        private final List<RecordsStream> streams;
         private RecorderType recorderType;
 
-        public StartFutureHandlingTask(Future future, RecorderType recorderType, List<RecordStream> streams) {
+        public StartFutureHandlingTask(Future future, RecorderType recorderType, List<RecordsStream> streams) {
             this.future = future;
             this.streams = streams;
             this.recorderType = recorderType;
@@ -362,7 +362,7 @@ public class EdfBioRecorderApp {
 
         private void closeStreamsAndStartMonitoring() {
             startMonitoring();
-            for (RecordStream stream : streams) {
+            for (RecordsStream stream : streams) {
                 try {
                     stream.close();
                 } catch (Exception ex) {

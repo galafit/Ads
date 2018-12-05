@@ -2,8 +2,8 @@ package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.digitalfilter.DigitalFilter;
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import com.biorecorder.multisignal.recordfilter.*;
 
 import java.util.ArrayList;
@@ -115,7 +115,7 @@ public class BioRecorder {
 
         FilterRecordStream dataFilter = createDataFilter(recorderConfig, isAccelerometerOnly);
         AdsConfig adsConfig = recorderConfig.getAdsConfig();
-        dataFilter.setRecordConfig(ads.getDataConfig(adsConfig));
+        dataFilter.setHeader(ads.getDataConfig(adsConfig));
 
         dataQueue.clear();
         recordsCount = 0;
@@ -195,10 +195,10 @@ public class BioRecorder {
 
 
     class DataHandlingTask implements Callable<Void> {
-        RecordStream dataStream;
+        RecordsStream dataStream;
         private volatile int lastDataRecordNumber = -1;
 
-        public DataHandlingTask(RecordStream dataStream) {
+        public DataHandlingTask(RecordsStream dataStream) {
             this.dataStream = dataStream;
         }
 
@@ -272,11 +272,11 @@ public class BioRecorder {
      *
      * @return object describing data records structure
      */
-    public RecordConfig getDataConfig(RecorderConfig recorderConfig) {
-        RecordConfig adsDataConfig = ads.getDataConfig(recorderConfig.getAdsConfig());
+    public RecordsHeader getDataConfig(RecorderConfig recorderConfig) {
+        RecordsHeader adsDataConfig = ads.getDataConfig(recorderConfig.getAdsConfig());
         FilterRecordStream dataFilter =  createDataFilter(recorderConfig, false);
-        dataFilter.setRecordConfig(adsDataConfig);
-        RecordConfig config = dataFilter.getResultantConfig();
+        dataFilter.setHeader(adsDataConfig);
+        RecordsHeader config = dataFilter.getResultantConfig();
         return config;
     }
 
@@ -408,14 +408,14 @@ public class BioRecorder {
             enableChannelsCount++;
         }
 
-        RecordStream recordStream = new RecordStream() {
+        RecordsStream recordStream = new RecordsStream() {
             @Override
             public void writeRecord(int[] dataRecord) {
                 dataListener.writeRecord(dataRecord);
             }
 
             @Override
-            public void setRecordConfig(RecordConfig recordConfig) {
+            public void setHeader(RecordsHeader header) {
                 // do nothing
             }
 

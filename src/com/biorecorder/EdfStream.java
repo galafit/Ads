@@ -1,9 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
-import com.biorecorder.multisignal.recordformat.FormatVersion;
-import com.biorecorder.multisignal.edflib.EdfHeader;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import com.biorecorder.multisignal.edflib.EdfWriter;
 import com.biorecorder.multisignal.recordfilter.RecordsJoiner;
 import com.biorecorder.multisignal.recordfilter.SignalFrequencyReducer;
@@ -25,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <li>reduce signal frequencies if it was specified</li>
  * </ul>
  */
-public class EdfStream implements RecordStream {
+public class EdfStream implements RecordsStream {
     private static final Log log = LogFactory.getLog(EdfStream.class);
 
     private final int numberOfRecordsToJoin;
@@ -36,7 +34,7 @@ public class EdfStream implements RecordStream {
     private final Map<Integer, Integer> extraDividers;
 
     private volatile EdfWriter edfWriter;
-    private volatile RecordStream DataStream;
+    private volatile RecordsStream DataStream;
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
 
@@ -51,24 +49,13 @@ public class EdfStream implements RecordStream {
 
 
     @Override
-    public void setRecordConfig(RecordConfig recordConfig) throws FileNotFoundRuntimeException {
-        DataStream = new RecordStream() {
+    public void setHeader(RecordsHeader header) throws FileNotFoundRuntimeException {
+        DataStream = new RecordsStream() {
             @Override
-            public void setRecordConfig(RecordConfig recordConfig) throws FileNotFoundRuntimeException {
-                // copy data from recordConfig to the EdfHeader
-                EdfHeader edfHeader = new EdfHeader(FormatVersion.BDF_24BIT, recordConfig.signalsCount());
+            public void setHeader(RecordsHeader header) throws FileNotFoundRuntimeException {
+                RecordsHeader edfHeader = new RecordsHeader(header);
                 edfHeader.setPatientIdentification(patientIdentification);
                 edfHeader.setRecordingIdentification(recordIdentification);
-                edfHeader.setDurationOfDataRecord(recordConfig.getDurationOfDataRecord());
-                for (int i = 0; i < recordConfig.signalsCount(); i++) {
-                    edfHeader.setNumberOfSamplesInEachDataRecord(i, recordConfig.getNumberOfSamplesInEachDataRecord(i));
-                    edfHeader.setPrefiltering(i, recordConfig.getPrefiltering(i));
-                    edfHeader.setTransducer(i, recordConfig.getTransducer(i));
-                    edfHeader.setLabel(i, recordConfig.getLabel(i));
-                    edfHeader.setDigitalRange(i, recordConfig.getDigitalMin(i), recordConfig.getDigitalMax(i));
-                    edfHeader.setPhysicalRange(i, recordConfig.getPhysicalMin(i), recordConfig.getPhysicalMax(i));
-                    edfHeader.setPhysicalDimension(i, recordConfig.getPhysicalDimension(i));
-                }
 
                 try {
                     edfWriter = new EdfWriter(file, edfHeader);
@@ -81,7 +68,6 @@ public class EdfStream implements RecordStream {
             public void writeRecord(int[] dataRecord) {
                 edfWriter.writeRecord(dataRecord);
                 numberOfWrittenDataRecords.incrementAndGet();
-
             }
 
             @Override
@@ -113,7 +99,7 @@ public class EdfStream implements RecordStream {
         }
 
 
-        DataStream.setRecordConfig(recordConfig);
+        DataStream.setHeader(header);
     }
 
     @Override

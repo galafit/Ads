@@ -3,8 +3,8 @@ package com.biorecorder.multisignal.recordformat;
 /**
  * Created by galafit on 28/7/18.
  */
-public interface RecordStream {
-    void setRecordConfig(RecordConfig recordConfig);
+public interface RecordsStream {
+    void setHeader(RecordsHeader header);
     void writeRecord(int[] dataRecord);
     void close();
 }

@@ -2,8 +2,8 @@ package com.biorecorder.multisignal.recordfilter;
 
 import com.biorecorder.digitalfilter.DigitalFilter;
 import com.biorecorder.digitalfilter.MovingAverageFilter;
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 import java.util.ArrayList;
@@ -19,16 +19,16 @@ public class SignalFilter extends FilterRecordStream {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public SignalFilter(RecordStream outStream) {
+    public SignalFilter(RecordsStream outStream) {
         super(outStream);
     }
 
     @Override
-    public void setRecordConfig(RecordConfig inConfig) {
-        super.setRecordConfig(inConfig);
-        offsets = new double[inConfig.signalsCount()];
+    public void setHeader(RecordsHeader header) {
+        super.setHeader(header);
+        offsets = new double[header.numberOfSignals()];
         for (int i = 0; i < offsets.length; i++) {
-            offsets[i] = inConfig.offset(i);
+            offsets[i] = header.offset(i);
         }
     }
 
@@ -49,7 +49,7 @@ public class SignalFilter extends FilterRecordStream {
         }
         signalFilters.add(new NamedFilter(signalFilter, filterName));
         if(inConfig != null) {
-            outStream.setRecordConfig(getOutConfig());
+            outStream.setHeader(getOutConfig());
         }
     }
 
@@ -66,9 +66,9 @@ public class SignalFilter extends FilterRecordStream {
     }
 
     @Override
-    public RecordConfig getOutConfig() {
-        RecordConfig outConfig = new RecordConfig(inConfig);
-        for (int i = 0; i < outConfig.signalsCount(); i++) {
+    public RecordsHeader getOutConfig() {
+        RecordsHeader outConfig = new RecordsHeader(inConfig);
+        for (int i = 0; i < outConfig.numberOfSignals(); i++) {
             String prefilter = getSignalFiltersName(i);
             if(inConfig.getPrefiltering(i) != null && ! inConfig.getPrefiltering(i).isEmpty()) {
                 prefilter = inConfig.getPrefiltering(i) + ";" +getSignalFiltersName(i);
@@ -133,7 +133,7 @@ public class SignalFilter extends FilterRecordStream {
         // 0 channel 1 sample, 1 channel 6 samples, 2 channel 2 samples
         int[] dataRecord = {1,  2,4,8,6,0,8,  3,5};
 
-        RecordConfig dataConfig = new RecordConfig(FormatVersion.BDF_24BIT, 3);
+        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 3);
 
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 1);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 6);
@@ -151,7 +151,7 @@ public class SignalFilter extends FilterRecordStream {
 
         SignalFilter recordFilter = new SignalFilter(new TestStream(expectedRecords));
         recordFilter.addSignalFilter(1, new MovingAverageFilter(2), "movAvg:2");
-        recordFilter.setRecordConfig(dataConfig);
+        recordFilter.setHeader(dataConfig);
 
         // send 4 records and get 4 resultant records
         recordFilter.writeRecord(dataRecord);

@@ -3,7 +3,7 @@ package com.biorecorder.ads;
 
 import com.biorecorder.comport.Comport;
 import com.biorecorder.comport.ComportFactory;
-import com.biorecorder.multisignal.recordformat.RecordConfig;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -433,13 +433,13 @@ public class Ads {
         return ComportFactory.getAvailableComportNames();
     }
 
-    public RecordConfig getDataConfig(AdsConfig adsConfig) {
-        RecordConfig edfConfig = new RecordConfig(FormatVersion.BDF_24BIT, 0);
+    public RecordsHeader getDataConfig(AdsConfig adsConfig) {
+        RecordsHeader edfConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 0);
         edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {
                 edfConfig.addSignal();
-                int signalNumber = edfConfig.signalsCount() - 1;
+                int signalNumber = edfConfig.numberOfSignals() - 1;
                 int channelSampleRate = adsConfig.getSampleRate().getValue() / adsConfig.getAdsChannelDivider(i);
                 edfConfig.setTransducer(signalNumber, "Unknown");
                 edfConfig.setPhysicalDimension(signalNumber, getAdsChannelsPhysicalDimension());
@@ -456,7 +456,7 @@ public class Ads {
 
             if (adsConfig.isAccelerometerOneChannelMode()) { // 1 accelerometer channels
                 edfConfig.addSignal();
-                int signalNumber = edfConfig.signalsCount() - 1;
+                int signalNumber = edfConfig.numberOfSignals() - 1;
                 edfConfig.setLabel(signalNumber, "Accelerometer");
                 edfConfig.setTransducer(signalNumber, "None");
                 edfConfig.setPhysicalDimension(signalNumber, getAccelerometerPhysicalDimension(adsConfig.isAccelerometerOneChannelMode()));
@@ -468,7 +468,7 @@ public class Ads {
                 String[] accelerometerChannelNames = {"Accelerometer X", "Accelerometer Y", "Accelerometer Z"};
                 for (int i = 0; i < 3; i++) {     // 3 accelerometer channels
                     edfConfig.addSignal();
-                    int signalNumber = edfConfig.signalsCount() - 1;
+                    int signalNumber = edfConfig.numberOfSignals() - 1;
                     edfConfig.setLabel(signalNumber, accelerometerChannelNames[i]);
                     edfConfig.setTransducer(signalNumber, "None");
                     edfConfig.setPhysicalDimension(signalNumber, getAccelerometerPhysicalDimension(adsConfig.isAccelerometerOneChannelMode()));
@@ -481,7 +481,7 @@ public class Ads {
         }
         if (adsConfig.isBatteryVoltageMeasureEnabled()) {
             edfConfig.addSignal();
-            int signalNumber = edfConfig.signalsCount() - 1;
+            int signalNumber = edfConfig.numberOfSignals() - 1;
             edfConfig.setLabel(signalNumber, "Battery voltage");
             edfConfig.setTransducer(signalNumber, "None");
             edfConfig.setPhysicalDimension(signalNumber, getBatteryVoltageDimension());
@@ -492,7 +492,7 @@ public class Ads {
         }
         if (adsConfig.isLeadOffEnabled()) {
             edfConfig.addSignal();
-            int signalNumber = edfConfig.signalsCount() - 1;
+            int signalNumber = edfConfig.numberOfSignals() - 1;
             edfConfig.setLabel(signalNumber, "Lead Off Status");
             edfConfig.setTransducer(signalNumber, "None");
             edfConfig.setPhysicalDimension(signalNumber, getLeadOffStatusDimension());

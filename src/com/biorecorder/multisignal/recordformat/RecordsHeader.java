@@ -1,12 +1,13 @@
 package com.biorecorder.multisignal.recordformat;
 
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 /**
- * RecordConfig specify and provide the information needed to correctly extract
- * data samples belonging to different signals from data records.
- * <p>
  * Most multi signal formats (Edf, Bdf, Gdf...)
  * store and exchange multichannel biological
  * and physical data in forms of data records.
@@ -19,12 +20,12 @@ import java.util.ArrayList;
  * <br>...
  * <br>n_k samples belonging to  signal k
  * <p>
- * Every signal may have its own sample frequency!
+ * Essentially data record is just an array of integers. Every signal may have its own sample frequency!
  * <br>The number of samples n_i = (sample frequency of the signal_i) * (time interval).
  * <p>
- * Essentially data record is just an array of integers. Every measured
+ * Every measured
  * digital sample is saved as one integer. A linear relationship between
- * digital (integer) values stored in data record/package and the corresponding
+ * digital (integer) values stored in data record and the corresponding
  * physical values are assumed. To convert digital values to
  * the physical ones (and vice versa) <b>digital minimum and maximum</b>
  * and the corresponding <b> physical minimum and maximum</b>
@@ -43,22 +44,28 @@ import java.util.ArrayList;
  * In general "Gain" refers to multiplication of a signal
  * and "Offset"  refer to addition to a signal, i.e. out = (in + Offset) * Gain
  * <p>
- * Full specification of EDF:
- * <a href="http://www.edfplus.info/specs/edf.html">European Data Format (EDF)</a>
- */
-public class RecordConfig {
-    private FormatVersion versionFormat = FormatVersion.EDF_16BIT;
+ * RecordsHeader contains all necessary info to correctly extract
+ * samples belonging to different signals from records
+ * and convert it to corresponding physical values.
+  */
+public class RecordsHeader {
+    private String patientIdentification = "Default patient";
+    private String recordingIdentification = "Default record";
+    private long recordingStartTime = 0;
+    private int numberOfDataRecords = -1;
+
+    private FormatVersion versionFormat;
     protected double durationOfDataRecord = 1; // sec
     protected ArrayList<Signal> signals = new ArrayList<Signal>();
 
     /**
-     * This constructor creates a RecordConfig instance
-     * with the specified  sample size and number of measuring channels (signals)
-     * @param versionFormat      16BIT or 24BIT
+     * This constructor creates an instance of RecordsHeader
+     * with the specified  version format and number of measuring channels (signals)
+     * @param versionFormat   16BIT or 24BIT
      * @param numberOfSignals number of signals in data records
      * @throws IllegalArgumentException if numberOfSignals < 0
      */
-    public RecordConfig(FormatVersion versionFormat, int numberOfSignals) throws IllegalArgumentException {
+    public RecordsHeader(FormatVersion versionFormat, int numberOfSignals) throws IllegalArgumentException {
         if (numberOfSignals < 0) {
             String errMsg = MessageFormat.format("Number of signals is invalid: {0}. Expected {1}", numberOfSignals, ">= 0");
             throw new IllegalArgumentException(errMsg);
@@ -67,19 +74,25 @@ public class RecordConfig {
         for (int i = 0; i < numberOfSignals; i++) {
             addSignal();
         }
+         
     }
 
 
     /**
-     * Constructor to make a copy of the given recordConfig
+     * Constructor to make a copy of the given recordsHeader
      *
-     * @param recordConfig RecordConfig instance that will be copied
+     * @param recordsHeader HeaderMetadata instance that will be copied
      */
-    public RecordConfig(RecordConfig recordConfig) {
-        durationOfDataRecord = recordConfig.durationOfDataRecord;
-        versionFormat = recordConfig.versionFormat;
-        for (int i = 0; i < recordConfig.signalsCount(); i++) {
-            signals.add(new Signal(recordConfig.signals.get(i)));
+    public RecordsHeader(RecordsHeader recordsHeader) {
+        durationOfDataRecord = recordsHeader.durationOfDataRecord;
+        versionFormat = recordsHeader.versionFormat;
+        patientIdentification = recordsHeader.patientIdentification;
+        recordingIdentification = recordsHeader.recordingIdentification;
+        numberOfDataRecords = recordsHeader.numberOfDataRecords;
+        recordingStartTime = recordsHeader.recordingStartTime;
+
+        for (int i = 0; i < recordsHeader.numberOfSignals(); i++) {
+            signals.add(new Signal(recordsHeader.signals.get(i)));
         }
     }
 
@@ -88,14 +101,14 @@ public class RecordConfig {
      *
      * @return the number of measuring channels
      */
-    public int signalsCount() {
+    public int numberOfSignals() {
         return signals.size();
     }
 
 
     /**
      * Gets the measuring time interval or duration of data records
-     * in seconds
+     * in seconds. 1 sec by default
      *
      * @return duration of data record in seconds
      */
@@ -105,10 +118,10 @@ public class RecordConfig {
 
 
     /**
-     * Sets duration of DataRecords in seconds.
+     * Sets duration of data records in seconds.
      * Default value = 1 sec.
      *
-     * @param durationOfDataRecord duration of DataRecords in seconds
+     * @param durationOfDataRecord duration of data records in seconds
      * @throws IllegalArgumentException if getCalculatedDurationOfDataRecord <= 0.
      */
     public void setDurationOfDataRecord(double durationOfDataRecord) throws IllegalArgumentException {
@@ -118,6 +131,146 @@ public class RecordConfig {
         }
         this.durationOfDataRecord = durationOfDataRecord;
     }
+
+    /**
+     * Gets the patient identification string (name, surname, etc).
+     *
+     * @return patient identification string
+     */
+    public String getPatientIdentification() {
+        return patientIdentification;
+    }
+
+    /**
+     * Sets the patient identification string (name, surname, etc).
+     * This method is optional
+     *
+     * @param patientIdentification patient identification string
+     */
+    public void setPatientIdentification(String patientIdentification) {
+        this.patientIdentification = patientIdentification;
+    }
+
+    /**
+     * Gets the recording identification string.
+     *
+     * @return recording (experiment) identification string
+     */
+    public String getRecordingIdentification() {
+        return recordingIdentification;
+    }
+
+    /**
+     * Sets the recording identification string.
+     * This method is optional
+     *
+     * @param recordingIdentification recording (experiment) identification string
+     */
+    public void setRecordingIdentification(String recordingIdentification) {
+        this.recordingIdentification = recordingIdentification;
+    }
+
+    /**
+     * Gets recording start date and time measured in milliseconds,
+     * since midnight, January 1, 1970 UTC.
+     *
+     * @return the difference, measured in milliseconds,
+     * between the recording startRecording time
+     * and midnight, January 1, 1970 UTC.
+     */
+    public long getRecordingStartTimeMs() {
+        return recordingStartTime;
+    }
+
+
+    /**
+     * Helper method that sets recording start date and time.
+     * This function is optional.
+     *
+     * @param year   1970 - 3000
+     * @param month  1 - 12
+     * @param day    1 - 31
+     * @param hour   0 - 23
+     * @param minute 0 - 59
+     * @param second 0 - 59
+     * @throws IllegalArgumentException if some parameter (year, month...) is out of its range
+     */
+    public void setRecordingStartDateTime(int year, int month, int day, int hour, int minute, int second) throws IllegalArgumentException {
+        if (year < 1970 || year > 3000) {
+            String errMsg = MessageFormat.format("Year is invalid: {0}. Expected: {1}", year, "1970 - 3000");
+            throw new IllegalArgumentException(errMsg);
+        }
+        if (month < 1 || month > 12) {
+            String errMsg = MessageFormat.format("Month is invalid: {0}. Expected: {1}", month, "1 - 12");
+            throw new IllegalArgumentException(errMsg);
+        }
+        if (day < 1 || day > 31) {
+            String errMsg = MessageFormat.format("Day is invalid: {0}. Expected: {1}", day, "1 - 31");
+            throw new IllegalArgumentException(errMsg);
+        }
+        if (hour < 0 || hour > 23) {
+            String errMsg = MessageFormat.format("Hour is invalid: {0}. Expected: {1}", hour, "0 - 23");
+            throw new IllegalArgumentException(errMsg);
+        }
+        if (minute < 0 || minute > 59) {
+            String errMsg = MessageFormat.format("Minute is invalid: {0}. Expected: {1}", minute, "0 - 59");
+            throw new IllegalArgumentException(errMsg);
+        }
+        if (second < 0 || second > 59) {
+            String errMsg = MessageFormat.format("Second is invalid: {0}. Expected: {1}", second, "0 - 59");
+            throw new IllegalArgumentException(errMsg);
+        }
+
+        Calendar calendar = Calendar.getInstance();
+        // in java month indexing from 0
+        calendar.set(year, month - 1, day, hour, minute, second);
+        this.recordingStartTime = calendar.getTimeInMillis();
+    }
+
+    /**
+     * Sets recording start time measured in milliseconds,
+     * since midnight, January 1, 1970 UTC.
+     * This function is optional.
+     *
+     * @param recordingStartTime the difference, measured in milliseconds,
+     *                           between the recording startRecording time
+     *                           and midnight, January 1, 1970 UTC.
+     * @throws IllegalArgumentException if recordingStartTime < 0
+     */
+    public void setRecordingStartTimeMs(long recordingStartTime) {
+        if (recordingStartTime < 0) {
+            String errMsg = "Invalid startRecording time: " + recordingStartTime + " Expected >= 0";
+            throw new IllegalArgumentException(errMsg);
+        }
+        this.recordingStartTime = recordingStartTime;
+    }
+
+    /**
+     * Gets the number of data records.
+     * Return -1 if unknown.
+     * @return total number of all data records or -1 if unknown
+     */
+    public int getNumberOfDataRecords() {
+        return numberOfDataRecords;
+    }
+
+    /**
+     * Sets the number of data records (data packages) in Edf/Bdf file.
+     * The default value = -1 means that file writing is not finished yet.
+     * This method should not be used by users because
+     * EdfWriter calculate and sets the number of data records automatically
+     *
+     * @param numberOfDataRecords number of data records (data packages) in Edf/Bdf file
+     * @throws IllegalArgumentException if number of data records < -1
+     */
+    public void setNumberOfDataRecords(int numberOfDataRecords) throws IllegalArgumentException {
+        if (numberOfDataRecords < -1) {
+            String errMsg = "Invalid number of data records: " + numberOfDataRecords + " Expected >= -1";
+            throw new IllegalArgumentException(errMsg);
+        }
+        this.numberOfDataRecords = numberOfDataRecords;
+    }
+
 
     /*****************************************************************
      *                   Signals Info                                *
@@ -417,7 +570,7 @@ public class RecordConfig {
      * This method is just a user friendly wrapper of the method
      * {@link #setNumberOfSamplesInEachDataRecord(int, int)}
      * <p>
-     * When duration of DataRecords = 1 sec (default):
+     * When duration of data records = 1 sec (default):
      * NumberOfSamplesInEachDataRecord = sampleFrequency
      * <p>
      * SampleFrequency o NumberOfSamplesInEachDataRecord must be set for every signal!!!
@@ -455,7 +608,7 @@ public class RecordConfig {
      */
     public int getRecordSize() {
         int recordSize = 0;
-        for (int i = 0; i < signalsCount(); i++) {
+        for (int i = 0; i < numberOfSignals(); i++) {
             recordSize += getNumberOfSamplesInEachDataRecord(i);
         }
         return recordSize;
@@ -658,9 +811,15 @@ public class RecordConfig {
         StringBuilder sb = new StringBuilder();
         //  sb.append(super.toString());
         sb.append("Format version = " + getFormatVersion());
-        sb.append("\nDuration of DataRecords = " + getDurationOfDataRecord());
-        sb.append("\nNumber of signals = " + signalsCount());
-        for (int i = 0; i < signalsCount(); i++) {
+        sb.append("\nNumber of data records = " + getNumberOfDataRecords());
+        DateFormat dateFormat = new SimpleDateFormat("dd:MM:yyyy HH:mm:ss");
+        String timeStamp = dateFormat.format(new Date(getRecordingStartTimeMs()));
+        sb.append("\nStart date and time = " + timeStamp + " (" + getRecordingStartTimeMs() + " ms)");
+        sb.append("\nPatient identification = " + getPatientIdentification());
+        sb.append("\nRecording identification = " + getRecordingIdentification());
+        sb.append("\nDuration of data records = " + getDurationOfDataRecord());
+        sb.append("\nNumber of signals = " + numberOfSignals());
+        for (int i = 0; i < numberOfSignals(); i++) {
             sb.append("\n  " + i + " label: " + getLabel(i)
                     + "; number of samples: " + getNumberOfSamplesInEachDataRecord(i)
                     + "; frequency: " + Math.round(getSampleFrequency(i))

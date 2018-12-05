@@ -1,5 +1,7 @@
 package com.biorecorder.multisignal.edflib;
 
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+
 import java.io.*;
 
 // TODO make it  partially thread safe like EdfWriter!!!
@@ -7,7 +9,7 @@ import java.io.*;
 /**
  * Permits to read data samples from EDF or BDF file. Also it
  * reads information from the file header and saves it
- * in special {@link EdfHeader} object, that we
+ * in special {@link RecordsHeader} object, that we
  * can get by method {@link #getHeader()}
  * <p>
  * This class is NOT thread safe!
@@ -18,12 +20,13 @@ import java.io.*;
  * So we can "read" both digital or physical values.
  */
 public class EdfReader {
-    private EdfHeader header;
+    private RecordsHeader header;
     private FileInputStream fileInputStream;
     private File file;
     private long[] samplesPositionList;
     private long recordPosition = 0;
     private final int recordSize;
+    private int numberOfBytesInHeaderRecord;
 
     /**
      * Creates EdfFileReader to read data from the file represented by the specified
@@ -40,8 +43,10 @@ public class EdfReader {
     public EdfReader(File file) throws FileNotFoundException, HeaderException, IOException {
         this.file = file;
         fileInputStream = new FileInputStream(file);
-        header = new HeaderRecord(file).getHeaderInfo();
-        samplesPositionList = new long[header.signalsCount()];
+        HeaderRecord headerRecord = new HeaderRecord(file);
+        header = headerRecord.getHeaderInfo();
+        numberOfBytesInHeaderRecord = headerRecord.getNumberOfBytes();
+        samplesPositionList = new long[header.numberOfSignals()];
         recordSize = header.getRecordSize();
     }
 
@@ -163,7 +168,7 @@ public class EdfReader {
 
 
 
-        long fileReadPosition = header.getNumberOfBytesInHeaderRecord() +
+        long fileReadPosition = numberOfBytesInHeaderRecord +
                 (recordNumber * recordSize + signalStartPositionInRecord + sampleStartOffset) * bytesPerSample;
 
         // set file start reading position and read
@@ -214,7 +219,7 @@ public class EdfReader {
      */
     public int readRecords(int n, int[] buffer) throws IOException {
         int bytesPerSample = header.getFormatVersion().getNumberOfBytesPerSample();
-        long fileReadPosition = header.getNumberOfBytesInHeaderRecord() +
+        long fileReadPosition = numberOfBytesInHeaderRecord +
                 recordSize * recordPosition * bytesPerSample;
         fileInputStream.getChannel().position(fileReadPosition);
 
@@ -241,7 +246,7 @@ public class EdfReader {
      *
      * @return the object containing EDF/BDF header information
      */
-    public EdfHeader getHeader() {
+    public RecordsHeader getHeader() {
         return header;
     }
 
@@ -274,7 +279,7 @@ public class EdfReader {
      * @return total number of DataRecords in the file
      */
     public long numberOfRecords() {
-        return (file.length() - header.getNumberOfBytesInHeaderRecord()) / (recordSize * header.getFormatVersion().getNumberOfBytesPerSample());
+        return (file.length() - numberOfBytesInHeaderRecord) / (recordSize * header.getFormatVersion().getNumberOfBytesPerSample());
     }
 
     /**

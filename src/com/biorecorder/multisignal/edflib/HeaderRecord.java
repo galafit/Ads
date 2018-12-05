@@ -1,6 +1,7 @@
 package com.biorecorder.multisignal.edflib;
 
 import com.biorecorder.multisignal.recordformat.FormatVersion;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -115,7 +116,16 @@ public class HeaderRecord {
         return buffer;
     }
 
-    public HeaderRecord(EdfHeader edfHeader) {
+    public int getNumberOfBytes() {
+        return getNumberOfBytesInHeaderRecord(numberOfSignals);
+    }
+
+    private int getNumberOfBytesInHeaderRecord(int numberOfSignals) {
+        return 256 + (numberOfSignals * 256);
+    }
+
+
+    public HeaderRecord(RecordsHeader edfHeader) {
         // convert this HeaderConfig object to byte array
         String startDateOfRecording = new SimpleDateFormat("dd.MM.yy").format(new Date(edfHeader.getRecordingStartTimeMs()));
         String startTimeOfRecording = new SimpleDateFormat("HH.mm.ss").format(new Date(edfHeader.getRecordingStartTimeMs()));
@@ -128,11 +138,11 @@ public class HeaderRecord {
         headerBuilder.append(adjustLength(edfHeader.getRecordingIdentification(), RECORD_ID_LENGTH));
         headerBuilder.append(startDateOfRecording);
         headerBuilder.append(startTimeOfRecording);
-        headerBuilder.append(adjustLength(Integer.toString(edfHeader.getNumberOfBytesInHeaderRecord()), NUMBER_OF_BYTES_IN_HEADER_LENGTH));
+        headerBuilder.append(adjustLength(Integer.toString(getNumberOfBytesInHeaderRecord(edfHeader.numberOfSignals())), NUMBER_OF_BYTES_IN_HEADER_LENGTH));
         headerBuilder.append(adjustLength(versionFields.getFirstReserved(), RESERVED_LENGTH));
         headerBuilder.append(adjustLength(Integer.toString(edfHeader.getNumberOfDataRecords()), NUMBER_Of_DATARECORDS_LENGTH));
         headerBuilder.append(adjustLength(double2String(edfHeader.getDurationOfDataRecord()), DURATION_OF_DATARECORD_LENGTH));
-        headerBuilder.append(adjustLength(Integer.toString(edfHeader.signalsCount()), NUMBER_OF_SIGNALS_LENGTH));
+        headerBuilder.append(adjustLength(Integer.toString(edfHeader.numberOfSignals()), NUMBER_OF_SIGNALS_LENGTH));
 
         StringBuilder labels = new StringBuilder();
         StringBuilder transducerTypes = new StringBuilder();
@@ -145,7 +155,7 @@ public class HeaderRecord {
         StringBuilder samplesNumbers = new StringBuilder();
         StringBuilder reservedForChannels = new StringBuilder();
 
-        for (int i = 0; i < edfHeader.signalsCount(); i++) {
+        for (int i = 0; i < edfHeader.numberOfSignals(); i++) {
             labels.append(adjustLength(edfHeader.getLabel(i), SIGNAL_LABEL_LENGTH));
             transducerTypes.append(adjustLength(edfHeader.getTransducer(i), SIGNAL_TRANSDUCER_TYPE_LENGTH));
             physicalDimensions.append(adjustLength(edfHeader.getPhysicalDimension(i), SIGNAL_PHYSICAL_DIMENSION_LENGTH));
@@ -184,7 +194,7 @@ public class HeaderRecord {
     }
 
 
-    public EdfHeader getHeaderInfo() throws HeaderException {
+    public RecordsHeader getHeaderInfo() throws HeaderException {
 
 /******************** VERSION OF DATA FORMAT *********************************************/
         FormatVersion formatVersion = new VersionFields().formatVersion;
@@ -264,7 +274,7 @@ public class HeaderRecord {
             throw new HeaderException(HeaderException.TYPE_RECORD_DURATION_INVALID, recordDurationString);
         }
 
-        EdfHeader edfHeader = new EdfHeader(formatVersion, realNumberOfSignals);
+        RecordsHeader edfHeader = new RecordsHeader(formatVersion, realNumberOfSignals);
         edfHeader.setPatientIdentification(patientIdentification());
         edfHeader.setRecordingIdentification(recordingIdentification());
         edfHeader.setRecordingStartTimeMs(startingDateTime);

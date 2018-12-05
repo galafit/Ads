@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 import java.util.HashMap;
@@ -14,13 +14,13 @@ public class SignalFrequencyReducer extends FilterRecordStream {
     private Map<Integer, Integer> dividers = new HashMap<>();
     private int outRecordSize;
 
-    public SignalFrequencyReducer(RecordStream outStream) {
+    public SignalFrequencyReducer(RecordsStream outStream) {
         super(outStream);
     }
 
     @Override
-    public void setRecordConfig(RecordConfig inConfig) {
-        super.setRecordConfig(inConfig);
+    public void setHeader(RecordsHeader header) {
+        super.setHeader(header);
         outRecordSize = calculateOutRecordSize();
     }
 
@@ -39,14 +39,14 @@ public class SignalFrequencyReducer extends FilterRecordStream {
         dividers.put(signalNumber, divider);
         if(inConfig != null) {
             outRecordSize = calculateOutRecordSize();
-            outStream.setRecordConfig(getOutConfig());
+            outStream.setHeader(getOutConfig());
         }
     }
 
     private int calculateOutRecordSize() {
         int outRecordSize = 0;
 
-        for (int i = 0; i < inConfig.signalsCount(); i++) {
+        for (int i = 0; i < inConfig.numberOfSignals(); i++) {
             Integer divider = dividers.get(i);
             if(divider != null) {
                 outRecordSize += inConfig.getNumberOfSamplesInEachDataRecord(i) / divider;
@@ -58,9 +58,9 @@ public class SignalFrequencyReducer extends FilterRecordStream {
     }
 
     @Override
-    public RecordConfig getOutConfig() {
-        RecordConfig outConfig = new RecordConfig(inConfig);
-        for (int i = 0; i < outConfig.signalsCount(); i++) {
+    public RecordsHeader getOutConfig() {
+        RecordsHeader outConfig = new RecordsHeader(inConfig);
+        for (int i = 0; i < outConfig.numberOfSignals(); i++) {
             Integer divider = dividers.get(i);
             if(divider != null) {
                 int numberOfSamples = outConfig.getNumberOfSamplesInEachDataRecord(i) / divider;
@@ -119,7 +119,7 @@ public class SignalFrequencyReducer extends FilterRecordStream {
         // 0 channel 4 samples, 1 channel 2 samples, 2 channel 6 samples
         int[] dataRecord = {1,3,8,4,  2,4,  5,7,6,8,6,0};
 
-        RecordConfig dataConfig = new RecordConfig(FormatVersion.BDF_24BIT, 3);
+        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 4);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 6);
@@ -135,7 +135,7 @@ public class SignalFrequencyReducer extends FilterRecordStream {
         recordFilter.addDivider(1, 2);
         recordFilter.addDivider(2, 2);
 
-        recordFilter.setRecordConfig(dataConfig);
+        recordFilter.setHeader(dataConfig);
 
         recordFilter.writeRecord(dataRecord);
     }

@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,11 +16,11 @@ import java.util.ArrayList;
  * Class thread safe
  */
 
-public class LslStream implements RecordStream {
+public class LslStream implements RecordsStream {
     private static final Log log = LogFactory.getLog(LslStream.class);
     private LSL.StreamInfo info;
     private LSL.StreamOutlet outlet;
-    private RecordConfig recordConfig;
+    private RecordsHeader recordConfig;
 
     private int adsChannelsCount;
     private int channelsCount;
@@ -40,8 +40,8 @@ public class LslStream implements RecordStream {
     }
 
     @Override
-    public void setRecordConfig(RecordConfig recordConfig) {
-        this.recordConfig = recordConfig;
+    public void setHeader(RecordsHeader header) {
+        this.recordConfig = header;
         int numberOfAdsChSamples = 0;
         int numberOfAccChSamples = 0;
 
@@ -49,9 +49,9 @@ public class LslStream implements RecordStream {
 
         for (int i = 0; i < adsChannelsCount; i++) {
             if(numberOfAdsChSamples == 0) {
-                numberOfAdsChSamples = recordConfig.getNumberOfSamplesInEachDataRecord(i);
+                numberOfAdsChSamples = header.getNumberOfSamplesInEachDataRecord(i);
             } else {
-                if (numberOfAdsChSamples != recordConfig.getNumberOfSamplesInEachDataRecord(i)) {
+                if (numberOfAdsChSamples != header.getNumberOfSamplesInEachDataRecord(i)) {
                     String errMsg = "Channels frequencies must be the same";
                     throw new IllegalArgumentException(errMsg);
                 }
@@ -59,7 +59,7 @@ public class LslStream implements RecordStream {
         }
 
         if(accChannelsCount > 0) {
-            numberOfAccChSamples = recordConfig.getNumberOfSamplesInEachDataRecord(channelsCount - 1);
+            numberOfAccChSamples = header.getNumberOfSamplesInEachDataRecord(channelsCount - 1);
         }
 
         recordLength = numberOfAdsChSamples * adsChannelsCount + numberOfAccChSamples * accChannelsCount;
@@ -84,13 +84,13 @@ public class LslStream implements RecordStream {
         }
 
 
-        int maxFrequency = (int)Math.round(maxNumberOfSamplesInRecord / recordConfig.getDurationOfDataRecord());
-        info = new LSL.StreamInfo("BioSemi", "EEG", recordConfig.signalsCount(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
+        int maxFrequency = (int)Math.round(maxNumberOfSamplesInRecord / header.getDurationOfDataRecord());
+        info = new LSL.StreamInfo("BioSemi", "EEG", header.numberOfSignals(), maxFrequency, LSL.ChannelFormat.float32, "myuid324457");
         outlet = new LSL.StreamOutlet(info);
 
         numberOfLslRecords = maxNumberOfSamplesInRecord;
 
-        log.info("MatlabDataListener initialization. Number of enabled channels = " + recordConfig.signalsCount() +
+        log.info("MatlabDataListener initialization. Number of enabled channels = " + header.numberOfSignals() +
                 ". Frequency = " + maxFrequency + ". Number of samples in BDF data record = " + maxNumberOfSamplesInRecord);
 
     }

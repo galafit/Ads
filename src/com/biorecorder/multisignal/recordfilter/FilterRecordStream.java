@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 
 /**
  * FilterRecordStream is just a wrapper of an already existing
@@ -9,17 +9,17 @@ import com.biorecorder.multisignal.recordformat.RecordStream;
  * which do some transforms with input data records before
  * to write them to the underlying stream.
  */
-public class FilterRecordStream implements RecordStream {
-    protected RecordConfig inConfig;
+public class FilterRecordStream implements RecordsStream {
+    protected RecordsHeader inConfig;
     protected int inRecordSize;
-    protected RecordStream outStream;
+    protected RecordsStream outStream;
 
-    public FilterRecordStream(RecordStream outStream) {
+    public FilterRecordStream(RecordsStream outStream) {
         this.outStream = outStream;
     }
 
 
-    public RecordConfig getResultantConfig(){
+    public RecordsHeader getResultantConfig(){
         if(outStream instanceof FilterRecordStream) {
             return ((FilterRecordStream) outStream).getResultantConfig();
         } else {
@@ -28,13 +28,13 @@ public class FilterRecordStream implements RecordStream {
     }
 
     @Override
-    public void setRecordConfig(RecordConfig inConfig) {
-        this.inConfig = inConfig;
+    public void setHeader(RecordsHeader header) {
+        this.inConfig = header;
         inRecordSize = 0;
-        for (int i = 0; i < inConfig.signalsCount(); i++) {
-            inRecordSize += inConfig.getNumberOfSamplesInEachDataRecord(i);
+        for (int i = 0; i < header.numberOfSignals(); i++) {
+            inRecordSize += header.getNumberOfSamplesInEachDataRecord(i);
         }
-        outStream.setRecordConfig(getOutConfig());
+        outStream.setHeader(getOutConfig());
     }
 
     @Override
@@ -47,7 +47,7 @@ public class FilterRecordStream implements RecordStream {
         outStream.close();
     }
 
-    protected RecordConfig getOutConfig() {
+    protected RecordsHeader getOutConfig() {
         return inConfig;
     }
 }

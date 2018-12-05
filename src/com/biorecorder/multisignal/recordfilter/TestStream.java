@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordConfig;
-import com.biorecorder.multisignal.recordformat.RecordStream;
+import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.RecordsStream;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Created by galafit on 3/10/18.
  */
-public class TestStream implements RecordStream {
+public class TestStream implements RecordsStream {
     List<int[]> expectedRecords;
     int count;
 
@@ -44,7 +44,7 @@ public class TestStream implements RecordStream {
     }
 
     @Override
-    public void setRecordConfig(RecordConfig recordConfig) {
+    public void setHeader(RecordsHeader header) {
         // do nothing
     }
 
