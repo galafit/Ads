@@ -3,6 +3,9 @@ package com.biorecorder;
 import com.biorecorder.gui.RecorderSettings;
 import com.biorecorder.recorder.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RecorderSettingsImpl implements RecorderSettings {
     private static final String[] ACCELEROMETER_COMMUTATORS = {"1 channel", "3 channels"};
     private final AppConfig appConfig;
@@ -155,7 +158,9 @@ public class RecorderSettingsImpl implements RecorderSettings {
     public void setChannelFrequency(int channelNumber, int frequency) {
         int dividerValue = getMaxFrequency() / frequency;
         RecorderDivider[] dividers = RecorderDivider.values();
+        ExtraDivider[] extraDividers = ExtraDivider.values();
         int maxDivider = dividers[dividers.length - 1].getValue();
+        int maxExtraDivider = extraDividers[extraDividers.length - 1].getValue();
 
         ExtraDivider extraDivider;
         RecorderDivider recorderDivider;
@@ -163,9 +168,15 @@ public class RecorderSettingsImpl implements RecorderSettings {
             extraDivider = ExtraDivider.valueOf(1);
             recorderDivider = RecorderDivider.valueOf(dividerValue);
         } else {
-            extraDivider = ExtraDivider.valueOf(dividerValue / maxDivider);
             recorderDivider = RecorderDivider.valueOf(maxDivider);
-
+            int extraDividerValue = dividerValue / maxDivider;
+            if(extraDividerValue < 1) {
+                extraDividerValue = 1;
+            }
+            if(extraDividerValue > maxExtraDivider) {
+                extraDividerValue = maxExtraDivider;
+            }
+            extraDivider = ExtraDivider.valueOf(extraDividerValue);
         }
         appConfig.getRecorderConfig().setChannelDivider(channelNumber, recorderDivider);
         appConfig.setChannelExtraDivider(channelNumber, extraDivider);
@@ -197,11 +208,19 @@ public class RecorderSettingsImpl implements RecorderSettings {
         int dividerValue = getMaxFrequency() / frequency;
         int accDivider = appConfig.getRecorderConfig().getAccelerometerDivider().getValue();
 
-        int extraDivider = dividerValue / accDivider;
-        if(extraDivider < 1) {
-            extraDivider = 1;
+        ExtraDivider[] extraDividers = ExtraDivider.values();
+         int maxExtraDivider = extraDividers[extraDividers.length - 1].getValue();
+
+
+        int extraDividerValue = dividerValue / accDivider;
+        if(extraDividerValue < 1) {
+            extraDividerValue = 1;
         }
-        appConfig.setAccelerometerExtraDivider(ExtraDivider.valueOf(extraDivider));
+        if(extraDividerValue > maxExtraDivider) {
+            extraDividerValue = maxExtraDivider;
+        }
+
+        appConfig.setAccelerometerExtraDivider(ExtraDivider.valueOf(extraDividerValue));
     }
 
     @Override
@@ -284,6 +303,7 @@ public class RecorderSettingsImpl implements RecorderSettings {
     public  Integer[] getAvailableMaxFrequencies() {
         RecorderSampleRate[] sampleRates = RecorderSampleRate.values();
         Integer[] values = new Integer[sampleRates.length];
+
         for (int i = 0; i < sampleRates.length; i++) {
             values[i] = sampleRates[i].getValue();
         }
@@ -293,29 +313,42 @@ public class RecorderSettingsImpl implements RecorderSettings {
     @Override
     public Integer[] getChannelsAvailableFrequencies() {
         RecorderDivider[] dividers = RecorderDivider.values();
-        ExtraDivider[] extraDividers = ExtraDivider.values();
-
         int maxDivider = dividers[dividers.length - 1].getValue();
-        Integer[] frequencies = new Integer[dividers.length - 1 + extraDividers.length];
-        for (int i = 0; i < dividers.length - 1; i++) {
-            frequencies[i] = getMaxFrequency() / dividers[i].getValue();
+        List<Integer> frequencies = new ArrayList<>();
+
+        for (int i = 0; i < dividers.length; i++) {
+            frequencies.add(getMaxFrequency() / dividers[i].getValue());
         }
+
+        // remove last element (that coincide with extra_divider = 1)
+        frequencies.remove(frequencies.size() - 1);
+
+        ExtraDivider[] extraDividers = ExtraDivider.values();
         for (int i = 0; i < extraDividers.length; i++) {
-            frequencies[dividers.length - 1 + i] = getMaxFrequency() / (maxDivider * extraDividers[i].getValue());
+            frequencies.add(getMaxFrequency() / (maxDivider * extraDividers[i].getValue()));
         }
-        return frequencies;
+
+        Integer[] frequenciesArr = new Integer[frequencies.size()];
+        return frequencies.toArray(frequenciesArr);
     }
 
     @Override
     public Integer[] getAccelerometerAvailableFrequencies() {
         RecorderDivider accDivider = appConfig.getRecorderConfig().getAccelerometerDivider();
+
+        List<Integer> frequencies = new ArrayList<>();
+        frequencies.add(getMaxFrequency() / accDivider.getValue());
+
+        // remove last element (that coincide with extra_divider = 1)
+        frequencies.remove(frequencies.size() - 1);
+
         ExtraDivider[] extraDividers = ExtraDivider.values();
-        Integer[] frequencies = new Integer[extraDividers.length];
         for (int i = 0; i < extraDividers.length; i++) {
-            frequencies[i] = getMaxFrequency() / (accDivider.getValue() * extraDividers[i].getValue());
+            frequencies.add(getMaxFrequency() / (accDivider.getValue() * extraDividers[i].getValue()));
         }
 
-        return frequencies;
+        Integer[] frequenciesArr = new Integer[frequencies.size()];
+        return frequencies.toArray(frequenciesArr);
     }
 
     @Override

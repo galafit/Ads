@@ -6,6 +6,7 @@ import com.biorecorder.ads.Sps;
  * Created by galafit on 1/4/18.
  */
 public enum RecorderSampleRate {
+   // S250(Sps.S250),
     S500(Sps.S500),
     S1000(Sps.S1000),
     S2000(Sps.S2000);
