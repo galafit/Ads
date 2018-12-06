@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 /**
@@ -22,22 +22,22 @@ public class RecordsJoiner extends FilterRecordStream {
     private int joinedRecordsCounter;
     private int outRecordSize;
 
-    public RecordsJoiner(RecordsStream outStream, int numberOfRecordsToJoin) {
+    public RecordsJoiner(DataRecordStream outStream, int numberOfRecordsToJoin) {
         super(outStream);
         this.numberOfRecordsToJoin = numberOfRecordsToJoin;
     }
 
 
     @Override
-    public void setHeader(RecordsHeader header) {
+    public void setHeader(DataHeader header) {
         super.setHeader(header);
         outRecordSize = inRecordSize * numberOfRecordsToJoin;
         outDataRecord = new int[outRecordSize];
     }
 
     @Override
-    public RecordsHeader getOutConfig() {
-        RecordsHeader outConfig = new RecordsHeader(inConfig);
+    public DataHeader getOutConfig() {
+        DataHeader outConfig = new DataHeader(inConfig);
         outConfig.setDurationOfDataRecord(inConfig.getDurationOfDataRecord() * numberOfRecordsToJoin);
         for (int i = 0; i < outConfig.numberOfSignals(); i++) {
             outConfig.setNumberOfSamplesInEachDataRecord(i, inConfig.getNumberOfSamplesInEachDataRecord(i) * numberOfRecordsToJoin);
@@ -51,7 +51,7 @@ public class RecordsJoiner extends FilterRecordStream {
      * DataRecord and when it is ready send it to the dataListener
      */
     @Override
-    public void writeRecord(int[] inputRecord)  {
+    public void writeDataRecord(int[] inputRecord)  {
         int signalNumber = 0;
         int signalStart = 0;
         int signalSamples = inConfig.getNumberOfSamplesInEachDataRecord(signalNumber);
@@ -73,7 +73,7 @@ public class RecordsJoiner extends FilterRecordStream {
         joinedRecordsCounter++;
 
         if(joinedRecordsCounter == numberOfRecordsToJoin) {
-            outStream.writeRecord(outDataRecord);
+            outStream.writeDataRecord(outDataRecord);
             outDataRecord = new int[outRecordSize];
             joinedRecordsCounter = 0;
         }
@@ -87,7 +87,7 @@ public class RecordsJoiner extends FilterRecordStream {
         // 0 channel 3 samples, 1 channel 2 samples, 3 channel 4 samples
         int[] dataRecord = {1,3,8,  2,4,  7,6,8,6};
 
-        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 3);
+        DataHeader dataConfig = new DataHeader(FormatVersion.BDF_24BIT, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 4);
@@ -102,9 +102,9 @@ public class RecordsJoiner extends FilterRecordStream {
         recordFilter.setHeader(dataConfig);
 
         // send 4 records and get as result 2 joined records
-        recordFilter.writeRecord(dataRecord);
-        recordFilter.writeRecord(dataRecord);
-        recordFilter.writeRecord(dataRecord);
-        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
     }
 }

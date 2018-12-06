@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 import java.util.HashMap;
@@ -14,12 +14,12 @@ public class SignalFrequencyReducer extends FilterRecordStream {
     private Map<Integer, Integer> dividers = new HashMap<>();
     private int outRecordSize;
 
-    public SignalFrequencyReducer(RecordsStream outStream) {
+    public SignalFrequencyReducer(DataRecordStream outStream) {
         super(outStream);
     }
 
     @Override
-    public void setHeader(RecordsHeader header) {
+    public void setHeader(DataHeader header) {
         super.setHeader(header);
         outRecordSize = calculateOutRecordSize();
     }
@@ -58,8 +58,8 @@ public class SignalFrequencyReducer extends FilterRecordStream {
     }
 
     @Override
-    public RecordsHeader getOutConfig() {
-        RecordsHeader outConfig = new RecordsHeader(inConfig);
+    public DataHeader getOutConfig() {
+        DataHeader outConfig = new DataHeader(inConfig);
         for (int i = 0; i < outConfig.numberOfSignals(); i++) {
             Integer divider = dividers.get(i);
             if(divider != null) {
@@ -71,7 +71,7 @@ public class SignalFrequencyReducer extends FilterRecordStream {
     }
 
     @Override
-    public void writeRecord(int[] inputRecord) {
+    public void writeDataRecord(int[] inputRecord) {
         int[] outRecord = new int[outRecordSize];
 
         int signalCount = 0;
@@ -108,7 +108,7 @@ public class SignalFrequencyReducer extends FilterRecordStream {
                 signalSampleCount = 0;
             }
         }
-        outStream.writeRecord(outRecord);
+        outStream.writeDataRecord(outRecord);
     }
 
     /**
@@ -119,7 +119,7 @@ public class SignalFrequencyReducer extends FilterRecordStream {
         // 0 channel 4 samples, 1 channel 2 samples, 2 channel 6 samples
         int[] dataRecord = {1,3,8,4,  2,4,  5,7,6,8,6,0};
 
-        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 3);
+        DataHeader dataConfig = new DataHeader(FormatVersion.BDF_24BIT, 3);
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 4);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 2);
         dataConfig.setNumberOfSamplesInEachDataRecord(2, 6);
@@ -137,6 +137,6 @@ public class SignalFrequencyReducer extends FilterRecordStream {
 
         recordFilter.setHeader(dataConfig);
 
-        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
     }
 }

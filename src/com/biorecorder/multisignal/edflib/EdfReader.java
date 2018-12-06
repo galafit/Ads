@@ -1,6 +1,6 @@
 package com.biorecorder.multisignal.edflib;
 
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.DataHeader;
 
 import java.io.*;
 
@@ -9,7 +9,7 @@ import java.io.*;
 /**
  * Permits to read data samples from EDF or BDF file. Also it
  * reads information from the file header and saves it
- * in special {@link RecordsHeader} object, that we
+ * in special {@link DataHeader} object, that we
  * can get by method {@link #getHeader()}
  * <p>
  * This class is NOT thread safe!
@@ -20,7 +20,7 @@ import java.io.*;
  * So we can "read" both digital or physical values.
  */
 public class EdfReader {
-    private RecordsHeader header;
+    private DataHeader header;
     private FileInputStream fileInputStream;
     private File file;
     private long[] samplesPositionList;
@@ -97,7 +97,7 @@ public class EdfReader {
     /**
      * Set the DataRecords position indicator to the given new position.
      * The position is measured in DataRecords.
-     * Methods: {@link #readRecords(int, int[])}
+     * Methods: {@link #readDataRecords(int, int[])}
      * will start reading from the specified position.
      *
      * @param newPosition the new position, a non-negative integer counting
@@ -211,13 +211,13 @@ public class EdfReader {
      * The record position indicator will be increased with the amount of data records
      * read (this can be less than n or zero!)
      *
-     * @param buffer array where read samples will be stored
-     * @param n      number of data records to read
-     * @return the total number of dataRecords read into the buffer,
+     * @param buffer array where read data will be stored
+     * @param n      number of "data records" to read
+     * @return the total number of data records read into the buffer,
      * or -1 if there is no more data because the end of the stream has been reached
      * @throws IOException if an I/O error occurs
      */
-    public int readRecords(int n, int[] buffer) throws IOException {
+    public int readDataRecords(int n, int[] buffer) throws IOException {
         int bytesPerSample = header.getFormatVersion().getNumberOfBytesPerSample();
         long fileReadPosition = numberOfBytesInHeaderRecord +
                 recordSize * recordPosition * bytesPerSample;
@@ -246,7 +246,7 @@ public class EdfReader {
      *
      * @return the object containing EDF/BDF header information
      */
-    public RecordsHeader getHeader() {
+    public DataHeader getHeader() {
         return header;
     }
 

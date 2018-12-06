@@ -2,8 +2,8 @@ package com.biorecorder.recorder;
 
 import com.biorecorder.ads.*;
 import com.biorecorder.digitalfilter.DigitalFilter;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 import com.biorecorder.multisignal.recordfilter.*;
 
 import java.util.ArrayList;
@@ -32,7 +32,7 @@ public class BioRecorder {
     private final Ads ads;
     private volatile Map<Integer, List<NamedDigitalFilter>> filters = new HashMap();
 
-    private volatile RecordListener dataListener = new NullRecordListener();
+    private volatile DataRecordListener dataListener = new NullRecordListener();
     private volatile EventsListener eventsListener = new NullEventsListener();
     private volatile BatteryLevelListener batteryListener = new NullBatteryLevelListener();
     private volatile LeadOffListener leadOffListener = new NullLeadOffListener();
@@ -115,7 +115,7 @@ public class BioRecorder {
 
         FilterRecordStream dataFilter = createDataFilter(recorderConfig, isAccelerometerOnly);
         AdsConfig adsConfig = recorderConfig.getAdsConfig();
-        dataFilter.setHeader(ads.getDataConfig(adsConfig));
+        dataFilter.setHeader(ads.getDataHeader(adsConfig));
 
         dataQueue.clear();
         recordsCount = 0;
@@ -127,7 +127,7 @@ public class BioRecorder {
         return startFuture;
     }
 
-    class AdsDataHandler implements NumberedDataListener {
+    class AdsDataHandler implements NumberedDataRecordListener {
         private final AdsConfig adsConfig;
 
         public AdsDataHandler(AdsConfig adsConfig) {
@@ -135,7 +135,7 @@ public class BioRecorder {
         }
 
         @Override
-        public void onDataReceived(int[] dataRecord, int recordNumber) {
+        public void onDataRecordReceived(int[] dataRecord, int recordNumber) {
             try {
                 if (recordNumber == 0) {
                     firstRecordTime = System.currentTimeMillis();
@@ -195,10 +195,10 @@ public class BioRecorder {
 
 
     class DataHandlingTask implements Callable<Void> {
-        RecordsStream dataStream;
+        DataRecordStream dataStream;
         private volatile int lastDataRecordNumber = -1;
 
-        public DataHandlingTask(RecordsStream dataStream) {
+        public DataHandlingTask(DataRecordStream dataStream) {
             this.dataStream = dataStream;
         }
 
@@ -208,10 +208,10 @@ public class BioRecorder {
                 // block until a request arrives
                 NumberedDataRecord numberedDataRecord = dataQueue.take();
                 // send to listener
-                dataStream.writeRecord(numberedDataRecord.getRecord());
+                dataStream.writeDataRecord(numberedDataRecord.getRecord());
                 int numberOfLostFrames = numberedDataRecord.getRecordNumber() - lastDataRecordNumber - 1;
                 for (int i = 0; i < numberOfLostFrames; i++) {
-                    dataStream.writeRecord(numberedDataRecord.getRecord());
+                    dataStream.writeDataRecord(numberedDataRecord.getRecord());
                 }
                 lastDataRecordNumber = numberedDataRecord.getRecordNumber();
             }
@@ -272,11 +272,11 @@ public class BioRecorder {
      *
      * @return object describing data records structure
      */
-    public RecordsHeader getDataConfig(RecorderConfig recorderConfig) {
-        RecordsHeader adsDataConfig = ads.getDataConfig(recorderConfig.getAdsConfig());
+    public DataHeader getDataHeader(RecorderConfig recorderConfig) {
+        DataHeader adsDataConfig = ads.getDataHeader(recorderConfig.getAdsConfig());
         FilterRecordStream dataFilter =  createDataFilter(recorderConfig, false);
         dataFilter.setHeader(adsDataConfig);
-        RecordsHeader config = dataFilter.getResultantConfig();
+        DataHeader config = dataFilter.getResultantConfig();
         return config;
     }
 
@@ -297,7 +297,7 @@ public class BioRecorder {
      * BioRecorder permits to add only ONE RecordListener! So if a new listener added
      * the old one are automatically removed
      */
-    public void addDataListener(RecordListener listener) {
+    public void addDataListener(DataRecordListener listener) {
         if (listener != null) {
             dataListener = listener;
         }
@@ -363,7 +363,7 @@ public class BioRecorder {
     }
 
     private void notifyDataListeners(int[] dataRecord) {
-        dataListener.writeRecord(dataRecord);
+        dataListener.onDataRecordReceived(dataRecord);
     }
 
     private void notifyBatteryLevelListener(int batteryVoltage) {
@@ -408,14 +408,14 @@ public class BioRecorder {
             enableChannelsCount++;
         }
 
-        RecordsStream recordStream = new RecordsStream() {
+        DataRecordStream recordStream = new DataRecordStream() {
             @Override
-            public void writeRecord(int[] dataRecord) {
-                dataListener.writeRecord(dataRecord);
+            public void writeDataRecord(int[] dataRecord) {
+                dataListener.onDataRecordReceived(dataRecord);
             }
 
             @Override
-            public void setHeader(RecordsHeader header) {
+            public void setHeader(DataHeader header) {
                 // do nothing
             }
 
@@ -523,9 +523,9 @@ public class BioRecorder {
         }
     }
 
-    class NullRecordListener implements  RecordListener{
+    class NullRecordListener implements DataRecordListener {
         @Override
-        public void writeRecord(int[] dataRecord) {
+        public void onDataRecordReceived(int[] dataRecord) {
             // do nothing
         }
     }

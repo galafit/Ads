@@ -2,8 +2,8 @@ package com.biorecorder.multisignal.recordfilter;
 
 import com.biorecorder.digitalfilter.DigitalFilter;
 import com.biorecorder.digitalfilter.MovingAverageFilter;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 
 import java.util.ArrayList;
@@ -19,12 +19,12 @@ public class SignalFilter extends FilterRecordStream {
     private Map<Integer, List<NamedFilter>> filters = new HashMap<Integer, List<NamedFilter>>();
     private double[] offsets; // gain and offsets to convert dig value to phys one
 
-    public SignalFilter(RecordsStream outStream) {
+    public SignalFilter(DataRecordStream outStream) {
         super(outStream);
     }
 
     @Override
-    public void setHeader(RecordsHeader header) {
+    public void setHeader(DataHeader header) {
         super.setHeader(header);
         offsets = new double[header.numberOfSignals()];
         for (int i = 0; i < offsets.length; i++) {
@@ -66,8 +66,8 @@ public class SignalFilter extends FilterRecordStream {
     }
 
     @Override
-    public RecordsHeader getOutConfig() {
-        RecordsHeader outConfig = new RecordsHeader(inConfig);
+    public DataHeader getOutConfig() {
+        DataHeader outConfig = new DataHeader(inConfig);
         for (int i = 0; i < outConfig.numberOfSignals(); i++) {
             String prefilter = getSignalFiltersName(i);
             if(inConfig.getPrefiltering(i) != null && ! inConfig.getPrefiltering(i).isEmpty()) {
@@ -79,7 +79,7 @@ public class SignalFilter extends FilterRecordStream {
     }
 
     @Override
-    public void writeRecord(int[] inputRecord)  {
+    public void writeDataRecord(int[] inputRecord)  {
         int[] outRecord = new int[inputRecord.length];
         int signalNumber = 0;
         int signalStartSampleNumber = 0;
@@ -103,7 +103,7 @@ public class SignalFilter extends FilterRecordStream {
             }
 
         }
-        outStream.writeRecord(outRecord);
+        outStream.writeDataRecord(outRecord);
     }
 
     class NamedFilter implements DigitalFilter {
@@ -133,7 +133,7 @@ public class SignalFilter extends FilterRecordStream {
         // 0 channel 1 sample, 1 channel 6 samples, 2 channel 2 samples
         int[] dataRecord = {1,  2,4,8,6,0,8,  3,5};
 
-        RecordsHeader dataConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 3);
+        DataHeader dataConfig = new DataHeader(FormatVersion.BDF_24BIT, 3);
 
         dataConfig.setNumberOfSamplesInEachDataRecord(0, 1);
         dataConfig.setNumberOfSamplesInEachDataRecord(1, 6);
@@ -154,10 +154,10 @@ public class SignalFilter extends FilterRecordStream {
         recordFilter.setHeader(dataConfig);
 
         // send 4 records and get 4 resultant records
-        recordFilter.writeRecord(dataRecord);
-        recordFilter.writeRecord(dataRecord);
-        recordFilter.writeRecord(dataRecord);
-        recordFilter.writeRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
+        recordFilter.writeDataRecord(dataRecord);
     }
 
 }

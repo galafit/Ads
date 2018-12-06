@@ -6,6 +6,6 @@ package com.biorecorder.recorder;
  * data records must implement this interface and subscribe to
  * a "data sender"
  */
-public interface RecordListener {
-    public void writeRecord(int[] dataRecord);
+public interface DataRecordListener {
+    public void onDataRecordReceived(int[] dataRecord);
 }

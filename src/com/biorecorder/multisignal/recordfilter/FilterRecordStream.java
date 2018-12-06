@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.recordfilter;
 
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 
 /**
  * FilterRecordStream is just a wrapper of an already existing
@@ -9,17 +9,17 @@ import com.biorecorder.multisignal.recordformat.RecordsStream;
  * which do some transforms with input data records before
  * to write them to the underlying stream.
  */
-public class FilterRecordStream implements RecordsStream {
-    protected RecordsHeader inConfig;
+public class FilterRecordStream implements DataRecordStream {
+    protected DataHeader inConfig;
     protected int inRecordSize;
-    protected RecordsStream outStream;
+    protected DataRecordStream outStream;
 
-    public FilterRecordStream(RecordsStream outStream) {
+    public FilterRecordStream(DataRecordStream outStream) {
         this.outStream = outStream;
     }
 
 
-    public RecordsHeader getResultantConfig(){
+    public DataHeader getResultantConfig(){
         if(outStream instanceof FilterRecordStream) {
             return ((FilterRecordStream) outStream).getResultantConfig();
         } else {
@@ -28,7 +28,7 @@ public class FilterRecordStream implements RecordsStream {
     }
 
     @Override
-    public void setHeader(RecordsHeader header) {
+    public void setHeader(DataHeader header) {
         this.inConfig = header;
         inRecordSize = 0;
         for (int i = 0; i < header.numberOfSignals(); i++) {
@@ -38,8 +38,8 @@ public class FilterRecordStream implements RecordsStream {
     }
 
     @Override
-    public void writeRecord(int[] dataRecord) {
-        outStream.writeRecord(dataRecord);
+    public void writeDataRecord(int[] dataRecord) {
+        outStream.writeDataRecord(dataRecord);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class FilterRecordStream implements RecordsStream {
         outStream.close();
     }
 
-    protected RecordsHeader getOutConfig() {
+    protected DataHeader getOutConfig() {
         return inConfig;
     }
 }

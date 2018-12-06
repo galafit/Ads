@@ -1,7 +1,7 @@
 package com.biorecorder.multisignal.edflib;
 
 import com.biorecorder.multisignal.recordformat.FormatVersion;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.DataHeader;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -125,7 +125,7 @@ public class HeaderRecord {
     }
 
 
-    public HeaderRecord(RecordsHeader edfHeader) {
+    public HeaderRecord(DataHeader edfHeader) {
         // convert this HeaderConfig object to byte array
         String startDateOfRecording = new SimpleDateFormat("dd.MM.yy").format(new Date(edfHeader.getRecordingStartTimeMs()));
         String startTimeOfRecording = new SimpleDateFormat("HH.mm.ss").format(new Date(edfHeader.getRecordingStartTimeMs()));
@@ -194,7 +194,7 @@ public class HeaderRecord {
     }
 
 
-    public RecordsHeader getHeaderInfo() throws HeaderException {
+    public DataHeader getHeaderInfo() throws HeaderException {
 
 /******************** VERSION OF DATA FORMAT *********************************************/
         FormatVersion formatVersion = new VersionFields().formatVersion;
@@ -274,7 +274,7 @@ public class HeaderRecord {
             throw new HeaderException(HeaderException.TYPE_RECORD_DURATION_INVALID, recordDurationString);
         }
 
-        RecordsHeader edfHeader = new RecordsHeader(formatVersion, realNumberOfSignals);
+        DataHeader edfHeader = new DataHeader(formatVersion, realNumberOfSignals);
         edfHeader.setPatientIdentification(patientIdentification());
         edfHeader.setRecordingIdentification(recordingIdentification());
         edfHeader.setRecordingStartTimeMs(startingDateTime);

@@ -3,7 +3,7 @@ package com.biorecorder.ads;
 
 import com.biorecorder.comport.Comport;
 import com.biorecorder.comport.ComportFactory;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.DataHeader;
 import com.biorecorder.multisignal.recordformat.FormatVersion;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Ads packs samples from all channels received during the
- * time = MaxDiv/getMaxFrequency (getCalculatedDurationOfDataRecord)
+ * time = durationOfDataRecord = MaxDiv/getMaxFrequency
  * in one array of int. Every array (data record or data package) has
  * the following structure (in case of 8 channels):
  * <p>
@@ -30,13 +30,13 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  1 sample with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
- * Where n_i = ads_channel_i_sampleRate * getCalculatedDurationOfDataRecord
+ * Where n_i = ads_channel_i_sampleRate * durationOfDataRecord
  * <br>ads_channel_i_sampleRate = sampleRate / ads_channel_i_divider
  * <p>
- * n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * getCalculatedDurationOfDataRecord
+ * n_acc_x = n_acc_y = n_acc_z =  accelerometer_sampleRate * durationOfDataRecord
  * <br>accelerometer_sampleRate = sampleRate / accelerometer_divider
  * <p>
- * If for Accelerometer  one channel mode is chosen then samples from
+ * If for Accelerometer  one channel mode is activated then samples from
  * acc_x_channel, acc_y_channel and acc_z_channel will be summarized and data records will
  * have "one accelerometer channel" instead of three:
  * <p>
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <br>  1 (for 2 channels) or 2 (for 8 channels) samples with lead-off detection info (if lead-off detection enabled)
  * <br>}
  * <p>
- * Where n_acc =  accelerometer_sampleRate * getCalculatedDurationOfDataRecord
+ * Where n_acc =  accelerometer_sampleRate * durationOfDataRecord
  */
 public class Ads {
     private static final Log log = LogFactory.getLog(Ads.class);
@@ -63,10 +63,10 @@ public class Ads {
 
     private static final int PING_PERIOD_MS = 1000;
     private static final int MONITORING_PERIOD_MS = 1000;
-    private static final int ACTIVE_PERIOD_MS = 2000;
     private static final int SLEEP_TIME_MS = 1000;
+    private static final int ACTIVE_PERIOD_MS = 2 * SLEEP_TIME_MS;
 
-    private static final int MAX_STARTING_TIME_MS = 30 * 1000;
+    private static final int MAX_STARTING_TIME_MS = 5 * 1000;
 
     private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
     private static final String RECORDING_MSG = "Ads is recording. Stop it first";
@@ -90,7 +90,7 @@ public class Ads {
     private final ExecutorService singleThreadExecutor;
     private volatile Future executorFuture;
 
-    private volatile NumberedDataListener dataListener;
+    private volatile NumberedDataRecordListener dataListener;
     private volatile MessageListener messageListener;
 
     public Ads(String comportName) throws ComportRuntimeException {
@@ -107,7 +107,7 @@ public class Ads {
 
     /**
      * Start "monitoring timer" which every second sends to
-     * Ads some request (HARDWARE_REQUEST or HELLO request ) to check that
+     * Ads HELLO request to check that
      * Ads is connected and ok. Can be called only if Ads is NOT recording
      *
      * @throws IllegalStateException if Ads was disconnected and its work is finalised
@@ -127,9 +127,11 @@ public class Ads {
         if (adsStateAtomicReference.get() == AdsState.UNDEFINED) {
             comport.writeByte(STOP_REQUEST);
         }
-        if (executorFuture == null || executorFuture.isDone()) {
-            executorFuture = singleThreadExecutor.submit(new MonitoringTask());
+        if (executorFuture != null) {
+            executorFuture.cancel(true);
         }
+        executorFuture = singleThreadExecutor.submit(new MonitoringTask());
+        System.out.println("start monitoring ");
     }
 
     /**
@@ -201,16 +203,22 @@ public class Ads {
         @Override
         public Void call() throws Exception {
             long startTime = System.currentTimeMillis();
-            // 1) to correctly startRecording we need to be sure that the specified in config adsType is ok
-            while (adsType == null) {
-                comport.writeByte(HARDWARE_REQUEST);
+            // 1) check that ads is connected and "active"
+            while (!isActive()) {
+                comport.writeByte(HELLO_REQUEST);
                 Thread.sleep(SLEEP_TIME_MS);
 
-                // if message with device type info do not come during too long time
+                // if message with Hello request do not come during too long time
                 if((System.currentTimeMillis() - startTime) > MAX_STARTING_TIME_MS) {
                     throwException(TIME_OUT_ERR_MSG);
                 }
             }
+            // 2) request adsType if it is unknown
+            if (adsType == null) {
+               // comport.writeByte(HARDWARE_REQUEST);
+                Thread.sleep(SLEEP_TIME_MS);
+            }
+
             // if adsType is wrong
             if (adsType != null && adsType != config.getAdsType()) {
                 String errMsg = "Wrong device type: "+ config.getAdsType() + " Connected: "+adsType;
@@ -302,8 +310,6 @@ public class Ads {
         if (!comport.isOpened()) {
             throw new IllegalStateException(DISCONNECTED_MSG);
         }
-        // create frame decoder to handle ads messages
-        comport.addListener(createAndConfigureFrameDecoder(null));
 
         return stop1();
     }
@@ -328,9 +334,9 @@ public class Ads {
     FrameDecoder createAndConfigureFrameDecoder(@Nullable AdsConfig adsConfig) {
         FrameDecoder frameDecoder = new FrameDecoder(adsConfig);
         if (adsConfig != null) {
-            frameDecoder.addDataListener(new NumberedDataListener() {
+            frameDecoder.addDataListener(new NumberedDataRecordListener() {
                 @Override
-                public void onDataReceived(int[] dataRecord, int recordNumber) {
+                public void onDataRecordReceived(int[] dataRecord, int recordNumber) {
                     lastEventTime = System.currentTimeMillis();
                     isDataReceived = true;
                     notifyDataListeners(dataRecord, recordNumber);
@@ -341,6 +347,9 @@ public class Ads {
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessage(AdsMessageType messageType, String message) {
+                if (messageType == AdsMessageType.HELLO) {
+                    lastEventTime = System.currentTimeMillis();
+                }
                 if (messageType == AdsMessageType.ADS_2_CHANNELS) {
                     adsType = AdsType.ADS_2;
                     lastEventTime = System.currentTimeMillis();
@@ -391,7 +400,7 @@ public class Ads {
      * Ads permits to add only ONE RecordListener! So if a new listener added
      * the old one are automatically removed
      */
-    public void addDataListener(NumberedDataListener listener) {
+    public void addDataListener(NumberedDataRecordListener listener) {
 
         if (listener != null) {
             dataListener = listener;
@@ -417,7 +426,7 @@ public class Ads {
     }
 
     private void notifyDataListeners(int[] dataRecord, int recordNumber) {
-        dataListener.onDataReceived(dataRecord, recordNumber);
+        dataListener.onDataRecordReceived(dataRecord, recordNumber);
 
     }
 
@@ -433,8 +442,14 @@ public class Ads {
         return ComportFactory.getAvailableComportNames();
     }
 
-    public RecordsHeader getDataConfig(AdsConfig adsConfig) {
-        RecordsHeader edfConfig = new RecordsHeader(FormatVersion.BDF_24BIT, 0);
+    /**
+     * Get the info describing the structure of data records
+     * that Ads sends to its listeners
+     *
+     * @return object describing data records structure
+     */
+    public DataHeader getDataHeader(AdsConfig adsConfig) {
+        DataHeader edfConfig = new DataHeader(FormatVersion.BDF_24BIT, 0);
         edfConfig.setDurationOfDataRecord(adsConfig.getDurationOfDataRecord());
         for (int i = 0; i < adsConfig.getAdsChannelsCount(); i++) {
             if (adsConfig.isAdsChannelEnabled(i)) {
@@ -742,7 +757,7 @@ public class Ads {
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    comport.writeByte(HARDWARE_REQUEST);
+                    comport.writeByte(HELLO_REQUEST);
                     Thread.sleep(MONITORING_PERIOD_MS);
                 } catch (Exception ex) {
                     break;
@@ -759,9 +774,9 @@ public class Ads {
         }
     }
 
-    class NullDataListener implements NumberedDataListener {
+    class NullDataListener implements NumberedDataRecordListener {
         @Override
-        public void onDataReceived(int[] dataRecord, int dataRecordNumber) {
+        public void onDataRecordReceived(int[] dataRecord, int dataRecordNumber) {
             // do nothing
         }
     }

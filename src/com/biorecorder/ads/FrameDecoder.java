@@ -40,7 +40,7 @@ class FrameDecoder implements ComportListener {
     private byte[] rawFrame;
     private int[] accPrev = new int[3];
     private final AdsConfig adsConfig;
-    private volatile NumberedDataListener dataListener = new NullDataListener();
+    private volatile NumberedDataRecordListener dataListener = new NullDataListener();
     private volatile MessageListener messageListener = new NullMessageListener();
 
     FrameDecoder(@Nullable AdsConfig configuration) {
@@ -59,7 +59,7 @@ class FrameDecoder implements ComportListener {
      * Frame decoder permits to add only ONE DataListener! So if a new listener added
      * the old one are automatically removed
      */
-    public void addDataListener(NumberedDataListener l) {
+    public void addDataListener(NumberedDataRecordListener l) {
         if (l != null) {
             dataListener = l;
         }
@@ -331,7 +331,7 @@ class FrameDecoder implements ComportListener {
     }
 
     private void notifyDataListeners(int[] dataRecord, int recordNumber) {
-        dataListener.onDataReceived(dataRecord, recordNumber);
+        dataListener.onDataRecordReceived(dataRecord, recordNumber);
 
     }
 
@@ -390,9 +390,9 @@ class FrameDecoder implements ComportListener {
         }
     }
 
-    class NullDataListener implements NumberedDataListener {
+    class NullDataListener implements NumberedDataRecordListener {
         @Override
-        public void onDataReceived(int[] dataRecord, int dataRecordNumber) {
+        public void onDataRecordReceived(int[] dataRecord, int dataRecordNumber) {
             // do nothing;
         }
     }

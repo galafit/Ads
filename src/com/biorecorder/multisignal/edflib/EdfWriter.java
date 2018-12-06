@@ -1,8 +1,8 @@
 package com.biorecorder.multisignal.edflib;
 
 import com.biorecorder.multisignal.recordformat.FormatVersion;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -36,13 +36,13 @@ import java.util.Random;
  * to 3 LITTLE_ENDIAN ordered bytes (24 bits) for BDF files
  * and in this form written to the file.
  */
-public class EdfWriter implements RecordsStream {
+public class EdfWriter implements DataRecordStream {
     private final String CLOSED_MSG = "File was closed. Data can not be written";
     private final String NUMBER_OF_SIGNALS_ZERO = "Number of signals is 0. Data can not be written";
     private final String RECORD_INCOMPLETE = "Last data record is incomplete. Incorrect use of method: writeSamples/writePhysicalSamples.";
     private static final int MAX_RECORD_NUMBER = 100000000; // possible edf record number is 8 digits => 99999999
 
-    private RecordsHeader header;
+    private DataHeader header;
     private final File file;
 
     private volatile boolean isClosed = false;
@@ -70,8 +70,8 @@ public class EdfWriter implements RecordsStream {
      * than a regular file, does not exist but cannot be created,
      * or cannot be opened for any other reason
      */
-    public EdfWriter(File file, RecordsHeader header) throws FileNotFoundException {
-        this.header = new RecordsHeader(header);
+    public EdfWriter(File file, DataHeader header) throws FileNotFoundException {
+        this.header = new DataHeader(header);
         this.file = file;
         fileOutputStream = new FileOutputStream(file);
         recordSize = header.getRecordSize();
@@ -79,8 +79,8 @@ public class EdfWriter implements RecordsStream {
     }
 
     @Override
-    public void setHeader(RecordsHeader header) throws IllegalArgumentException {
-        /*if(this.header != null) {
+    public void setHeader(DataHeader header) throws IllegalArgumentException {
+        if(this.header != null) {
             if(this.header.getFormatVersion() != header.getFormatVersion()) {
                 String errMsg = "File format version: " + this.header.getFormatVersion() + " new format version: " + header.getFormatVersion();
                 throw new IllegalArgumentException(errMsg);
@@ -90,33 +90,26 @@ public class EdfWriter implements RecordsStream {
                 String errMsg = "Number of signals: " + this.header.numberOfSignals() + " new number of signals: " + header.numberOfSignals();
                 throw new IllegalArgumentException(errMsg);
             }
-        }*/
-        this.header = new RecordsHeader(header);
+
+            for (int i = 0; i < header.numberOfSignals(); i++) {
+                if(this.header.getNumberOfSamplesInEachDataRecord(i) != header.getNumberOfSamplesInEachDataRecord(i)) {
+                    String errMsg = "Signal: " + i + ",  number of samples: " + this.header.getNumberOfSamplesInEachDataRecord(i) + ",  new number of samples: " + header.getNumberOfSamplesInEachDataRecord(i);
+                    throw new IllegalArgumentException(errMsg);
+                }
+            }
+        }
+        this.header = new DataHeader(header);
         recordSize = header.getRecordSize();
         this.header.setNumberOfDataRecords(-1);
+    }
+
+    public DataHeader getHeader() {
+        return new DataHeader(header);
     }
 
     public File getFile() {
         return file;
     }
-
-    /**
-     * set start recording time in ms. This method should be called
-     * BEFORE closing writer!
-     */
-    public void setStartRecordingTime(long startTimeMs) {
-        header.setRecordingStartTimeMs(startTimeMs);
-    }
-
-
-    /**
-     * set duration of data records in seconds. This method should be called
-     * BEFORE closing writer!
-     */
-    public void setDurationOfDataRecords(double durationOfDataRecord) {
-        header.setDurationOfDataRecord(durationOfDataRecord);
-    }
-
 
     /**
      * Writes n "raw" digital (integer) samples belonging to one signal.
@@ -168,7 +161,7 @@ public class EdfWriter implements RecordsStream {
      * writeSamples/writePhysicalSamples).
      */
     @Override
-    public void writeRecord(int[] digitalDataRecord) throws IORuntimeException, IllegalStateException {
+    public void writeDataRecord(int[] digitalDataRecord) throws IORuntimeException, IllegalStateException {
         if(header.numberOfSignals() == 0) {
             throw new IllegalStateException(NUMBER_OF_SIGNALS_ZERO);
         }
@@ -236,7 +229,7 @@ public class EdfWriter implements RecordsStream {
      * the fact that samples from some channels were not recorded by methods
      * writeSamples/writePhysicalSamples).
      */
-    public void writePhysicalRecord(double[] physicalDataRecord) throws IORuntimeException, IllegalStateException {
+    public void writePhysicalDataRecord(double[] physicalDataRecord) throws IORuntimeException, IllegalStateException {
         int digSamples[] = new int[recordSize];
         int counter = 0;
         for (int signal = 0; signal < header.numberOfSignals(); signal++) {
@@ -246,7 +239,7 @@ public class EdfWriter implements RecordsStream {
                 counter++;
             }
         }
-        writeRecord(digSamples);
+        writeDataRecord(digSamples);
     }
 
     /**
@@ -378,7 +371,7 @@ public class EdfWriter implements RecordsStream {
         int channel1Frequency = 5; // Hz
 
         // create header info for the file describing data records structure
-        RecordsHeader header = new RecordsHeader(FormatVersion.EDF_16BIT, 2);
+        DataHeader header = new DataHeader(FormatVersion.EDF_16BIT, 2);
         // Signal numbering starts from 0!
         // configure signal (channel) number 0
         header.setSampleFrequency(0, channel0Frequency);

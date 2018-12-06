@@ -44,11 +44,11 @@ import java.util.Date;
  * In general "Gain" refers to multiplication of a signal
  * and "Offset"  refer to addition to a signal, i.e. out = (in + Offset) * Gain
  * <p>
- * RecordsHeader contains all necessary info to correctly extract
- * samples belonging to different signals from records
+ * DataHeader contains all necessary info to correctly extract
+ * samples belonging to different signals from data records
  * and convert it to corresponding physical values.
   */
-public class RecordsHeader {
+public class DataHeader {
     private String patientIdentification = "Default patient";
     private String recordingIdentification = "Default record";
     private long recordingStartTime = 0;
@@ -65,7 +65,7 @@ public class RecordsHeader {
      * @param numberOfSignals number of signals in data records
      * @throws IllegalArgumentException if numberOfSignals < 0
      */
-    public RecordsHeader(FormatVersion versionFormat, int numberOfSignals) throws IllegalArgumentException {
+    public DataHeader(FormatVersion versionFormat, int numberOfSignals) throws IllegalArgumentException {
         if (numberOfSignals < 0) {
             String errMsg = MessageFormat.format("Number of signals is invalid: {0}. Expected {1}", numberOfSignals, ">= 0");
             throw new IllegalArgumentException(errMsg);
@@ -74,7 +74,6 @@ public class RecordsHeader {
         for (int i = 0; i < numberOfSignals; i++) {
             addSignal();
         }
-         
     }
 
 
@@ -83,7 +82,7 @@ public class RecordsHeader {
      *
      * @param recordsHeader HeaderMetadata instance that will be copied
      */
-    public RecordsHeader(RecordsHeader recordsHeader) {
+    public DataHeader(DataHeader recordsHeader) {
         durationOfDataRecord = recordsHeader.durationOfDataRecord;
         versionFormat = recordsHeader.versionFormat;
         patientIdentification = recordsHeader.patientIdentification;

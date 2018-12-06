@@ -2,7 +2,7 @@ package com.biorecorder.multisignal.edflib.example;
 
 import com.biorecorder.multisignal.edflib.EdfReader;
 import com.biorecorder.multisignal.edflib.EdfWriter;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.DataHeader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,7 +26,7 @@ public class EdfExample {
         } catch (Throwable e) {
             e.printStackTrace();
         }
-        RecordsHeader header = originalFileReader.getHeader();
+        DataHeader header = originalFileReader.getHeader();
         // Print some header info from original file
         System.out.println(header);
 
@@ -39,11 +39,11 @@ public class EdfExample {
             EdfWriter fileWriter1 = new EdfWriter(resultantFile1, header);
             int originalDataRecordLength = header.getRecordSize();
             int[] intBuffer = new int[originalDataRecordLength];
-            while (originalFileReader.readRecords(1, intBuffer) > 0) {
+            while (originalFileReader.readDataRecords(1, intBuffer) > 0) {
                 // read digital DataRecord from the original file
 
                 // write digital DataRecord to the new file
-                fileWriter1.writeRecord(intBuffer);
+                fileWriter1.writeDataRecord(intBuffer);
             }
             fileWriter1.close();
 

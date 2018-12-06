@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 import edu.ucsd.sccn.LSL;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,11 +16,11 @@ import java.util.ArrayList;
  * Class thread safe
  */
 
-public class LslStream implements RecordsStream {
+public class LslStream implements DataRecordStream {
     private static final Log log = LogFactory.getLog(LslStream.class);
     private LSL.StreamInfo info;
     private LSL.StreamOutlet outlet;
-    private RecordsHeader recordConfig;
+    private DataHeader recordConfig;
 
     private int adsChannelsCount;
     private int channelsCount;
@@ -40,7 +40,7 @@ public class LslStream implements RecordsStream {
     }
 
     @Override
-    public void setHeader(RecordsHeader header) {
+    public void setHeader(DataHeader header) {
         this.recordConfig = header;
         int numberOfAdsChSamples = 0;
         int numberOfAccChSamples = 0;
@@ -96,7 +96,7 @@ public class LslStream implements RecordsStream {
     }
 
     @Override
-    public synchronized void writeRecord(int[] dataRecord) {
+    public synchronized void writeDataRecord(int[] dataRecord) {
         // convert one "edf record" to the list of multiple "mathlab records"
         // Mathlab record structure: one sample per every ads channel and accelerometer channel
         ArrayList<float[]> lslRecords = new ArrayList<>(numberOfLslRecords);

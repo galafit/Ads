@@ -1,7 +1,7 @@
 package com.biorecorder;
 
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
 import com.biorecorder.multisignal.edflib.EdfWriter;
 import com.biorecorder.multisignal.recordfilter.RecordsJoiner;
 import com.biorecorder.multisignal.recordfilter.SignalFrequencyReducer;
@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * <li>reduce signal frequencies if it was specified</li>
  * </ul>
  */
-public class EdfStream implements RecordsStream {
+public class EdfStream implements DataRecordStream {
     private static final Log log = LogFactory.getLog(EdfStream.class);
 
     private final int numberOfRecordsToJoin;
@@ -34,7 +34,7 @@ public class EdfStream implements RecordsStream {
     private final Map<Integer, Integer> extraDividers;
 
     private volatile EdfWriter edfWriter;
-    private volatile RecordsStream DataStream;
+    private volatile DataRecordStream DataStream;
     private AtomicLong numberOfWrittenDataRecords = new AtomicLong(0);
 
 
@@ -49,11 +49,11 @@ public class EdfStream implements RecordsStream {
 
 
     @Override
-    public void setHeader(RecordsHeader header) throws FileNotFoundRuntimeException {
-        DataStream = new RecordsStream() {
+    public void setHeader(DataHeader header) throws FileNotFoundRuntimeException {
+        DataStream = new DataRecordStream() {
             @Override
-            public void setHeader(RecordsHeader header) throws FileNotFoundRuntimeException {
-                RecordsHeader edfHeader = new RecordsHeader(header);
+            public void setHeader(DataHeader header) throws FileNotFoundRuntimeException {
+                DataHeader edfHeader = new DataHeader(header);
                 edfHeader.setPatientIdentification(patientIdentification);
                 edfHeader.setRecordingIdentification(recordIdentification);
 
@@ -65,8 +65,8 @@ public class EdfStream implements RecordsStream {
             }
 
             @Override
-            public void writeRecord(int[] dataRecord) {
-                edfWriter.writeRecord(dataRecord);
+            public void writeDataRecord(int[] dataRecord) {
+                edfWriter.writeDataRecord(dataRecord);
                 numberOfWrittenDataRecords.incrementAndGet();
             }
 
@@ -103,8 +103,8 @@ public class EdfStream implements RecordsStream {
     }
 
     @Override
-    public void writeRecord(int[] dataRecord) throws IORuntimeException {
-        DataStream.writeRecord(dataRecord);
+    public void writeDataRecord(int[] dataRecord) throws IORuntimeException {
+        DataStream.writeDataRecord(dataRecord);
     }
 
     @Override
@@ -114,10 +114,12 @@ public class EdfStream implements RecordsStream {
 
     public void close(@Nullable RecordingInfo recordingInfo) throws IORuntimeException {
         if(recordingInfo != null) {
-            edfWriter.setStartRecordingTime(recordingInfo.getStartRecordingTime());
+            DataHeader dataHeader = edfWriter.getHeader();
+            dataHeader.setRecordingStartTimeMs(recordingInfo.getStartRecordingTime());
             if(isDurationOfDataRecordComputable) {
-                edfWriter.setDurationOfDataRecords(recordingInfo.getDurationOfDataRecord() * numberOfRecordsToJoin);
+                dataHeader.setDurationOfDataRecord(recordingInfo.getDurationOfDataRecord() * numberOfRecordsToJoin);
             }
+            edfWriter.setHeader(dataHeader);
         }
         DataStream.close();
     }

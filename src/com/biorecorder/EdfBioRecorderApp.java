@@ -1,8 +1,8 @@
 package com.biorecorder;
 
 import com.biorecorder.digitalfilter.MovingAverageFilter;
-import com.biorecorder.multisignal.recordformat.RecordsStream;
-import com.biorecorder.multisignal.recordformat.RecordsHeader;
+import com.biorecorder.multisignal.recordformat.DataRecordStream;
+import com.biorecorder.multisignal.recordformat.DataHeader;
 import com.biorecorder.recorder.*;
 import com.sun.istack.internal.Nullable;
 import org.apache.commons.logging.Log;
@@ -183,7 +183,7 @@ public class EdfBioRecorderApp {
         // remove all previously added filters
         bioRecorder.removeChannelsFilters();
 
-        List<RecordsStream> streams = new ArrayList<>(2);
+        List<DataRecordStream> streams = new ArrayList<>(2);
 
         if (isLoffDetection) { // lead off detection
             leadOffBitMask = null;
@@ -224,7 +224,7 @@ public class EdfBioRecorderApp {
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
 
-            RecordsHeader dataConfig = bioRecorder.getDataConfig(recorderConfig);
+            DataHeader dataConfig = bioRecorder.getDataHeader(recorderConfig);
 
             // create lab stream
             if (appConfig.isLabStreamingEnabled()) {
@@ -298,17 +298,17 @@ public class EdfBioRecorderApp {
         return new OperationResult(true);
     }
 
-    class BioRecorderDataHandler implements RecordListener {
-        private final List<RecordsStream> streams;
+    class BioRecorderDataHandler implements DataRecordListener {
+        private final List<DataRecordStream> streams;
 
-        public BioRecorderDataHandler(List<RecordsStream> streams) {
+        public BioRecorderDataHandler(List<DataRecordStream> streams) {
             this.streams = streams;
         }
 
-        public void writeRecord(int[] dataRecord) {
+        public void onDataRecordReceived(int[] dataRecord) {
             try {
-                for (RecordsStream stream : streams) {
-                    stream.writeRecord(dataRecord);
+                for (DataRecordStream stream : streams) {
+                    stream.writeDataRecord(dataRecord);
                 }
                 notifyProgressOnDataReceived();
             } catch (IORuntimeException ex) {
@@ -326,10 +326,10 @@ public class EdfBioRecorderApp {
 
     class StartFutureHandlingTask extends TimerTask {
         private Future future;
-        private final List<RecordsStream> streams;
+        private final List<DataRecordStream> streams;
         private RecorderType recorderType;
 
-        public StartFutureHandlingTask(Future future, RecorderType recorderType, List<RecordsStream> streams) {
+        public StartFutureHandlingTask(Future future, RecorderType recorderType, List<DataRecordStream> streams) {
             this.future = future;
             this.streams = streams;
             this.recorderType = recorderType;
@@ -362,7 +362,7 @@ public class EdfBioRecorderApp {
 
         private void closeStreamsAndStartMonitoring() {
             startMonitoring();
-            for (RecordsStream stream : streams) {
+            for (DataRecordStream stream : streams) {
                 try {
                     stream.close();
                 } catch (Exception ex) {
