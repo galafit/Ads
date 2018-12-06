@@ -11,5 +11,6 @@ public enum AdsMessageType {
     ADS_8_CHANNELS,
     FIRMWARE,
     TX_FAIL,
+    UNKNOWN,
     FRAME_BROKEN;
 }

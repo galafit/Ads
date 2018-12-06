@@ -97,14 +97,14 @@ class FrameDecoder implements ComportListener {
             frameIndex++;
         } else if (frameIndex == 2) {
             rawFrame[frameIndex] = inByte;
-            frameIndex++;
             if (rawFrame[1] == MESSAGE_MARKER) {   //message length
                 // create new rowFrame with length = message length
                 int msg_size = inByte & 0xFF;
                 if (msg_size <= MAX_MESSAGE_SIZE) {
                     frameSize = msg_size;
+                    frameIndex++;
                 } else {
-                    String infoMsg = "Message frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                    String infoMsg = "Message frame broken. Too big message size. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte) + " Max message size: "+ MAX_MESSAGE_SIZE;
                     notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
                     frameIndex = 0;
                 }
@@ -173,12 +173,9 @@ class FrameDecoder implements ComportListener {
             info = "TX fail message received";
             adsMessageType = AdsMessageType.TX_FAIL;
         } else {
-            StringBuilder sb = new StringBuilder("Unknown message received: ");
-            for (int i = 0; i < rawFrame[2]; i++) {
-                sb.append(byteToHexString(rawFrame[i]));
-            }
-            log.info(sb.toString());
-            return;
+            info = "Unknown message received";
+            adsMessageType = AdsMessageType.UNKNOWN;
+            log.info(info);
         }
         notifyMessageListeners(adsMessageType, info);
     }

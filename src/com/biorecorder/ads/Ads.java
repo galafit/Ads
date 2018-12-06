@@ -66,7 +66,7 @@ public class Ads {
     private static final int SLEEP_TIME_MS = 1000;
     private static final int ACTIVE_PERIOD_MS = 2 * SLEEP_TIME_MS;
 
-    private static final int MAX_STARTING_TIME_MS = 5 * 1000;
+    private static final int MAX_STARTING_TIME_MS = 10 * 1000;
 
     private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
     private static final String RECORDING_MSG = "Ads is recording. Stop it first";
@@ -213,10 +213,11 @@ public class Ads {
                     throwException(TIME_OUT_ERR_MSG);
                 }
             }
+
             // 2) request adsType if it is unknown
             if (adsType == null) {
-               // comport.writeByte(HARDWARE_REQUEST);
-                Thread.sleep(SLEEP_TIME_MS);
+                comport.writeByte(HARDWARE_REQUEST);
+                Thread.sleep(SLEEP_TIME_MS * 2);
             }
 
             // if adsType is wrong
@@ -229,7 +230,7 @@ public class Ads {
             if (stateBeforeStart == AdsState.UNDEFINED) {
                 if (comport.writeByte(STOP_REQUEST)) {
                     // give the ads time to stop
-                    Thread.sleep(SLEEP_TIME_MS);
+                    Thread.sleep(SLEEP_TIME_MS * 2);
                 }
             }
 
@@ -347,7 +348,7 @@ public class Ads {
         frameDecoder.addMessageListener(new MessageListener() {
             @Override
             public void onMessage(AdsMessageType messageType, String message) {
-                if (messageType == AdsMessageType.HELLO) {
+                if (messageType == AdsMessageType.HELLO || messageType == AdsMessageType.UNKNOWN) {
                     lastEventTime = System.currentTimeMillis();
                 }
                 if (messageType == AdsMessageType.ADS_2_CHANNELS) {
