@@ -31,12 +31,11 @@ class FrameDecoder implements ComportListener {
     private int shortBlocksCount;
     /***************************************************************/
 
-
     private int frameIndex;
     private int frameSize;
-    private int rowFrameSizeInBytes;
+    private int rowFrameSizeInByte;
     private int numberOf3ByteSamples;
-    private int decodedFrameSizeInInts;
+    private int decodedFrameSizeInInt;
     private byte[] rawFrame;
     private int[] accPrev = new int[3];
     private final AdsConfig adsConfig;
@@ -49,10 +48,10 @@ class FrameDecoder implements ComportListener {
         }
         adsConfig = configuration;
         numberOf3ByteSamples = getNumberOf3ByteSamples();
-        rowFrameSizeInBytes = getRawFrameSize();
-        decodedFrameSizeInInts = getDecodedFrameSize();
-        rawFrame = new byte[Math.max(rowFrameSizeInBytes, MAX_MESSAGE_SIZE)];
-        log.info("frame size: " + rowFrameSizeInBytes + " bytes");
+        rowFrameSizeInByte = getRawFrameSize();
+        decodedFrameSizeInInt = getDecodedFrameSize();
+        rawFrame = new byte[Math.max(rowFrameSizeInByte, MAX_MESSAGE_SIZE)];
+        log.info("frame size: " + rowFrameSizeInByte + " bytes");
     }
 
     /**
@@ -90,21 +89,22 @@ class FrameDecoder implements ComportListener {
             frameIndex++;
         } else if (frameIndex == 1 && inByte == START_FRAME_MARKER) {  //receiving data record
             rawFrame[frameIndex] = inByte;
-            frameSize = rowFrameSizeInBytes;
+            frameSize = rowFrameSizeInByte;
             frameIndex++;
         } else if (frameIndex == 1 && inByte == MESSAGE_MARKER) {  //receiving message
             rawFrame[frameIndex] = inByte;
             frameIndex++;
         } else if (frameIndex == 2) {
             rawFrame[frameIndex] = inByte;
+            frameIndex++;
             if (rawFrame[1] == MESSAGE_MARKER) {   //message length
                 // create new rowFrame with length = message length
                 int msg_size = inByte & 0xFF;
                 if (msg_size <= MAX_MESSAGE_SIZE) {
                     frameSize = msg_size;
-                    frameIndex++;
+
                 } else {
-                    String infoMsg = "Message frame broken. Too big message size. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte) + " Max message size: "+ MAX_MESSAGE_SIZE;
+                    String infoMsg = "Invalid message frame. Too big frame size. Received byte = " + byteToHexString(inByte) + ",  max message size: "+ MAX_MESSAGE_SIZE + ". Frame index = " + (frameIndex - 1);
                     notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
                     frameIndex = 0;
                 }
@@ -117,16 +117,18 @@ class FrameDecoder implements ComportListener {
             if (inByte == STOP_FRAME_MARKER) {
                 onFrameReceived();
             } else {
-                String infoMsg = "Frame broken. No stop frame marker. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
+                String infoMsg = "Invalid data frame. ";
+                if(rawFrame[1] == MESSAGE_MARKER) {
+                    infoMsg = "Invalid message frame. ";
+                }
+                infoMsg = infoMsg + "No stop frame marker. Received byte = " + byteToHexString(inByte) + ". Frame index = " + frameIndex;
                 notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
             }
             frameIndex = 0;
         } else {
-            // if adsConfig == null data frames can not be correctly detected
-            if(adsConfig != null) { // frameSize != 0
-                String infoMsg = "Frame broken. Frame index = " + frameIndex + " received byte = " + byteToHexString(inByte);
-                notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
-            }
+            String infoMsg = "Unrecognized byte received: " + byteToHexString(inByte);
+            notifyMessageListeners(AdsMessageType.FRAME_BROKEN, infoMsg);
+
             frameIndex = 0;
         }
     }
@@ -181,7 +183,7 @@ class FrameDecoder implements ComportListener {
     }
 
     private void onDataRecordReceived() {
-        int[] decodedFrame = new int[decodedFrameSizeInInts];
+        int[] decodedFrame = new int[decodedFrameSizeInInt];
         int rawFrameOffset = 4;
         int decodedFrameOffset = 0;
         for (int i = 0; i < numberOf3ByteSamples; i++) {

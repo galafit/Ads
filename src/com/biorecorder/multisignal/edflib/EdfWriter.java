@@ -107,10 +107,6 @@ public class EdfWriter implements DataRecordStream {
         return new DataHeader(header);
     }
 
-    public File getFile() {
-        return file;
-    }
-
     /**
      * Writes n "raw" digital (integer) samples belonging to one signal.
      * The number of written samples : n = (sample frequency of the signal) * (duration of DataRecord).
@@ -331,23 +327,6 @@ public class EdfWriter implements DataRecordStream {
         } catch (IOException e) {
             throw new IORuntimeException(e);
         }
-     
-    }
-
-    /**
-     * Gets some info about file writing process: startRecording recording time, stop recording time,
-     * number of written data records, average duration of data records.
-     *
-     * @return string with some info about writing process
-     */
-    public String getWritingInfo() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Start recording time = "  + dateFormat.format(new Date(header.getRecordingStartTimeMs())) + "\n");
-        stringBuilder.append("Duration of data records(sec) = " + header.getDurationOfDataRecord()+ "\n");
-        stringBuilder.append("Number of data records = " + getNumberOfReceivedDataRecords());
-
-        return stringBuilder.toString();
     }
 
 
@@ -422,10 +401,6 @@ public class EdfWriter implements DataRecordStream {
 
         // print header info
         System.out.println(header);
-        System.out.println();
-        // print writing info
-        System.out.println(fileWriter.getWritingInfo());
-
     }
 
 }

@@ -66,7 +66,7 @@ public class Ads {
     private static final int SLEEP_TIME_MS = 1000;
     private static final int ACTIVE_PERIOD_MS = 2 * SLEEP_TIME_MS;
 
-    private static final int MAX_STARTING_TIME_MS = 10 * 1000;
+    private static final int MAX_STARTING_TIME_MS = 30 * 1000;
 
     private static final String DISCONNECTED_MSG = "Ads is disconnected and its work is finalised";
     private static final String RECORDING_MSG = "Ads is recording. Stop it first";
@@ -131,7 +131,6 @@ public class Ads {
             executorFuture.cancel(true);
         }
         executorFuture = singleThreadExecutor.submit(new MonitoringTask());
-        System.out.println("start monitoring ");
     }
 
     /**

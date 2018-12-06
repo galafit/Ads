@@ -224,7 +224,7 @@ public class EdfBioRecorderApp {
             // create edf file stream
             File edfFile = new File(dirname, normalizeFilename(appConfig.getFileName()));
 
-            DataHeader dataConfig = bioRecorder.getDataHeader(recorderConfig);
+            DataHeader dataHeader = bioRecorder.getDataHeader(recorderConfig);
 
             // create lab stream
             if (appConfig.isLabStreamingEnabled()) {
@@ -245,7 +245,7 @@ public class EdfBioRecorderApp {
                 }
                 try {
                     lslStream = new LslStream(numberOfAdsChannels, numberOfAccChannels);
-                    lslStream.setHeader(dataConfig);
+                    lslStream.setHeader(dataHeader);
                     streams.add(lslStream);
                 } catch (IllegalArgumentException ex) {
                     log.info("LabStreaming failed to start", ex);
@@ -253,35 +253,38 @@ public class EdfBioRecorderApp {
                 }
             }
 
+
            // extra dividers
+            Map<Integer, Integer> extraDividers = new HashMap<>();
+            int enableChannelsCount = 0;
+            for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
+                if (recorderConfig.isChannelEnabled(i)) {
+                    int extraDivider = appConfig.getChannelExtraDivider(i).getValue();
+                    if (extraDivider > 1) {
+                        extraDividers.put(enableChannelsCount, extraDivider);
+                    }
+                    enableChannelsCount++;
+                }
+            }
+
+            if (recorderConfig.isAccelerometerEnabled()) {
+                Integer extraDivider = appConfig.getAccelerometerExtraDivider().getValue();
+                if(extraDivider > 1) {
+                    if (recorderConfig.isAccelerometerOneChannelMode()) {
+                        extraDividers.put(enableChannelsCount, extraDivider);
+                    } else {
+                        extraDividers.put(enableChannelsCount, extraDivider);
+                        extraDividers.put(enableChannelsCount + 1, extraDivider);
+                        extraDividers.put(enableChannelsCount + 2, extraDivider);
+                    }
+                }
+            }
+
             try {
-                Map<Integer, Integer> extraDividers = new HashMap<>();
-                int enableChannelsCount = 0;
-                for (int i = 0; i < recorderConfig.getChannelsCount(); i++) {
-                    if (recorderConfig.isChannelEnabled(i)) {
-                        int extraDivider = appConfig.getChannelExtraDivider(i).getValue();
-                        if (extraDivider > 1) {
-                            extraDividers.put(enableChannelsCount, extraDivider);
-                        }
-                        enableChannelsCount++;
-                    }
-                }
-
-                if (recorderConfig.isAccelerometerEnabled()) {
-                    Integer extraDivider = appConfig.getAccelerometerExtraDivider().getValue();
-                    if(extraDivider > 1) {
-                        if (recorderConfig.isAccelerometerOneChannelMode()) {
-                            extraDividers.put(enableChannelsCount, extraDivider);
-                        } else {
-                            extraDividers.put(enableChannelsCount, extraDivider);
-                            extraDividers.put(enableChannelsCount + 1, extraDivider);
-                            extraDividers.put(enableChannelsCount + 2, extraDivider);
-                        }
-                    }
-                }
-
-                edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), extraDividers, appConfig.getPatientIdentification(), appConfig.getRecordingIdentification(), appConfig.isDurationOfDataRecordAdjustable());
-                edfStream.setHeader(dataConfig);
+                edfStream = new EdfStream(edfFile, appConfig.getNumberOfRecordsToJoin(), extraDividers, appConfig.isDurationOfDataRecordAdjustable());
+                dataHeader.setPatientIdentification(appConfig.getPatientIdentification());
+                dataHeader.setRecordingIdentification(appConfig.getRecordingIdentification());
+                edfStream.setHeader(dataHeader);
                 streams.add(edfStream);
             } catch (FileNotFoundRuntimeException ex) {
                 log.error(ex);
@@ -429,7 +432,7 @@ public class EdfBioRecorderApp {
         if (edfStream != null) {
             try {
                 edfStream.close(recordingInfo);
-                if (edfStream.getNumberOfWrittenRecords() > 0) {
+                if (edfStream.getNumberOfWrittenDataRecords() > 0) {
                     //msg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfFile + "\n\n" + edfStream1.getWritingInfo());
                     String logMsg = new Message(Message.TYPE_DATA_SUCCESSFULLY_SAVED, edfStream.getFile() + "\n\n" + edfStream.getWritingInfo()).getMessage();
                     log.info(logMsg);
